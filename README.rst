@@ -14,3 +14,14 @@ Supported GNU/Linux distributions
 ---------------------------------
 
 * CentOS 7.2
+
+Installation
+-----------
+
+RPM Based distributions
+^^^^^^^^^^^^^^^^^^^^^^^
+
+* Install PyYAML:
+::
+
+# sudo yum install -y PyYAML
