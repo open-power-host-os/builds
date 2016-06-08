@@ -17,6 +17,7 @@ import sys
 
 from lib import config
 from lib import log
+from lib import manager
 
 
 def main(args):
@@ -27,6 +28,8 @@ def main(args):
         return 2
 
     log.Log(conf.config.get('log_file'))
+    build_manager = manager.BuildManager(conf)
+    build_manager()
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))

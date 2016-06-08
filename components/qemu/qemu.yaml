@@ -1,0 +1,3 @@
+Package:
+ name: 'QEMU'
+ clone_url: 'https://github.com/open-power-host-os/qemu.git'

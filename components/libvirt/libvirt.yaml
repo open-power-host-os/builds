@@ -1,0 +1,3 @@
+Package:
+ name: 'libvirt'
+ clone_url: 'https://github.com/open-power-host-os/libvirt.git'
