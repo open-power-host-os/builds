@@ -16,6 +16,6 @@
 import logging
 
 
-class Log(object):
+class LogHelper(object):
     def __init__(self, logfile=None, level=logging.DEBUG):
         logging.basicConfig(filename=logfile, level=level)
