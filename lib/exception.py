@@ -13,23 +13,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys
 
-from lib import config
-from lib import log_helper
-from lib import manager
+class BaseException(Exception):
+
+    msg = "Failed to build packages"
+    errno = 1
+
+    def __init__(self, message=None, **kwargs):
+        if message is None:
+            self.message = self.msg % kwargs
+        super(BaseException, self).__init__(message)
 
 
-def main(args):
-    try:
-        conf = config.ConfigParser(args)
-    except OSError:
-        print("Failed to parse settings")
-        return 2
+class DistributionDetectionError(BaseException):
+    msg = "Failed to detect system's GNU/Linux distribution"
 
-    log_helper.LogHelper(logfile=conf.config.get('default').get('log_file'))
-    build_manager = manager.BuildManager(conf)
-    return build_manager()
 
-if __name__ == '__main__':
-    sys.exit(main(sys.argv[1:]))
+class DistributionNotSupportedError(BaseException):
+    msg = "%(distribution)s distribution is not supported"
+
+
+class DistributionVersionNotSupportedError(BaseException):
+    msg = "%(distribution)s version %(version)s is not supported"

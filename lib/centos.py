@@ -13,23 +13,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys
+import distro
 
-from lib import config
-from lib import log_helper
-from lib import manager
+CENTOS_VERSIONS = ["7.2", ]
 
 
-def main(args):
-    try:
-        conf = config.ConfigParser(args)
-    except OSError:
-        print("Failed to parse settings")
-        return 2
+class CentOS(distro.LinuxDistribution):
 
-    log_helper.LogHelper(logfile=conf.config.get('default').get('log_file'))
-    build_manager = manager.BuildManager(conf)
-    return build_manager()
+    supported_versions = CENTOS_VERSIONS
 
-if __name__ == '__main__':
-    sys.exit(main(sys.argv[1:]))
+    def __init__(self, name=None, version=None):
+        super(CentOS, self).__init__(name=name, version=version)
+
+    def build_packages(self, environment, packages):
+        pass

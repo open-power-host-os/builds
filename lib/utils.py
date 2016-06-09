@@ -15,10 +15,16 @@
 
 import logging
 import os
+import platform
+
+import centos
+import exception
 
 LOG = logging.getLogger(__name__)
-
 SOFTWARE_DIRECTORY = os.path.join(os.getcwd(), "components")
+DISTRIBUTIONS = {
+    "scentos": centos.CentOS,
+}
 
 
 def discover_software():
@@ -48,3 +54,23 @@ def discover_software():
             os.path.isfile(os.path.join(SOFTWARE_DIRECTORY, software,
                                         "".join([software, ".yaml"])))
             ]
+
+
+def detect_distribution():
+    # TODO(maurosr): Replace platform module by some alternative like distro
+    # (https://github.com/nir0s/distro) or maybe just implementing our own
+    # solution => platform module is deprecated in python 3.5 and will be
+    # removed in python 3.7
+    distro, version, _ = platform.linux_distribution(full_distribution_name=0)
+
+    # NOTE(maurosr): when it fails to detect the distro it defaults to the
+    # distro and version arguments passsed as parameters - their default
+    # values are empty strings.
+    if not distro and not version:
+        raise exception.DistributionDetectionError
+    try:
+        # NOTE(maurosr): distro is a tuple distro_name, version, id, let's
+        # ignore id which doesn't bring anything to the table.
+        return DISTRIBUTIONS.get(distro, None)(distro, version)
+    except TypeError:
+        raise exception.DistributionNotSupportedError(distribution=distro)
