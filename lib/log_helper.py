@@ -14,8 +14,24 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import os
 
 
 class LogHelper(object):
     def __init__(self, logfile=None, level=logging.DEBUG):
+        self.logfile = logfile
+        self.loglevel = level
+
+        self._directory_setup()
         logging.basicConfig(filename=logfile, level=level)
+
+    def _directory_setup(self):
+        logpath, _ = os.path.split(self.logfile)
+        try:
+            os.makedirs(logpath)
+        except OSError:
+            # failled to create
+            if not os.path.exists(logpath):
+                raise
+            # Directory already exists
+            pass
