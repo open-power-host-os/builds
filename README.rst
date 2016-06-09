@@ -13,7 +13,7 @@ software well packaged and designed for the `Supported GNU/Linux distributions`_
 Supported GNU/Linux distributions
 ---------------------------------
 
-* CentOS 7.2
+* CentOS 7.2 PPC64LE
 
 Installation
 -----------
