@@ -23,7 +23,7 @@ import exception
 LOG = logging.getLogger(__name__)
 SOFTWARE_DIRECTORY = os.path.join(os.getcwd(), "components")
 DISTRIBUTIONS = {
-    "scentos": centos.CentOS,
+    "centos": centos.CentOS,
 }
 
 
@@ -62,15 +62,14 @@ def detect_distribution():
     # solution => platform module is deprecated in python 3.5 and will be
     # removed in python 3.7
     distro, version, _ = platform.linux_distribution(full_distribution_name=0)
+    arch_and_endianess = platform.machine()
 
     # NOTE(maurosr): when it fails to detect the distro it defaults to the
     # distro and version arguments passsed as parameters - their default
     # values are empty strings.
-    if not distro and not version:
+    if not distro or not version or not arch_and_endianess:
         raise exception.DistributionDetectionError
-    try:
-        # NOTE(maurosr): distro is a tuple distro_name, version, id, let's
-        # ignore id which doesn't bring anything to the table.
-        return DISTRIBUTIONS.get(distro, None)(distro, version)
-    except TypeError:
+    if not DISTRIBUTIONS.get(distro, None):
         raise exception.DistributionNotSupportedError(distribution=distro)
+
+    return DISTRIBUTIONS.get(distro, None)(distro, version, arch_and_endianess)

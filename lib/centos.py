@@ -22,8 +22,9 @@ class CentOS(distro.LinuxDistribution):
 
     supported_versions = CENTOS_VERSIONS
 
-    def __init__(self, name=None, version=None):
-        super(CentOS, self).__init__(name=name, version=version)
+    def __init__(self, name, version, arch_and_endianess):
+        super(CentOS, self).__init__(name=name, version=version,
+                                     arch_and_endianess=arch_and_endianess)
 
     def build_packages(self, environment, packages):
         pass

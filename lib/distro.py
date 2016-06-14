@@ -18,17 +18,23 @@ import exception
 import logging
 
 LOG = logging.getLogger(__name__)
+# NOTE(maurosr): make it a constant since we only plan to work with little
+# endian GNU/Linux distributions.
+SUPPORTED_ARCH_AND_ENDIANESS = ("PPC64LE")
 
 
 class LinuxDistribution(object):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name=None, version=None):
+    def __init__(self, name=None, version=None, arch_and_endianess=None):
         """
         :raises exception.DistributionVersionNotSupportedError: Unsupported
         distro.
         """
         self.lsb_name = name
+        if arch_and_endianess.upper() not in SUPPORTED_ARCH_AND_ENDIANESS:
+            raise exception.DistributionVersionNotSupportedError(
+                msg="Endianess not supported: %s" % arch_and_endianess)
 
         # NOTE(maurosr): to support multiple builds of a same version
         for supported_version in self.supported_versions:
