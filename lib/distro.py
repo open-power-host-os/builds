@@ -14,8 +14,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import abc
-import exception
 import logging
+
+import exception
 
 LOG = logging.getLogger(__name__)
 # NOTE(maurosr): make it a constant since we only plan to work with little
