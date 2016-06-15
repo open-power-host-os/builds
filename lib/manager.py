@@ -17,6 +17,7 @@ import logging
 
 import utils
 import exception
+import package
 
 
 LOG = logging.getLogger(__name__)
@@ -25,20 +26,31 @@ LOG = logging.getLogger(__name__)
 class BuildManager(object):
     def __init__(self, config):
         self.conf = config
-        self.packages = self.conf.config.get('packages')
+        self.packages_list = self.conf.config.get('default').get('packages')
         self.distro = None
 
     def __call__(self):
         try:
             self._distro = utils.detect_distribution()
+            self._prepare_packages()
         # distro related issues
         except (exception.DistributionNotSupportedError,
                 exception.DistributionVersionNotSupportedError,
                 exception.DistributionDetectionError) as exc:
-            LOG.exception("Error during distribution detection.")
+            LOG.exception("Error during distribution detection. "
+                          "See the logs for more information")
+            return exc.errno
+        except exception.PackageError as exc:
+            LOG.exception("Failed to load the package in components. "
+                          "See the logs for more information")
             return exc.errno
 
         return self.build()
 
     def build(self):
         pass
+
+    def _prepare_packages(self):
+        return [
+            package.Package(x, self._distro) for x in set(self.packages_list)
+        ]

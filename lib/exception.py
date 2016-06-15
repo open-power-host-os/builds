@@ -25,13 +25,29 @@ class BaseException(Exception):
         super(BaseException, self).__init__(message)
 
 
-class DistributionDetectionError(BaseException):
+class DistributionError(BaseException):
+    msg = "Distribution not Supported"
+
+
+class DistributionDetectionError(DistributionError):
     msg = "Failed to detect system's GNU/Linux distribution"
 
 
-class DistributionNotSupportedError(BaseException):
+class DistributionNotSupportedError(DistributionError):
     msg = "%(distribution)s distribution is not supported"
 
 
-class DistributionVersionNotSupportedError(BaseException):
+class DistributionVersionNotSupportedError(DistributionError):
     msg = "%(distribution)s version %(version)s is not supported"
+
+
+class PackageError(BaseException):
+    msg = "Failed to gather %(package)s's information"
+
+
+class PackageSpecError(PackageError):
+    msg = "%(package)s's spec for %(distro)s %(distro_version)s not Found."
+
+
+class PackageDescriptorError(PackageError):
+    msg = "Missing data in %(package)s's YAML descriptor"

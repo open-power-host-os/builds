@@ -19,9 +19,9 @@ import platform
 
 import centos
 import exception
+import package
 
 LOG = logging.getLogger(__name__)
-SOFTWARE_DIRECTORY = os.path.join(os.getcwd(), "components")
 DISTRIBUTIONS = {
     "centos": centos.CentOS,
 }
@@ -49,9 +49,11 @@ def discover_software():
     "kernel" and "libvirt" will be discovered, "not-a-software" and "file"
     will not.
     """
-    return [software for software in os.listdir(SOFTWARE_DIRECTORY)
-            if os.path.isdir(os.path.join(SOFTWARE_DIRECTORY, software)) and
-            os.path.isfile(os.path.join(SOFTWARE_DIRECTORY, software,
+    return [software for software in os.listdir(package.COMPONENTS_DIRECTORY)
+            if os.path.isdir(os.path.join(package.COMPONENTS_DIRECTORY,
+                                          software)) and
+            os.path.isfile(os.path.join(package.COMPONENTS_DIRECTORY,
+                                        software,
                                         "".join([software, ".yaml"])))
             ]
 

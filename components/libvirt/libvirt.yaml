@@ -1,3 +1,7 @@
 Package:
  name: 'libvirt'
  clone_url: 'https://github.com/open-power-host-os/libvirt.git'
+ specs:
+  centos:
+   '7.2': 'centOS/7.2/libvirt.spec'
+
