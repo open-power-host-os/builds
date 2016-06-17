@@ -18,7 +18,7 @@ import logging
 
 import yaml
 
-import utils
+from lib import utils
 
 LOG = logging.getLogger(__name__)
 

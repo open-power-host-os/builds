@@ -16,7 +16,7 @@
 import abc
 import logging
 
-import exception
+from lib import exception
 
 LOG = logging.getLogger(__name__)
 # NOTE(maurosr): make it a constant since we only plan to work with little

@@ -15,9 +15,9 @@
 
 import logging
 
-import exception
-import package
-import utils
+from lib import exception
+from lib import package
+from lib import utils
 
 
 LOG = logging.getLogger(__name__)
