@@ -21,7 +21,10 @@ Installation
 RPM Based distributions
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-* Install PyYAML:
+Install
+ * PyYAML
+ * python-pygit2
+
 ::
 
-# sudo yum install -y PyYAML
+# sudo yum install -y PyYAML python-pygit2

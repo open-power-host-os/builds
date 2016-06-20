@@ -42,6 +42,7 @@ class Package(object):
                 package = yaml.load(package_file)['Package']
                 self.name = package['name']
                 self.clone_url = package['clone_url']
+                self.branch = package.get('branch', None)
                 self.specfile = os.path.join(
                     COMPONENTS_DIRECTORY,
                     package_name,

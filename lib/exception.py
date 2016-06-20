@@ -51,3 +51,8 @@ class PackageSpecError(PackageError):
 
 class PackageDescriptorError(PackageError):
     msg = "Missing data in %(package)s's YAML descriptor"
+
+
+class RepositoryError(BaseException):
+    msg = "Failed to setup %(package)s's repository at %(repo_path)s."
+
