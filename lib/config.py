@@ -55,5 +55,8 @@ class ConfigParser(object):
         parser.add_argument('--log-file', '-l',
                             help='Log file',
                             default='/var/log/host-os/builds.log')
+        parser.add_argument('--verbose', '-v',
+                            help='Set the scripts to be verbose',
+                            action='store_true')
         args = parser.parse_args()
         return vars(args)

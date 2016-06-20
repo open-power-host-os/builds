@@ -27,7 +27,8 @@ def main(args):
         print("Failed to parse settings")
         return 2
 
-    log_helper.LogHelper(logfile=conf.config.get('default').get('log_file'))
+    log_helper.LogHelper(logfile=conf.config.get('default').get('log_file'),
+                         verbose=conf.config.get('default').get('verbose'))
     build_manager = manager.BuildManager(conf)
     return build_manager()
 

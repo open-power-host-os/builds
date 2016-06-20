@@ -15,15 +15,20 @@
 
 import logging
 import os
+import sys
 
 
 class LogHelper(object):
-    def __init__(self, logfile=None, level=logging.DEBUG):
+    def __init__(self, logfile=None, level=logging.DEBUG, verbose=False):
         self.logfile = logfile
         self.loglevel = level
 
         self._directory_setup()
+
         logging.basicConfig(filename=logfile, level=level)
+        if verbose:
+            logger = logging.getLogger()
+            logger.addHandler(logging.StreamHandler(sys.stdout))
 
     def _directory_setup(self):
         logpath, _ = os.path.split(self.logfile)
