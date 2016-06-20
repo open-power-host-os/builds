@@ -48,9 +48,10 @@ class LinuxDistribution(object):
         LOG.info("Distribution detected: %(lsb_name)s %(version)s" %
                  vars(self))
 
-    @abc.abstractmethod
-    def build_packages(self):
+    def build_packages(self, packages):
         """
         This is were distro and builder interact and produce the packages we
         want.
         """
+        for package in packages:
+            self.package_builder.build(package)

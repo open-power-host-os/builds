@@ -17,7 +17,6 @@ import logging
 
 from lib import exception
 from lib import package
-from lib import repository
 from lib import utils
 
 
@@ -36,7 +35,7 @@ class BuildManager(object):
         try:
             self._distro = utils.detect_distribution()
             self.packages = self._prepare_packages()
-            self.repositories = self._prepare_repositories()
+            self._prepare_repositories()
         # distro related issues
         except (exception.DistributionNotSupportedError,
                 exception.DistributionVersionNotSupportedError,
@@ -52,7 +51,7 @@ class BuildManager(object):
         return self.build()
 
     def build(self):
-        pass
+        self._distro.build_packages(self.packages)
 
     def _prepare_packages(self):
         return [package.Package(x, self._distro) for x in set(
@@ -60,8 +59,6 @@ class BuildManager(object):
 
     def _prepare_repositories(self):
         dest = self.conf.config.get('default').get('repositories_path')
-        return [repository.Repo(package_name=p.name, clone_url=p.clone_url,
-                                dest_path=dest, branch=p.branch or
-                                self.conf.config.get('branch'))
-                for p in self.packages
-                ]
+        for package in self.packages:
+            package.setup_repository(dest=dest,
+                                     branch=self.conf.config.get('branch'))

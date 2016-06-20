@@ -24,12 +24,12 @@ Summary: The Linux kernel
 
 # This crazy release structure is so the daily scratch builds and the weekly official builds
 #   will always yum install correctly over each other
-%define release_week 17
+%define release_week 22
 %define release_day 0
-%define release_spin 1
+%define release_spin 0
 %define pkvm_release .pkvm3_1_1.%{?release_week}0%{?release_day}.%{?release_spin}
 
-%define rpmversion 4.4.6
+%define rpmversion 4.4.11
 %define pkgrelease 3
 
 # allow pkg_release to have configurable %{?dist} tag
@@ -480,6 +480,8 @@ Source2001: cpupower.config
 
 BuildRoot: %{_tmppath}/kernel-%{KVRA}-root
 
+#atch999: fix.script.location.patch
+
 %description
 The kernel package contains the Linux kernel (vmlinuz), the core of any
 Linux operating system.  The kernel handles the basic functions
@@ -710,6 +712,7 @@ required only on machines which will use the kexec-based kernel crash dump
 mechanism.
 
 %prep
+
 # do a few sanity-checks for --with *only builds
 %if %{with_baseonly}
 %if !%{with_default}
@@ -719,18 +722,20 @@ exit 1
 %endif
 
 tar xzf %{SOURCE0}
-mv kernel-%{?release_week}0%{?release_day}.%{?release_spin} linux-%{KVRA}
+mv kernel-%{?release_week}0%{?release_day}.%{?release_spin} kernel-%{KVRA}
 #setup -q -n kernel-%{rheltarball} -c
 
 
 #mv linux-%{rheltarball} linux-%{KVRA}
-cd linux-%{KVRA}
+cd kernel-%{KVRA}
 
 # Drop some necessary files from the source dir into the buildroot
 #cp $RPM_SOURCE_DIR/kernel-%{version}-*.config .
 %define make make %{?cross_opts}
 cp %{SOURCE1001} .
 cp %{SOURCE1001} .config
+
+#/usr/bin/patch -p1 < $RPM_SOURCE_DIR/fix.script.location.patch
 
 # Any further pre-build tree manipulations happen here.
 make oldconfig
@@ -1164,7 +1169,7 @@ rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/boot
 mkdir -p $RPM_BUILD_ROOT%{_libexecdir}
 
-cd linux-%{KVRA}
+cd kernel-%{KVRA}
 
 %if %{with_default}
 BuildKernel %make_target %kernel_image
@@ -1302,7 +1307,7 @@ find Documentation -type d | xargs chmod u+w
 
 %install
 
-cd linux-%{KVRA}
+cd kernel-%{KVRA}
 
 %if %{with_doc}
 docdir=$RPM_BUILD_ROOT%{_datadir}/doc/kernel-doc-%{rpmversion}
@@ -1413,6 +1418,11 @@ touch -a %{SOURCE2000}
 touch -a %{SOURCE2001}
 %endif
 
+%ifnarch noarch
+ mkdir -p $RPM_BUILD_ROOT/usr/src/kernels/%{KVRA}%{?2:.%{2}}/arch/powerpc/scripts
+ install -m 0755  arch/powerpc/scripts/gcc-check-mprofile-kernel.sh $RPM_BUILD_ROOT/usr/src/kernels/%{KVRA}%{?2:.%{2}}/arch/powerpc/scripts/gcc-check-mprofile-kernel.sh
+%endif
+
 ###
 ### clean
 ###
@@ -1423,6 +1433,7 @@ rm -rf $RPM_BUILD_ROOT
 ###
 ### scripts
 ###
+
 
 %if %{with_tools}
 %post -n kernel-tools
@@ -1599,6 +1610,7 @@ fi
 %if %{with_tools}
 %files -n kernel-tools -f cpupower.lang
 %defattr(-,root,root)
+
 %ifarch %{cpupowerarchs}
 %{_bindir}/cpupower
 %ifarch x86_64
@@ -1696,56 +1708,57 @@ fi
 %kernel_variant_files %{with_debug} debug
 %kernel_variant_files %{with_kdump} kdump
 
+
 %changelog
-* Wed May 11 2016 <baseuser@ibm.com>
+* Wed Jun 15 2016 <baseuser@ibm.com>
   Log from git:
-- 347cbd06b7a1c682fe82ff5980a148d8ee87baae perf tools: Fix perf regs mask generation
-- 2f16cad9a4d8a25d9354b8f40161b5bd32392e1c perf/powerpc: Add support for unwinding perf-stackdump
-- 69c9dea1ba6bc73676f7d586e9e1b294fcdc4ef1 powerpc: Add HAVE_PERF_USER_STACK_DUMP support
-- edb337871b2375c068a72da5a594b54ec95656d0 tool/perf: Add sample_reg_mask to include all perf_regs
-- a6d1c87f3abe20958a9e1f77a317ec53205d3748 tools/perf: Map the ID values with register names
-- 5daa2e5531c2adf6bdbcd88bfb5f36a5e5d340c8 powerpc/perf: Add support for sampling interrupt register state
-- 15f1586e55ffbad460e8991c0754ce3cb02dab39 powerpc/perf: Assign an id to each powerpc register
-- 8edba1e601a7161918e37da45d9065331fdbd1fd perf kvm/powerpc: Add support for HCALL reasons
-- 170fd8677d186cd00a922423dcea14e4a98eca27 perf kvm/powerpc: Port perf kvm stat to powerpc
-- d87a198e12b37046728c99ae5e6743144dc527d5 perf kvm/{x86, s390}: Remove const from kvm_events_tp
-- f71514582b8235b32aecd150f38c53083651f46d perf kvm/{x86, s390}: Remove dependency on uapi/kvm_perf.h
-- 188198f460e9e381babaa95352d3bb388eba7cc5 KVM: PPC: Fix emulated MMIO sign-extension
-- 981c896d2b0fee3ed1200d108bd6d1898ac90f06 lpfc: Default to not mapping interrupts according to CPU number
-- ba79d8c0bbb90f0b842f7d837ee523cf69e5e369 powerpc/xmon: Add xmon command to dump process/task similar to ps(1)
-- 9b6667085b7ccee41716565a711cac1ada4d0727 KVM: PPC: Book3S HV: Re-enable fast path for irqfd-generated interrupts
-- 14823935c07864b679661447ecb69a1bca3c8734 Merge tag 'v4.4.6' into powerkvm-v3.1.1
-- efe649e810d2368aa2e952f03a6c9601589f4a1c KVM: Update capability numbers
-- a1311888fc84ff08da4275a3bd8cca27020aeb84 ext4: more efficient SEEK_DATA implementation
-- 4afb3e5111f5ab1da05e4dd999eec7e1037afcfc ext4: return hole from ext4_map_blocks()
-- c6a983c66b8b6ad84eb94d574f17da7c48ccee99 ext4: factor out determining of hole size
-- 67f750bf4a8012c277ef01be0bb75f5472268a54 vhost_net: basic polling support
-- 0823a882e9ae352ec50d3589ad09195f1d00f668 vhost: introduce vhost_vq_avail_empty()
-- af4acd6d1581b5be12a86bf8bb5dc11a5b8df60b vhost: introduce vhost_has_work()
-- bea0e6bc2d0afc7e4288e1c0aee6ad08ff53ec4c md: Drop sending a change uevent when stopping
-- 0d1912303e54ed1b2a371be0bba51c384dd57326 Linux 4.4.6
-- f3f47e76d14820b150479d78ac8edad33a1e0c19 ld-version: Fix awk regex compile failure
-- 8e3f456d1bb095f02979a83a48cdc5cc4d866a23 target: Drop incorrect ABORT_TASK put for completed commands
-- b59ea3efba4889ece81056883193d78b51db11d1 block: don't optimize for non-cloned bio in bio_get_last_bvec()
-- a2cee580a541ab6f3ed75fe35b11d8074c2b58a1 MIPS: smp.c: Fix uninitialised temp_foreign_map
-- 588bad2ef32cae7abad24d5ca2f4611a7a7fb2a2 MIPS: Fix build error when SMP is used without GIC
-- 2f639e2e95ea8c06f287f768bc17d03d43480d0d ovl: fix getcwd() failure after unsuccessful rmdir
-- b3600dd6476cd5ce390991860789163aa109f490 ovl: copy new uid/gid into overlayfs runtime inode
-- 0b7f12be0d39e42cce88aa6b78a968d389273d8c userfaultfd: don't block on the last VM updates at exit time
-- 6175c8fd13cd61d7a17868aed1c332e6e7a855ea powerpc/powernv: Fix OPAL_CONSOLE_FLUSH prototype and usages
-- b2cd42d38981cd6d43cf3332017c768a212fb65c powerpc/powernv: Add a kmsg_dumper that flushes console output on panic
-- 331004fb48a2fb412059a93b50c72b1d67cfa47d powerpc: Fix dedotify for binutils >= 2.26
-- f8456804460f5c232f097e72051beea063f16074 Revert "drm/radeon/pm: adjust display configuration after powerstate"
-- 7a2d3f49bd33fa1cf7de91b2053e48e47606c33e drm/radeon: Fix error handling in radeon_flip_work_func.
-- 0f36e5ab227c3ca8770fddc5596a024176de0852 drm/amdgpu: Fix error handling in amdgpu_flip_work_func.
-- 6f0679556b563bcd3d433d5781454123f1d134c5 Revert "drm/radeon: call hpd_irq_event on resume"
-- d4cf671b1de7f0ba46d7ee3cd4bf6fcaaf8021f1 x86/mm: Fix slow_virt_to_phys() for X86_PAE again
-- 53bff80358e0c66cf8863b903679075b3c522b4d gpu: ipu-v3: Do not bail out on missing optional port nodes
-- ded9853a1443276acc2920d6aee6762581d5e8f7 mac80211: Fix Public Action frame RX in AP mode
-- df1ceb2f08f4aef5eddbc17d509d1edb0aa1c2a8 mac80211: check PN correctly for GCMP-encrypted fragmented MPDUs
-- 2f67a4187a42f7d621ab2334b3db20920c1e3db3 mac80211: minstrel_ht: fix a logic error in RTS/CTS handling
-- 1ab2f1e2aab12c0fcdfa29ed00785563c45c1462 mac80211: minstrel_ht: set default tx aggregation timeout to 0
-- fac8bf1bee1ada2132b3423a506ae06e242baf74 mac80211: fix use of uninitialised values in RX aggregation
-- 03d76167b7f4f7a517a3d6dc9ff73af8cca4c029 mac80211: minstrel: Change expected throughput unit back to Kbps
-- 8c904a4498dd61a5c58e7c38edc042268603202c iwlwifi: mvm: inc pending frames counter also when txing non-sta
-- 16517aa05d49d235451e357e2ef5b38c0584904b can: gs_usb: fixed disconnect bug by removing erroneous use of kfree()
+- 3daef95fd14797b1d11dbdef73bc52f1d5be6fae PCI: Ignore enforced alignment when kernel uses existing firmware setup
+- 8b9484f5791a1ce4c7d914e0d7d1f607863c7b0d KVM: PPC: Book3S HV: Fix build error in book3s_hv.c
+- 9fa11225e9b46d4ff9fd2c15762309a4d35faa1d PCI: Ignore enforced bridge window alignment
+- 6513022774c8fad0da695ac5785f21a5ffa5e731 PCI: Ignore enforced alignment to VF BARs
+- 834bc4171ce5809c584864362edde3ee4a76b632 vfio-pci: Allow to mmap sub-page MMIO BARs if the mmio page is exclusive
+- 2b9d202754c4013bcaec4e29b262475ba6060485 PCI: Add support for enforcing all MMIO BARs to be page aligned
+- 03f31147ec1c74bcbc9502b142f8b9ec815dbe08 PCI: Add a new option for resource_alignment to reassign alignment
+- 30a02ba20e1bc3c4911244f33169a4ad6fc1d465 PCI: Do not Use IORESOURCE_STARTALIGN to identify bridge resources
+- 65d5496d77d4cddcdf059e07e2ecc12d2a084cb3 PCI: Ignore resource_alignment if PCI_PROBE_ONLY was set
+- 2edb74537d44c377a3845d5ddb9935c6f5bdc7ef vfio-pci: Allow to mmap MSI-X table if interrupt remapping is supported
+- 48d41314503f170a2cdd88255b448deecf27c9de pci-ioda: Set PCI_BUS_FLAGS_MSI_REMAP for IODA host bridge
+- ababfd906cbf3b0699b0a6057f5001efdc2c1b0e PCI: Add a new PCI_BUS_FLAGS_MSI_REMAP flag
+- 778481f2477f8cbd87e986fe7e5d0b95869fd724 vfio/pci: Include sparse mmap capability for MSI-X table regions
+- b540dad8a4ea74f497d81838a580cf1e1d18b4f6 vfio: Define sparse mmap capability for regions
+- 3df5ed1226cffae70a6a4206876d024f9a27e1cc vfio: Add capability chain helpers
+- 2c107ada6725cf3fb2b4ab2d6ffc8aa4a7d9b6b2 vfio: Define capability chains
+- 2be3dfce35e187cd026abdec1abb65ba197c20ac powerpc/livepatch: Add live patching support on ppc64le
+- 84441d15214a6934cb3979bad7bf8bc25db99c3a powerpc/livepatch: Add livepatch stack to struct thread_info
+- cf1fb11267f5d801a5dc911fc8924bb86507560d powerpc/livepatch: Add livepatch header
+- e77a525f59fefd4dff5c9779db229564bb88950a livepatch: Allow architectures to specify an alternate ftrace location
+- 783ec857c7ca6b7df8de09dab7f3bfd5fe4d75ea ftrace: Make ftrace_location_range() global
+- eaaf29c8ec3d0fe45282caa202b0646c67a00868 powerpc/ftrace: Add Kconfig & Make glue for mprofile-kernel
+- 49739b9859369cf88f435e963413e4c53f298edf powerpc/ftrace: Add support for -mprofile-kernel ftrace ABI
+- bda3508fde2326678e19374c7ead69492d680a3e powerpc/ftrace: Use $(CC_FLAGS_FTRACE) when disabling ftrace
+- 09c9d468e8f3285a6fd53d5ed255a93c097af597 powerpc/ftrace: Use generic ftrace_modify_all_code()
+- de633469a533bc2dabadfa7402b6d9e184d2beee powerpc/module: Create a special stub for ftrace_caller()
+- b880c1f65eb63405f6134b9ec09e2a151c67a3bd powerpc/module: Mark module stubs with a magic value
+- 6e7a4c897ac011900798680f6196ecbcc5e6bc20 powerpc/module: Only try to generate the ftrace_caller() stub once
+- c81624eb676acd1b2b3917199eb7ac0ba576c50c powerpc: Create a helper for getting the kernel toc value
+- 405ff074906b7b5bdb5447c46bc3d6d0ee76dd99 Merge tag 'v4.4.11' into powerkvm-v3.1.1
+- 63c5c743d44943ba15eb9fa08fd33dbec018d621 powerpc/eeh: Drop unnecessary label in eeh_pe_change_owner()
+- e1c14771e52651c81c81dcb869000644aa32c233 powerpc/eeh: Ignore handlers in eeh_pe_reset_and_recover()
+- eed63c2932b65c3a3d3ed9affce88788b8ffb68d powerpc/eeh: Restore initial state in eeh_pe_reset_and_recover()
+- 9fb223f024b8109153dfe51b278e2231b7fb160a powerpc/eeh: Don't report error in eeh_pe_reset_and_recover()
+- 6aa4dfeacaa4159a1f9162e736f0d3cadfd621a0 KVM: PPC: Book3S HV: Implement halt polling in the kvm_hv kernel module
+- 1a60004feeeb49972df0e2ce1d562b5406eb27b0 KVM: PPC: Book3S HV: Change vcore element runnable_threads from linked-list to array
+- 1c7ef2c779f59b44022b8384cc5b3fd469a56dae xfs: detect and trim torn writes during log recovery
+- d0db03762836b5fe2d936b3be6f2feb244f08229 xfs: refactor log record start detection into a new helper
+- 278e465ac94e36935b06f949936c8f3af94f8869 xfs: support a crc verification only log record pass
+- 6d735e50e31c92b370620a06eab09808ea025664 xfs: return start block of first bad log record during recovery
+- d62f388a5169f7583a80a802a6c1fbc0e2177615 xfs: refactor and open code log record crc check
+- 45d6ec1c2623449244625757e746a2f4c3c047b4 xfs: refactor log record unpack and data processing
+- 2042010057f6dcfe2ce63e350cc32904218a2f81 xfs: detect and handle invalid iclog size set by mkfs
+- 544ec5b08d007f184ab97abdbed87e613c8c0b83 Linux 4.4.11
+- 6ff8315a4df67bfad96cffc406f91ceb6df70cde nf_conntrack: avoid kernel pointer value leak in slab name
+- 62b68367b74b2456ee68deafab047067a6acae67 drm/radeon: fix DP link training issue with second 4K monitor
+- bafa4fbc2b4ac51045fe7fb3de94bcd5560a56c7 drm/i915/bdw: Add missing delay during L3 SQC credit programming
+- bf12e894e6b4ae0181af83ce5f6bb5e05c744660 drm/i915: Bail out of pipe config compute loop on LPT
+- 472f52f5639238f569696082e0effbfb2171ad1a drm/radeon: fix PLL sharing on DCE6.1 (v2)
+- 9df2dc6cf4adb711545f48001b34f35fd3bb79ef Revert "[media] videobuf2-v4l2: Verify planes array in buffer dequeueing"

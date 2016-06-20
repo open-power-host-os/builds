@@ -13,22 +13,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
+import abc
+import logging
 
-from lib import distro
-from lib import mockbuilder
-
-CENTOS_VERSIONS = ["7.2", ]
+LOG = logging.getLogger(__name__)
 
 
-class CentOS(distro.LinuxDistribution):
+class PackageBuilder(object):
+    __metaclass__ = abc.ABCMeta
 
-    supported_versions = CENTOS_VERSIONS
+    @abc.abstractmethod
+    def build(self):
+        """
+        This is where all the action really happens, rpm or deb classes have
+        to implement this with their respective build steps
+        """
 
-    def __init__(self, name, version, arch_and_endianess):
-        super(CentOS, self).__init__(name=name, version=version,
-                                     arch_and_endianess=arch_and_endianess)
-        mock_config_dir = os.path.join(os.getcwd(), 'extras/centOS/7.2/mock')
-        self.package_builder = mockbuilder.Mock(os.path.join(
-            mock_config_dir,
-            'epel-7-ppc64le.cfg'))
+    @abc.abstractmethod
+    def clean(self):
+        """
+        clean up steps.
+        """

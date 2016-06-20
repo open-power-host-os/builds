@@ -15,6 +15,7 @@
 
 import logging
 import os
+import subprocess
 
 import pygit2
 
@@ -35,7 +36,7 @@ class Repo(object):
         if os.path.exists(self.local_path):
             try:
                 self.repo = pygit2.Repository(self.local_path)
-                self.repo.checkout(branch)
+                self.repo.checkout('refs/heads/' + branch)
                 LOG.info("Found existent repository at destination path %s" % (
                     self.local_path))
 
@@ -46,5 +47,63 @@ class Repo(object):
         else:
             LOG.info("Cloning into %s..." % self.local_path)
             self.repo = pygit2.clone_repository(self.repo_url,
-                                                self.local_pathi,
+                                                self.local_path,
                                                 checkout_branch=branch)
+
+            cmd = "cd %s ; git submodule foreach git init; cd %s" % (
+                self.local_path, os.getcwd())
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, shell=True)
+            output, error_output = p.communicate()
+            LOG.info("STDOUT: %s" % output)
+            LOG.info("STDERR: %s" % error_output)
+
+    def archive(self, archive_name, commit_id, build_dir):
+        # NOTE(maurosr): CentOS's pygit2  doesn't fully support archives as we
+        # need, neither submodules  let's use git itself through
+        # subprocess.Popen.
+        archive_file = os.path.join(build_dir, archive_name + ".tar")
+
+        # Generates one tar file for each submodule.
+        cmd = ("cd %s && git submodule foreach git archive --prefix=%s/ "
+               "--format tar --output %s && cd %s " % (
+                   self.local_path,
+                   archive_name,
+                   os.path.join(build_dir, "\$name-" + archive_name + ".tar"),
+                   os.getcwd()))
+
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, shell=True)
+        output, error_output = p.communicate()
+        LOG.info("STDOUT: %s" % output)
+        LOG.info("STDERR: %s" % error_output)
+
+        # Generates project's archive.
+        cmd = ("cd %s ; git archive --prefix=%s/ --format tar --output %s HEAD; "
+               "cd %s" % (self.local_path, archive_name,
+                         archive_file, os.getcwd()))
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, shell=True)
+        output, error_output = p.communicate()
+        LOG.info("STDOUT: %s" % output)
+        LOG.info("STDERR: %s" % error_output)
+
+        # Concatenate tar files. It's fine to fail when we don't have a
+        # submodule and thus no <submodule>-kernel-<version>.tar
+        cmd = ("tar --concatenate --file %s %s" % (
+            archive_file,
+            build_dir + "/*-" + archive_name + ".tar"))
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, shell=True)
+        output, error_output = p.communicate()
+        LOG.info("STDOUT: %s" % output)
+        LOG.info("STDERR: %s" % error_output)
+
+        cmd = "gzip %s" % archive_file
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, shell=True)
+        output, error_output = p.communicate()
+        LOG.info("STDOUT: %s" % output)
+        LOG.info("STDERR: %s" % error_output)
+
+        return archive_file + ".gz"

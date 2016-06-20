@@ -17,7 +17,8 @@ import os
 import logging
 import yaml
 
-import exception
+from lib import exception
+from lib import repository
 
 LOG = logging.getLogger(__name__)
 COMPONENTS_DIRECTORY = os.path.join(os.getcwd(), "components")
@@ -40,14 +41,38 @@ class Package(object):
                                    '%s.yaml' % package_name),
                       'r') as package_file:
                 package = yaml.load(package_file)['Package']
+
                 self.name = package['name']
                 self.clone_url = package['clone_url']
+
+                # NOTE(maurosr): Unfortunately some of the packages we build
+                # depend on a gziped file which changes according to the build
+                # version so we need to get that name somehow, grep the
+                # specfile would be uglier imho.
+                self.expects_source = package['expects_source']
+
+                # NOTE(maurosr): branch and commit id are special cases for the
+                # future, we plan to use tags on every project for every build
+                # globally set in config.yaml, then this would allow some user
+                # customization to set their prefered commit id/branch or even
+                # a custom git tree.
                 self.branch = package.get('branch', None)
+                self.commit_id = package.get('commit_id', None)
+
+                files = package.get('files')
+                build_files = files.get(self.distro_name).get(
+                    self.distro_version).get(
+                        'build_files', None)
+                if build_files:
+                    self.build_files = os.path.join(COMPONENTS_DIRECTORY,
+                                                    package_name,
+                                                    build_files)
+
                 self.specfile = os.path.join(
                     COMPONENTS_DIRECTORY,
                     package_name,
-                    package.get(
-                        'specs')[self.distro_name][self.distro_version])
+                    files.get(self.distro_name).get(self.distro_version).get(
+                        'spec'))
 
                 if os.path.isfile(self.specfile):
                     LOG.info("Package found: %(name)s for %(distro_name)s "
@@ -60,3 +85,9 @@ class Package(object):
 
         except TypeError:
             raise exception.PackageDescriptorError(package=self.name)
+
+    def setup_repository(self, dest=None, branch=None):
+        self.repository = repository.Repo(package_name=self.name,
+                                          clone_url=self.clone_url,
+                                          dest_path=dest,
+                                          branch=self.branch or branch)

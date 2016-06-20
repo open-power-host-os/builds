@@ -1,6 +1,12 @@
 Package:
  name: 'kernel'
  clone_url: 'https://github.com/open-power-host-os/linux.git'
- specs:
+ branch: 'powerkvm-v3.1.1'
+ commit_id: '3daef95'
+ expects_source: "kernel-2200.0"
+ files:
   centos:
-   '7.2': 'centOS/7.2/kernel.spec'
+   '7.2':
+    spec: 'centOS/7.2/kernel.spec'
+    build_files: 'centOS/7.2/SOURCES/*'
+
