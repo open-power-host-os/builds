@@ -24,12 +24,12 @@ Summary: The Linux kernel
 
 # This crazy release structure is so the daily scratch builds and the weekly official builds
 #   will always yum install correctly over each other
-%define release_week 22
+%define release_week 9
 %define release_day 0
-%define release_spin 0
+%define release_spin 5
 %define pkvm_release .pkvm3_1_1.%{?release_week}0%{?release_day}.%{?release_spin}
 
-%define rpmversion 4.4.11
+%define rpmversion 4.4.4
 %define pkgrelease 3
 
 # allow pkg_release to have configurable %{?dist} tag
@@ -480,8 +480,6 @@ Source2001: cpupower.config
 
 BuildRoot: %{_tmppath}/kernel-%{KVRA}-root
 
-#atch999: fix.script.location.patch
-
 %description
 The kernel package contains the Linux kernel (vmlinuz), the core of any
 Linux operating system.  The kernel handles the basic functions
@@ -524,7 +522,6 @@ files combining both kernel and initial ramdisk.
 %package debuginfo-common-%{_target_cpu}
 Summary: Kernel source files used by %{name}-debuginfo packages
 Group: Development/Debug
-AutoReqProv: no
 %description debuginfo-common-%{_target_cpu}
 This package is required by %{name}-debuginfo subpackages.
 It provides the kernel source files common to all builds.
@@ -712,7 +709,6 @@ required only on machines which will use the kexec-based kernel crash dump
 mechanism.
 
 %prep
-
 # do a few sanity-checks for --with *only builds
 %if %{with_baseonly}
 %if !%{with_default}
@@ -722,20 +718,18 @@ exit 1
 %endif
 
 tar xzf %{SOURCE0}
-mv kernel-%{?release_week}0%{?release_day}.%{?release_spin} kernel-%{KVRA}
+mv kernel-%{?release_week}0%{?release_day}.%{?release_spin} linux-%{KVRA}
 #setup -q -n kernel-%{rheltarball} -c
 
 
 #mv linux-%{rheltarball} linux-%{KVRA}
-cd kernel-%{KVRA}
+cd linux-%{KVRA}
 
 # Drop some necessary files from the source dir into the buildroot
 #cp $RPM_SOURCE_DIR/kernel-%{version}-*.config .
 %define make make %{?cross_opts}
 cp %{SOURCE1001} .
 cp %{SOURCE1001} .config
-
-#/usr/bin/patch -p1 < $RPM_SOURCE_DIR/fix.script.location.patch
 
 # Any further pre-build tree manipulations happen here.
 make oldconfig
@@ -1169,7 +1163,7 @@ rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/boot
 mkdir -p $RPM_BUILD_ROOT%{_libexecdir}
 
-cd kernel-%{KVRA}
+cd linux-%{KVRA}
 
 %if %{with_default}
 BuildKernel %make_target %kernel_image
@@ -1307,7 +1301,7 @@ find Documentation -type d | xargs chmod u+w
 
 %install
 
-cd kernel-%{KVRA}
+cd linux-%{KVRA}
 
 %if %{with_doc}
 docdir=$RPM_BUILD_ROOT%{_datadir}/doc/kernel-doc-%{rpmversion}
@@ -1418,11 +1412,6 @@ touch -a %{SOURCE2000}
 touch -a %{SOURCE2001}
 %endif
 
-%ifnarch noarch
- mkdir -p $RPM_BUILD_ROOT/usr/src/kernels/%{KVRA}%{?2:.%{2}}/arch/powerpc/scripts
- install -m 0755  arch/powerpc/scripts/gcc-check-mprofile-kernel.sh $RPM_BUILD_ROOT/usr/src/kernels/%{KVRA}%{?2:.%{2}}/arch/powerpc/scripts/gcc-check-mprofile-kernel.sh
-%endif
-
 ###
 ### clean
 ###
@@ -1433,7 +1422,6 @@ rm -rf $RPM_BUILD_ROOT
 ###
 ### scripts
 ###
-
 
 %if %{with_tools}
 %post -n kernel-tools
@@ -1610,7 +1598,6 @@ fi
 %if %{with_tools}
 %files -n kernel-tools -f cpupower.lang
 %defattr(-,root,root)
-
 %ifarch %{cpupowerarchs}
 %{_bindir}/cpupower
 %ifarch x86_64
@@ -1708,57 +1695,56 @@ fi
 %kernel_variant_files %{with_debug} debug
 %kernel_variant_files %{with_kdump} kdump
 
-
 %changelog
-* Wed Jun 15 2016 <baseuser@ibm.com>
+* Wed Mar 16 2016 <baseuser@ibm.com>
   Log from git:
-- 3daef95fd14797b1d11dbdef73bc52f1d5be6fae PCI: Ignore enforced alignment when kernel uses existing firmware setup
-- 8b9484f5791a1ce4c7d914e0d7d1f607863c7b0d KVM: PPC: Book3S HV: Fix build error in book3s_hv.c
-- 9fa11225e9b46d4ff9fd2c15762309a4d35faa1d PCI: Ignore enforced bridge window alignment
-- 6513022774c8fad0da695ac5785f21a5ffa5e731 PCI: Ignore enforced alignment to VF BARs
-- 834bc4171ce5809c584864362edde3ee4a76b632 vfio-pci: Allow to mmap sub-page MMIO BARs if the mmio page is exclusive
-- 2b9d202754c4013bcaec4e29b262475ba6060485 PCI: Add support for enforcing all MMIO BARs to be page aligned
-- 03f31147ec1c74bcbc9502b142f8b9ec815dbe08 PCI: Add a new option for resource_alignment to reassign alignment
-- 30a02ba20e1bc3c4911244f33169a4ad6fc1d465 PCI: Do not Use IORESOURCE_STARTALIGN to identify bridge resources
-- 65d5496d77d4cddcdf059e07e2ecc12d2a084cb3 PCI: Ignore resource_alignment if PCI_PROBE_ONLY was set
-- 2edb74537d44c377a3845d5ddb9935c6f5bdc7ef vfio-pci: Allow to mmap MSI-X table if interrupt remapping is supported
-- 48d41314503f170a2cdd88255b448deecf27c9de pci-ioda: Set PCI_BUS_FLAGS_MSI_REMAP for IODA host bridge
-- ababfd906cbf3b0699b0a6057f5001efdc2c1b0e PCI: Add a new PCI_BUS_FLAGS_MSI_REMAP flag
-- 778481f2477f8cbd87e986fe7e5d0b95869fd724 vfio/pci: Include sparse mmap capability for MSI-X table regions
-- b540dad8a4ea74f497d81838a580cf1e1d18b4f6 vfio: Define sparse mmap capability for regions
-- 3df5ed1226cffae70a6a4206876d024f9a27e1cc vfio: Add capability chain helpers
-- 2c107ada6725cf3fb2b4ab2d6ffc8aa4a7d9b6b2 vfio: Define capability chains
-- 2be3dfce35e187cd026abdec1abb65ba197c20ac powerpc/livepatch: Add live patching support on ppc64le
-- 84441d15214a6934cb3979bad7bf8bc25db99c3a powerpc/livepatch: Add livepatch stack to struct thread_info
-- cf1fb11267f5d801a5dc911fc8924bb86507560d powerpc/livepatch: Add livepatch header
-- e77a525f59fefd4dff5c9779db229564bb88950a livepatch: Allow architectures to specify an alternate ftrace location
-- 783ec857c7ca6b7df8de09dab7f3bfd5fe4d75ea ftrace: Make ftrace_location_range() global
-- eaaf29c8ec3d0fe45282caa202b0646c67a00868 powerpc/ftrace: Add Kconfig & Make glue for mprofile-kernel
-- 49739b9859369cf88f435e963413e4c53f298edf powerpc/ftrace: Add support for -mprofile-kernel ftrace ABI
-- bda3508fde2326678e19374c7ead69492d680a3e powerpc/ftrace: Use $(CC_FLAGS_FTRACE) when disabling ftrace
-- 09c9d468e8f3285a6fd53d5ed255a93c097af597 powerpc/ftrace: Use generic ftrace_modify_all_code()
-- de633469a533bc2dabadfa7402b6d9e184d2beee powerpc/module: Create a special stub for ftrace_caller()
-- b880c1f65eb63405f6134b9ec09e2a151c67a3bd powerpc/module: Mark module stubs with a magic value
-- 6e7a4c897ac011900798680f6196ecbcc5e6bc20 powerpc/module: Only try to generate the ftrace_caller() stub once
-- c81624eb676acd1b2b3917199eb7ac0ba576c50c powerpc: Create a helper for getting the kernel toc value
-- 405ff074906b7b5bdb5447c46bc3d6d0ee76dd99 Merge tag 'v4.4.11' into powerkvm-v3.1.1
-- 63c5c743d44943ba15eb9fa08fd33dbec018d621 powerpc/eeh: Drop unnecessary label in eeh_pe_change_owner()
-- e1c14771e52651c81c81dcb869000644aa32c233 powerpc/eeh: Ignore handlers in eeh_pe_reset_and_recover()
-- eed63c2932b65c3a3d3ed9affce88788b8ffb68d powerpc/eeh: Restore initial state in eeh_pe_reset_and_recover()
-- 9fb223f024b8109153dfe51b278e2231b7fb160a powerpc/eeh: Don't report error in eeh_pe_reset_and_recover()
-- 6aa4dfeacaa4159a1f9162e736f0d3cadfd621a0 KVM: PPC: Book3S HV: Implement halt polling in the kvm_hv kernel module
-- 1a60004feeeb49972df0e2ce1d562b5406eb27b0 KVM: PPC: Book3S HV: Change vcore element runnable_threads from linked-list to array
-- 1c7ef2c779f59b44022b8384cc5b3fd469a56dae xfs: detect and trim torn writes during log recovery
-- d0db03762836b5fe2d936b3be6f2feb244f08229 xfs: refactor log record start detection into a new helper
-- 278e465ac94e36935b06f949936c8f3af94f8869 xfs: support a crc verification only log record pass
-- 6d735e50e31c92b370620a06eab09808ea025664 xfs: return start block of first bad log record during recovery
-- d62f388a5169f7583a80a802a6c1fbc0e2177615 xfs: refactor and open code log record crc check
-- 45d6ec1c2623449244625757e746a2f4c3c047b4 xfs: refactor log record unpack and data processing
-- 2042010057f6dcfe2ce63e350cc32904218a2f81 xfs: detect and handle invalid iclog size set by mkfs
-- 544ec5b08d007f184ab97abdbed87e613c8c0b83 Linux 4.4.11
-- 6ff8315a4df67bfad96cffc406f91ceb6df70cde nf_conntrack: avoid kernel pointer value leak in slab name
-- 62b68367b74b2456ee68deafab047067a6acae67 drm/radeon: fix DP link training issue with second 4K monitor
-- bafa4fbc2b4ac51045fe7fb3de94bcd5560a56c7 drm/i915/bdw: Add missing delay during L3 SQC credit programming
-- bf12e894e6b4ae0181af83ce5f6bb5e05c744660 drm/i915: Bail out of pipe config compute loop on LPT
-- 472f52f5639238f569696082e0effbfb2171ad1a drm/radeon: fix PLL sharing on DCE6.1 (v2)
-- 9df2dc6cf4adb711545f48001b34f35fd3bb79ef Revert "[media] videobuf2-v4l2: Verify planes array in buffer dequeueing"
+- 70a762c01c07fb24d2c2ab808164eeb594013b3d Merge tag 'v4.4.4' into powerkvm-v3.1.1
+- c7d10e164afb5cb39ed344a53b643db2ce03451c KVM: PPC: Book3S HV: Sanitize special-purpose register values on guest exit
+- 83bfb9964c005c41dd867651edb602a3ca03bfdf powerpc/eeh: Synchronize recovery in host/guest
+- dd1a1b2f57f851b58248f356076f1d16c1bb05dc powerpc/eeh: Don't remove passed VFs
+- 104d5494699b4eb1590f428a2e322d8399ed2213 powerpc/eeh: Don't propagate error to guest
+- 856ab235febcd1b35a716f6b552931a12ac47c03 powerpc/eeh: Reworked eeh_pe_bus_get()
+- f1d102ed511a7dd9797e26252032887bb48d2574 powerpc/eeh: fix incorrect function name in comment
+- d00cf46366e9a6c676f06eaea4c76f7de2054705 crypto: vmx: Only call enable_kernel_vsx()
+- 7ceac1dae52b88528017962f835d277863d0b4fa crypto: vmx - IV size failing on skcipher API
+- c252409a688a831385fb71097db7a86ffe595b74 Linux 4.4.4
+- 74e579764007b3ef63d791116c7d252e0032cc1e iwlwifi: mvm: don't allow sched scans without matches to be started
+- 3beb469074ec66079f3fcbed1c6cf06ca8bbc873 iwlwifi: update and fix 7265 series PCI IDs
+- 8a55831546e7d558e7cb14e1c40c6d403d779c10 iwlwifi: pcie: properly configure the debug buffer size for 8000
+- d19573e8499198a75c2f7a0b22053bdd8eb48050 iwlwifi: dvm: fix WoWLAN
+- e4a5a335105a557b5a78c1513650d1cf7c9f2edb security: let security modules use PTRACE_MODE_* with bitmasks
+- 9315bf18bec590aa0c4be5b54de55da21d31ac96 IB/cma: Fix RDMA port validation for iWarp
+- 996c591227d988ed82e76080ebf4ed0f1f33e0f1 x86/irq: Plug vector cleanup race
+- 4f45a0edf314c4f7f4be658bf58e0b7bc477723c x86/irq: Call irq_force_move_complete with irq descriptor
+- 950c362bdfb191aa3b149493c0447c89845f3a87 x86/irq: Remove outgoing CPU from vector cleanup mask
+- 00bb447126d363fbf401d973548b193828c83fb2 x86/irq: Remove the cpumask allocation from send_cleanup_vector()
+- c2b56b62c26ec51f64edea8d20b133efeddd2d0c x86/irq: Clear move_in_progress before sending cleanup IPI
+- 550ac3f791f5cdf26021dfa6011adcb5f38856b6 x86/irq: Remove offline cpus from vector cleanup
+- c655fd016c2917c5f88c4c694bdcdf9e68f4f661 x86/irq: Get rid of code duplication
+- 2636de2fc22c1f5e1b24ba7d9e6f6615ed9569a5 x86/irq: Copy vectormask instead of an AND operation
+- 4af6a215154b213835420c6cd2442c0436abbad5 x86/irq: Check vector allocation early
+- cb987d4822d38f8540b7cd580c33628858d38120 x86/irq: Reorganize the search in assign_irq_vector
+- f6e9ce2b061408d16ba052e6d7612b4660dbc1c8 x86/irq: Reorganize the return path in assign_irq_vector
+- cf2e82af2d53bf7894911a9a11fa2fdf0d17ab91 x86/irq: Do not use apic_chip_data.old_domain as temporary buffer
+- 053c8ecc225a14ff2522f8d493ebc94c1ca7dc48 x86/irq: Validate that irq descriptor is still active
+- e4d1544b1e35ae7d3c6a5b5ed2af1328fce2c9ec x86/irq: Fix a race in x86_vector_free_irqs()
+- 7df19ad4a9f2e4845dce66b6049bbc7a796a7895 x86/irq: Call chip->irq_set_affinity in proper context
+- eeb241d4f8a1d0c343e0a19c99490e66b7eff346 x86/entry/compat: Add missing CLAC to entry_INT80_32
+- 04100683e8f2792d9c715d5a253a260cb30fa3e3 x86/mpx: Fix off-by-one comparison with nr_registers
+- 04d946904c63586c577139964e77601097acbbbd hpfs: don't truncate the file when delete fails
+- d57c0477f842af4fdcfa93454bc2ad94d73b7158 do_last(): ELOOP failure exit should be done after leaving RCU mode
+- 6f4b352f004c696439c5b5d75a4edc3d0823e770 should_follow_link(): validate ->d_seq after having decided to follow
+- 9108b130f74d13a37e67a96cc0a8642464578a0a xen/pcifront: Fix mysterious crashes when NUMA locality information was extracted.
+- 4cf5aa2ffe17403385d75a5b1d9d97071500ea18 xen/pciback: Save the number of MSI-X entries to be copied later.
+- d52a24819677bbb45eb1ce93a42daa1ae6c4d61d xen/pciback: Check PF instead of VF for PCI_COMMAND_MEMORY
+- e32b123feea78479f8a60a9abf1a645f9c3ee728 xen/scsiback: correct frontend counting
+- 392abe33d5e5d3d9b822149558eb3da5debc9cd2 xen/arm: correctly handle DMA mapping of compound pages
+- 362deccacfef46e1c78acc79ba9721829605a883 ARM: at91/dt: fix typo in sama5d2 pinmux descriptions
+- 8b78924f123e7cbb08d9dd25cb793c2a2e58741d ARM: OMAP2+: Fix onenand initialization to avoid filesystem corruption
+- 80d18c0026eb6fc9cd9fb5a36540bfaa8a00fb47 do_last(): don't let a bogus return value from ->open() et.al. to confuse us
+- f634ac98bd9218feb31868b43f56e7a5999ce98e kernel/resource.c: fix muxed resource handling in __request_region()
+- dc16b4393fc6226af463fd8c1d92411e5c349cf0 sunrpc/cache: fix off-by-one in qword_get()
+- 36b53e8b2abf1f514e83e2c3207e36e71c8176de tracing: Fix showing function event in available_events
+- 222473f70b2c913445c3173ddcf7bbc5375b93b7 powerpc/eeh: Fix partial hotplug criterion
+- 4aa584e4200f63450b513900ef5a61a8bc04e245 KVM: x86: MMU: fix ubsan index-out-of-range warning
+- de5b55f616a7ba97e72e33f52ac0cde6c8c47527 KVM: x86: fix conversion of addresses to linear in 32-bit protected mode

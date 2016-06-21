@@ -53,7 +53,10 @@
 %bcond_without gtk              # enabled
 %endif
 
-%global SLOF_gittagdate 20160510
+%global SLOF_gittagdate 20160525
+
+# pkvm wants seccomp
+%global have_seccomp 1
 
 %global kvm_archs ppc64 ppc64le
 %if %{without separate_kvm}
@@ -180,14 +183,13 @@
 %endif
 %endif
 
-
 Summary: QEMU is a FAST! processor emulator
 Name: qemu
 Version: 2.5
 
 # This crazy release structure is so the daily scratch builds and the weekly official builds
 #   will always yum install correctly over each other
-%define release_week 17
+%define release_week 22
 %define release_day 0
 %define release_spin 0
 %define pkvm_release .pkvm3_1_1.%{?release_week}0%{?release_day}.%{?release_spin}
@@ -803,6 +805,7 @@ sed -i.debug 's/"-g $CFLAGS"/"$CFLAGS"/g' configure
     --enable-kvm \
     --disable-xen \
     --enable-numa \
+    --enable-seccomp \
 %if 0%{?have_spice:1}
     --enable-spice \
 %endif
@@ -1529,55 +1532,55 @@ getent passwd qemu >/dev/null || \
 %endif
 
 %changelog
-* Wed May 11 2016 <baseuser@ibm.com>
+* Wed Jun 15 2016 <baseuser@ibm.com>
   Log from git:
+- 7d4a58ab9de6d2758451d4f5e55f3612ccc8a885 spapr: Ensure all LMBs are represented in ibm, dynamic-memory
+- b7aad279e24050736885cfaab25cde2d6ad1149f KVM: use KVM_CAP_MAX_VCPU_ID
+- 8429db691c92405b2896beb96a2b6f5eb9fdeebd kvm: API to obtain max supported mem slots
+- 2d3798a64fcd79c265e171512594b7d1e6ed173e spapr: Increase hotpluggable memory slots to 256
+- 3b0266f331184a4e8bc6d5b205998eb2cfce5b5e Merge branch 'powerkvm-v3.1.1-base' into powerkvm-v3.1.1
+- a44e7321749850e33371a5b62ab44159305fb282 PPC/KVM: early validation of vcpu id
+- eac59e673c86b2f76661bdf969672749360327d0 Merge branch 'powerkvm-v3.1.1-base' into powerkvm-v3.1.1
+- 105f8b0ca743fa013aa065fcfe878a00fc1de793 seccomp: Add support for ppc/ppc64
+- 35635663498415c8b84bff8eafee6f6b7a774e3b Merge branch 'powerkvm-v3.1.1-base' into powerkvm-v3.1.1
+- 95baab8fd862c729209ca804f917cc4c1f6e81db vfio/pci: Add support for mmapping sub-page MMIO BARs
+- 5becafeb656aaf8a3a2dce5a15659a564a9e715c vfio/pci: Add support for mmapping MSI-X table
+- 959589dc113bcd265d47ecc5a0ac0e3f563d42ca vfio: Enable sparse mmap capability
+- a7bcfa3b2e01991f30d90621870f8afa09a797cf spapr: Get CPU unplug working again
+- 08f061537bbbc45af0d82443a0f8f38e8c82174a Merge tag 'v2.6.0' into powerkvm-v3.1.1-base
+- bba386f7086801c48411a5f607d139341bd564cd savevm: fail if migration blockers are present
+- 872aa56ba2dbe9dc18ddc2cd9ebb660b75f35758 migration: regain control of images when migration fails to complete
+- f5e3235e30487f2a34ad66034412ab61735e6903 qemu/kvm_stat: Powerpc related fixes
+- cb4d4484439f18b598304a902c5d2c211cffa679 KVM headers: Sync capabilities numbers
+- c2653f81e478fbb02ae207e21170552228fd8396 Merge tag 'v2.6.0' into powerkvm-v3.1.1
+- bfc766d38e1fae5767d43845c15c79ac8fa6d6af Update version for v2.6.0 release
 - 455e58e3b77004d22125ecd8e3f1ad183c5db771 Merge branch 'powerkvm-v3.1.1-base' into powerkvm-v3.1.1
 - b9c5e7ba02079f73d7e79050c9981cab40a499b3 spapr: Memory hot-unplug support
 - 6a5003944b0b48a315d8537eeb39c806dbaa6098 spapr: ensure device trees are always associated with DRC
+- 860a3b34854d8abe9af9f1eb584691de926ce897 Update version for v2.6.0-rc5 release
+- 53db932604dfa7bb9241d132e0173894cf54261c Merge remote-tracking branch 'remotes/kraxel/tags/pull-vga-20160509-1' into staging
+- 975eb6a547f809608ccb08c221552f666611af25 Update version for v2.6.0-rc4 release
+- 1beb99f787ba110a9de44254e7d62a1cb9117de8 Revert "acpi: mark PMTIMER as unlocked"
+- fd3c136b3e1482cd0ec7285d6bc2a3e6a62c38d7 vga: make sure vga register setup for vbe stays intact (CVE-2016-3712).
+- 2068192dcccd8a80dddfcc8df6164cf9c26e0fc4 vga: update vga register setup on vbe changes
+- 7fa5c2c5dc9f9bf878c1e8669eb9644d70a71e71 vga: factor out vga register setup
+- bfa0f151a564a83b5a26f3e917da98674bf3cf62 vga: add vbe_enabled() helper
+- 3bf1817079bb0d80c0d8a86a7c7dd0bfe90eb82e vga: fix banked access bounds checking (CVE-2016-3710)
+- 277abf15a60f7653bfb05ffb513ed74ffdaea1b7 configure: Check if struct fsxattr is available from linux header
+- 20b0f5fef66012e12bde32b14eaa64de2b1b9dbe Merge remote-tracking branch 'remotes/mst/tags/for_upstream' into staging
+- 1dbfd7892b66c757fdf67f346be40233adbad80e acpi: fix bios linker loadder COMMAND_ALLOCATE on bigendian host
+- 47dac82d8b013a5c7dd044a797ae6727b553959a Merge remote-tracking branch 'remotes/kevin/tags/for-upstream' into staging
+- 849880978eb2d9043323e34afb46eae8772a5fc6 Merge remote-tracking branch 'remotes/armbru/tags/pull-qapi-2016-04-29' into staging
+- d208c50d9dbf98c0eca337723cd6497653ceb743 vvfat: Fix default volume label
+- ebb72c9f066e5f85259e1541a6d3fb5bfd6e73ff vvfat: Fix volume name assertion
+- 0a40bdab0d48d9ce0c34bc2d319e44e92e0cc942 qapi: Don't pass NULL to printf in string input visitor
+- 0d48dfedc5c2beb418ad4c08b78de14e794bb199 slirp: fix guest network access with darwin host
+- 8c4bf97580a7556e3e61b7bc41dedb5958f0b2f9 Merge remote-tracking branch 'remotes/lalrae/tags/mips-20160428' into staging
+- 736f85d5db701cc9d464a03b583d4a04606a0dd5 Merge remote-tracking branch 'remotes/armbru/tags/pull-error-2016-04-28' into staging
+- 61861eff69279e20428c10be269ce1c1bba2c7b1 Merge remote-tracking branch 'remotes/dgibson/tags/ppc-for-2.6-20160426' into staging
+- d96391c1ffeb30a0afa695c86579517c69d9a889 target-mips: Fix RDHWR exception host PC
+- 51b9b478cc238ad23a78ffd713f9c18bbc3907e6 qom: -object error messages lost location, restore it
+- d9d3aaea0b3fbb5028e20316bdb93359487cd01f replay: Fix dangling location bug in replay_configure()
+- 37f32349ea43f41ee8b9a253977ce1e46f576fc7 QemuOpts: Fix qemu_opts_foreach() dangling location regression
 - 6fe40882b8ff055a2bdc37106403cfc783ec9303 Merge commit 'f419a62' into powerkvm-v3.1.1
 - 9fd6073bf7f572f2d1f17158eac9980d12fe9e00 spapr_drc: fix aborts during DRC-count based hotplug
-- f419a626c76bcb26697883af702862e8623056f9 usb/uhci: move pid check
-- 3123bd8ebf3749be5b6ef815229c8c9dfb13c16d Merge remote-tracking branch 'remotes/dgibson/tags/ppc-for-2.6-20160423' into staging
-- da34fed707a3a3ffa229f4e724aea06da1b53fb0 hw/ppc/spapr: Fix crash when specifying bad parameters to spapr-pci-host-bridge
-- 53343338a6e7b83777b82803398572b40afc8c0f Merge remote-tracking branch 'remotes/kevin/tags/for-upstream' into staging
-- ab27c3b5e7408693dde0b565f050aa55c4a1bcef mirror: Workaround for unexpected iohandler events during completion
-- 37989ced44e559dbb1edb8b238ffe221f70214b4 aio-posix: Skip external nodes in aio_dispatch
-- 14560d69e7c979d97975c3aa6e7bd1ab3249fe88 virtio: Mark host notifiers as external
-- 54e18d35e44c48cf6e13c4ce09962c30b595b72a event-notifier: Add "is_external" parameter
-- bcd82a968fbf7d8156eefbae3f3aab59ad576fa2 iohandler: Introduce iohandler_get_aio_context
-- ee1e0f8e5d3682c561edcdceccff72b9d9b16d8b util: align memory allocations to 2M on AArch64
-- df7b97ff89319ccf392a16748081482a3d22b35a nbd: Don't mishandle unaligned client requests
-- 8d0d9b9f67d6bdee9eaec1e8c1222ad91dc4ac01 Update version for v2.6.0-rc3 release
-- 8d8fdbae010aa75a23f0307172e81034125aba6e tcg: check for CONFIG_DEBUG_TCG instead of NDEBUG
-- eabb7b91b36b202b4dac2df2d59d698e3aff197a tcg: use tcg_debug_assert instead of assert (fix performance regression)
-- b4850e5ae9607f9f31932f693ca48f52619493d7 hw/arm/boot: always clear r0 when booting kernels
-- 81d9d1867f5210412ccd262b040cf579dc32ff55 MAINTAINERS: Avoid using K: for NUMA section
-- befbaf51ced6702170d568b07e2551399223ca3b Merge remote-tracking branch 'remotes/kevin/tags/for-upstream' into staging
-- fa59dd95829bc33d591274e98db5bb762ba1a2a0 Merge remote-tracking branch 'remotes/sstabellini/tags/xen-2016-04-20' into staging
-- 8ca92f3c069558897269e609e4f47bd6255d6339 iotests: Test case for drive-mirror with unaligned image size
-- 74f69050fe9950c0fa083da0f7a836d9721194cf iotests: Add iotests.image_size
-- 4150ae60ebf9445d853186c72cf33383710f7360 mirror: Don't extend the last sub-chunk
-- f27a27425901bacc69fb579e1dd8a5878eadd6e9 block/mirror: Refresh stale bitmap iterator cache
-- 9c83625bdd3c1900d304058ece152040ef5d1ead block/mirror: Revive dead yielding code
-- 4113b0532da6c448f8e458b413ebde035234d0ea Merge remote-tracking branch 'remotes/mdroth/tags/qga-pull-2016-04-19-tag' into staging
-- fe98b18b6f8c1324b4940a6a1f1bf8d847c9d569 Merge remote-tracking branch 'remotes/cody/tags/block-pull-request' into staging
-- fb91f30bb9716c391ce0441942fffa601ad99684 qemu-ga: do not run qga test when guest agent disabled
-- 1f7685fafa6ba1354731a59822e5cc43323d6989 Update language files for QEMU 2.6.0
-- d85fa9eb87ba736d2d5ce342fc35f507c8fe29f2 block/gluster: prevent data loss after i/o error
-- 5d4343e6c2682fb7fe66f1560d1823b5a26e7b2f block/gluster: code movement of qemu_gluster_close()
-- a882745356b17925b83c93d0b821adba8050236f block/gluster: return correct error value
-- d4dffa4a3f51b10cc0b7e6e34431919cac7a318e Merge remote-tracking branch 'remotes/armbru/tags/pull-fw_cfg-2016-04-19' into staging
-- 63d3145aadbecaa7e8be1e74b5d6b5cbbeb4e153 fw_cfg: Adopt /opt/RFQDN convention
-- ef5d5641f5f35f64a7f150bb3593dae0c08f236d Merge remote-tracking branch 'remotes/kraxel/tags/pull-usb-20160419-1' into staging
-- bb97bfd90194eb3c6995b446643af4818a142805 Merge remote-tracking branch 'remotes/dgibson/tags/ppc-for-2.6-20160419' into staging
-- 5eb0b194e9b01ba0f3613e6ddc2cb9f63ce96ae5 cadence_uart: bounds check write offset
-- a087cc589d3581a89fdb8c09324941512b5ef300 Merge remote-tracking branch 'remotes/ehabkost/tags/x86-pull-request' into staging
-- a49923d2837d20510d645d3758f1ad87c32d0730 Revert "ehci: make idt processing more robust"
-- 1ae3f2f178087711f9591350abad133525ba93f2 ehci: apply limit to iTD/sidt descriptors
-- ed3d807b0a577c4f825b25f3281fe54ce89202db cuda: fix off-by-one error in SET_TIME command
-- 9997cf7bdac056aeed246613639675c5a9f8fdc2 target-i386: Set AMD alias bits after filtering CPUID data
-- 92b674b62a1aec734280c9019cfb3b3745044b66 Merge remote-tracking branch 'remotes/afaerber/tags/qom-cpu-for-peter' into staging
-- 2e4cad283372c8e7e2db1fd4b0c6f2cb0b9122fb MAINTAINERS: Drop target-i386 from CPU subsystem
-- 6a6fa68ae2884cc1834110e549faa9cd86050ce6 Merge remote-tracking branch 'remotes/mcayland/tags/qemu-openbios-signed' into staging
-- ba3899507acfaeee4815beee670c1d80f6f18570 Merge remote-tracking branch 'remotes/dgibson/tags/ppc-for-2.6-20160418' into staging
-- adde0204e4edbebfeb77d244cad7d9d8be7ed7e0 Merge remote-tracking branch 'remotes/otubo/tags/pull-seccomp-20160416' into staging

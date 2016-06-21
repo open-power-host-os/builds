@@ -382,9 +382,9 @@ Version: 1.3.4
 #define ibm_release %{?repo}.1
 # This release structure is so the daily scratch builds and the weekly official builds
 #   will always yum install correctly over each other
-%define release_week 17
+%define release_week 22
 %define release_day 0
-%define release_spin 1
+%define release_spin 0
 %define pkvm_release .pkvm3_1_1.%{?release_week}0%{?release_day}.%{?release_spin}
 Release: 1%{?dist}%{?ibm_release}%{?pkvm_release}
 ExclusiveArch: ppc64 ppc64le x86_64 s390x
@@ -400,77 +400,45 @@ URL: http://libvirt.org/
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
-Obsoletes: libvirt-daemon < %{version}-%{release}
-Conflicts: libvirt-daemon < %{version}-%{release}
     %if %{with_network}
 Requires: libvirt-daemon-config-network = %{version}-%{release}
-Obsoletes: libvirt-daemon-config-network < %{version}-%{release}
-Conflicts: libvirt-daemon-config-network < %{version}-%{release}
     %endif
     %if %{with_nwfilter}
 Requires: libvirt-daemon-config-nwfilter = %{version}-%{release}
-Obsoletes: libvirt-daemon-config-nwfilter < %{version}-%{release}
-Conflicts: libvirt-daemon-config-nwfilter < %{version}-%{release}
     %endif
     %if %{with_driver_modules}
         %if %{with_libxl}
 Requires: libvirt-daemon-driver-libxl = %{version}-%{release}
-Obsoletes: libvirt-daemon-driver-libxl < %{version}-%{release}
-Conflicts: libvirt-daemon-driver-libxl < %{version}-%{release}
         %endif
         %if %{with_lxc}
 Requires: libvirt-daemon-driver-lxc = %{version}-%{release}
-Obsoletes: libvirt-daemon-driver-lxc < %{version}-%{release}
-Conflicts: libvirt-daemon-driver-lxc < %{version}-%{release}
         %endif
         %if %{with_qemu}
 Requires: libvirt-daemon-driver-qemu = %{version}-%{release}
-Obsoletes: libvirt-daemon-driver-qemu < %{version}-%{release}
-Conflicts: libvirt-daemon-driver-qemu < %{version}-%{release}
         %endif
         %if %{with_uml}
 Requires: libvirt-daemon-driver-uml = %{version}-%{release}
-Obsoletes: libvirt-daemon-driver-uml < %{version}-%{release}
-Conflicts: libvirt-daemon-driver-uml < %{version}-%{release}
         %endif
         %if %{with_xen}
 Requires: libvirt-daemon-driver-xen = %{version}-%{release}
-Obsoletes: libvirt-daemon-driver-xen < %{version}-%{release}
-Conflicts: libvirt-daemon-driver-xen < %{version}-%{release}
         %endif
         %if %{with_vbox}
 Requires: libvirt-daemon-driver-vbox = %{version}-%{release}
-Obsoletes: libvirt-daemon-driver-vbox < %{version}-%{release}
-Conflicts: libvirt-daemon-driver-vbox < %{version}-%{release}
         %endif
         %if %{with_nwfilter}
 Requires: libvirt-daemon-driver-nwfilter = %{version}-%{release}
-Obsoletes: libvirt-daemon-driver-nwfilter < %{version}-%{release}
-Conflicts: libvirt-daemon-driver-nwfilter < %{version}-%{release}
         %endif
 
 	%if %{with_interface}
 Requires: libvirt-daemon-driver-interface = %{version}-%{release}
-Obsoletes: libvirt-daemon-driver-interface < %{version}-%{release}
-Conflicts: libvirt-daemon-driver-interface < %{version}-%{release}
 	%endif
 Requires: libvirt-daemon-driver-secret = %{version}-%{release}
-Obsoletes: libvirt-daemon-driver-secret < %{version}-%{release}
-Conflicts: libvirt-daemon-driver-secret < %{version}-%{release}
 Requires: libvirt-daemon-driver-storage = %{version}-%{release}
-Obsoletes: libvirt-daemon-driver-storage < %{version}-%{release}
-Conflicts: libvirt-daemon-driver-storage < %{version}-%{release}
 Requires: libvirt-daemon-driver-network = %{version}-%{release}
-Obsoletes: libvirt-daemon-driver-network < %{version}-%{release}
-Conflicts: libvirt-daemon-driver-network < %{version}-%{release}
 Requires: libvirt-daemon-driver-nodedev = %{version}-%{release}
-Obsoletes: libvirt-daemon-driver-nodedev < %{version}-%{release}
-Conflicts: libvirt-daemon-driver-nodedev < %{version}-%{release}
     %endif
 %endif
 Requires: libvirt-client = %{version}-%{release}
-Obsoletes: libvirt-client < %{version}-%{release}
-Conflicts: libvirt-client < %{version}-%{release}
 
 BuildRequires: perl-XML-XPath
 # All build-time requirements. Run-time requirements are
@@ -1894,7 +1862,7 @@ if test $1 -eq 1 && test ! -f %{_sysconfdir}/libvirt/qemu/networks/default.xml ;
 
     # Make sure libvirt picks up the new network defininiton
     %if %{with_systemd}
-    /bin/systemctl try-restart libvirtd.service >/dev/null 2>
+    /bin/systemctl try-restart libvirtd.service >/dev/null 2>&1 ||:
     %else
     /sbin/service libvirtd condrestart > /dev/null 2>&1 || :
     %endif
@@ -2461,8 +2429,48 @@ exit 0
 #doc examples/systemtap
 
 %changelog
-* Wed May 11 2016 <baseuser@ibm.com>
+* Wed Jun 15 2016 <baseuser@ibm.com>
   Log from git:
+- 232c054965d4a5d97fae4b859e3c854f13412747 Enable seccomp sandbox by default in qemu.conf
+- 6e397a036d72a99285724e90402e225055db5fa5 Free the entire slot when not using the multifunction
+- 98f3db5878227f7eaedeee4d4377ddf739dffa82 Revert "util: set MAC address for VF via netlink message to PF+VF# when possible"
+- a0123e85f86736ac6799e49e7e79a8ba0ee22901 Revert "util: don't use netlink to save/set mac for macvtap+passthrough+802.1Qbh"
+- ceb4a0c152f4201f95223c703260d4d87f24bca2 Enable PCI Multifunction hotplug/unplug
+- 23f6f531c0b96444a8ca8dca978b811d10c3938f Move the detach of PCI device to the beginnging of live hotplug
+- 8f6f0942ec9d6bca32d101599a7b74ade0ce7920 Separate the hostdevice preparation and checks to a new funtion
+- e6f2f3ca73aed4941182f579dc26d60d51e91627 Introduce virDomainPCIMultifunctionDeviceAddressAssign
+- 2a5de69ed3a08b95813c45af8f0d1b5b8552c625 Introduce PCI Multifunction device parser
+- 1cdb059fa12b4fef92fec7f891c4c706c9bc42ce Validate address in virDomainPCIAddressReleaseAddr
+- 4b08e05651533c00682416a9873504965d746d25 Release address in function granularity than slot
+- c70b04bc19069e9105f1ae293e06d18c16cf10f4 Revert "prevent hot unplugging multi function PCI device"
+- 560630a198f7e880c3d9e81fa1197e26e08a2793 qemu: hotplug: Fix possible memory leak of props
+- 2abf58779da7a74c3c0e305f01711987994c285c qemu: hotplug: Adjust error path for attach hostdev scsi disk
+- 5b8957b69bc5e1ef6bc4615a0775a6d18739b8d8 qemu: hotplug: Adjust error path for attach virtio disk
+- 4642f2878ece6a5e08d141d13017dacc5456096d qemu: hotplug: Adjust error path for attach scsi disk
+- ed74598cebabeb1e8e326db4d5ea3c3c44a0abf3 qemu: Use qemuDomainSecretInfoPtr in qemuBuildNetworkDriveURI
+- 3489ff99e6a5ed76da50bbc88363ca6f77d5be99 qemu: Introduce qemuDomainSecretHostdevPrepare and Destroy
+- fc4ad07285e3a3343bc9c72d9d82092faac4f990 qemu: Introduce qemuDomainHostdevPrivatePtr
+- 31b66c98dcd21e38884b9925c5f2a24ef0bdfda7 qemu: Introduce qemuDomainSecretPrepare and Destroy
+- 014aa6769d2c5a47693d7e908add64e5790fb157 qemu: Introduce qemuDomainSecretInfo
+- cc40b4de4b792a594e64835900f5505b27e74ed4 Change virDevicePCIAddress to virPCIDeviceAddress
+- a4101a1bc1c399cae10bf641dffa834a836dea6d qemu: monitor: Kill legacy PCI hotplug code
+- 15957c5b49a0b72a12af256c5a0b911058d52471 qemu: hotplug: Assume QEMU_CAPS_DEVICE in qemuDomainAttachControllerDevice
+- 8fbd6d350fd65a94a0fea95b1d056e0cddf06745 qemu: hotplug: Assume QEMU_CAPS_DEVICE in qemuDomainDetachNetDevice
+- fa3c931c1abb6a3703faf00e970b910731d8ae7b qemu: hotplug: Assume QEMU_CAPS_DEVICE in qemuDomainDetachHostPCIDevice
+- 8dc5632702f54afc1c43f156c739bea6d12755e6 qemu: hotplug: Assume QEMU_CAPS_DEVICE in qemuDomainDetachControllerDevice
+- 76b03e517d4fd1eb0d3773f79a888c03776169d1 qemu: hotplug: Assume QEMU_CAPS_DEVICE in qemuDomainDetachVirtioDiskDevice
+- cb8765eadd443b47f63a9f12ea57f30cd7cdde83 qemu: hotplug: Assume QEMU_CAPS_DEVICE in qemuDomainAttachHostPCIDevice
+- c92825db2509e3a1a53e05682e6da562e305f00a qemu: hotplug: Assume QEMU_CAPS_DEVICE in qemuDomainAttachNetDevice
+- a313e0c545c6c388e60eee64e94e79ba123762eb qemu: hotplug: Assume QEMU_CAPS_DEVICE in qemuDomainAttachVirtioDiskDevice
+- 8178abddcadeaa9af6535ba94ade1dec2574394c qemu: monitor: Kill legacy USB monitor code
+- e9e18e59b726c014c11744756c7777a3caf77038 qemu: hotplug: Assume QEMU_CAPS_DEVICE in qemuDomainAttachHostUSBDevice
+- dc460e3f96e2fd297d8d99bc38e0dd72c262cc07 qemu: hotplug: Assume QEMU_CAPS_DEVICE in qemuDomainAttachUSBMassStorageDevice
+- ba2faf3c1757ce125b6502c47cc57c7b14b0d2bb qemu: remove default case from few typecasted enums
+- c56c18fedd6aa484d5fa70f57e608a8422697f83 virsh: Pass the correct live/config xml to virshDomainDetachInterface.
+- 50d99cbdb75ccf60858055e42fc317d1ca506073 virsh: Introduce virshDomainDetachInterface function
+- 9d34c7dda5fa83bbad95278e7a07e7c73ec6a87e send default USB controller in xml to destination during migration
+- 132f69b161fab4d435da382a4ae3ff5e2fb471c5 Revert "Send the default USB controller in xml to destination during migration"
+- aab1a16be83b62ae11644d23bfb32364ae9774d0 domain_conf: fix migration/managedsave with usb keyboard
 - 1b7c2d64cec803ec8ed6b17d28288875dd9f3ddf Merge version 'v1.3.4' into powerkvm-v3.1.1
 - 52f1874602b76ac857630be5d91e7cd19948d1a1 Release of libvirt-1.3.4
 - 50fc4b4bddfd6612674a5dd63a314426cf13837f Fix minor typos in messages
@@ -2473,46 +2481,6 @@ exit 0
 - cdbbb93a968bdf297c0aa47a3f161ffd76136dca vz: fix disk enumeration
 - 4d28d0931f87177a762f6a78cfdbcc2e30d6d4af virsh: Fix support for 64 migration options
 - 55320c23dd163e75eb61ed6bea2f339ccfeff4f9 qemu: Regenerate VNC socket paths
-- b527e7c8e2e13c194cf32fee76d3be3d89365524 qemu: Error out if setting vcpu count would lead to invalid config
-- 63e2b766a5a704eb19b8bdaeb1cf0fa91f990cb8 qemu: conf: Set default logging approach in virQEMUDriverConfigNew
-- d294f6b0dff7df254e9e0e8e27ce00f1dcc9271e Shorten domain name for automatic coredump
-- a042275a396ed5fc338bfdd464b76de2215a8058 Unify domain name shortening
-- d3d4fb4b187e88d470d37867cdaff3f32e01efef qemu: Unref cfg in qemuDomainDefPostParse
-- 67f2b72723c242969c5282fcb9acf00cc01f2a54 conf: Drop restrictions on rng backend path
-- 84371303d8302e59e535b4ca2d7e2d5f43d7679e remote: Don't reject remote polkit if client lacks support
-- a528ae7fb7e24e448d2636012218109ae3ef82b6 spec: Use proper indentation
-- 1d4400082a02c41b152cc9ab7b4cfc428cc527ee spec: If installing default network, restart libvirtd
-- 600a666ce57803117fc159a88ea1e2cd4ed2fe5e schema: Allow space character in disk vendor/product
-- 6b86cc3333fdc688f5d7c399eed5e10546a929e9 Make virtio as the default net device for PPC64
-- 35c16ad5b4a8b557c52f75c701cd317a871626f3 Merge branch 'powerkvm-v3.1.1' of git.linux.ibm.com:libvirt/powerkvm-libvirt into v1.3.3
-- fdc6ae2b6c00cf65e2173b8646eef0de51c7c08f Adjust vcpu count with Cpu topologies having just the numa and no topology
-- 97669ba7060b6917a2a0d34f844baf6ca858c00a save and restore context node while parsing spapr-cpu-sockets
-- 39fe6ebd58edda5127c009115d4879d94ceff1de Handle Cgroups for spapr socket cpus
-- 6b968b73121615f7397487b621105cac092cdfbf Count the socket cpus during guest launch
-- 0388b0bb08a228127ce77dbd4abcf0a6fb06f9b0 Workaround/Fix for libvirt non existant topology / mismatched topology
-- 0f0da681fb5dc8dff1aea24a8aa61c8c49f9628c Enable spapr-cpu-socket hot-plug/hot-unplug
-- 5d0614abd8f4cd26767734b54a6dc09026e5a8f9 Set keepalive_count to 50 by default. This aligns with 2.1 behaviour
-- 55cb9ca745f3ec63defeabf4c5052e149a7f6d51 Revert "Wait for vfio-pci device cleanups before reassinging the device to host driver"
-- 7e762370d6c5b6cbef7a011e638ea92132f98303 Revert "Make virtio as the default net device for PPC64"
-- 9f735b9521615198e27a12fb6217dfaea65d903b Revert "Initialize the stubDriver of pci devices if bound to a valid one"
-- 138a719bc9354aa44c16275b026db1d1d72390f2 Initialize the stubDriver of pci devices if bound to a valid one
-- e1e371365fd916b5faa3b9ca5a80002067890a7a The default resource partition is created in the domain start path if it is not existing. Even when libvirtd is stopped after shutting down all domains, the resource partition still exists.
-- 39ff41fd00542075517d36554ca834e763b9d43d Make virtio as the default net device for PPC64
-- 28d8e01195cb52684506ac3929e9f397c2840169 Wait for vfio-pci device cleanups before reassinging the device to host driver
-- 31615d0169e4a2224f83e4e1aa8007d21ab701c4 libvirt-guests configuration for powerkvm libvirt
-- 89cce31f57c44350f0699dca61612d346ca63c91 Remove relaxed_acs_check in make check tests
-- 801835f0780b988820ad0d333b37a745d67f7a5a Relax acs checks on PowerKvm for PCI devices
-- bc9a5e0e7249c495e057012b60559e54cbcd8a1b set the RLIMIT_MEMLOCK to a higher value for libvirt guests
-- 1020afe32072e1988b8be411178949176eaa5acc Revert "qemu: add test case for spapr-pci-vfio-host-bridge"
-- e0dc45c951de3958a22a01e6a62bf82abcdfd9d1 qemu: add test case for spapr-pci-vfio-host-bridge
-- b5ec91d16e72aad435ec9618ad7a765b54c5ccdc Send the default USB controller in xml to destination during migration
-- 10ef8c66eec911375beb4f31c1783c8b0c5f4682 maint: Ignore all intermediate and generated man pages
-- cb447371658c2c74c951f2fb0b2a71d901a4489f apibuild: Fix method call
-- 4a98ebb07cde59f639039a94c9c95a2c850c611d apibuild: Introduce app class
-- ccaceab7bdcc5abe215444daac31951591ba6713 apibuild: Add index.warning() method
-- 22a592a4fe01fff1a86e58f0d3e3f66c1a7e707e docs: Pass relative paths to apibuild.py
-- 662bf30c0f8605f960105a9ac1fb8edc80d8971b secret: Change virSecretDef variable names
-- 43d3e3c130a0f123ad8fa1cfe2ed8447871097f3 secret: Introduce virSecretObjGetValue and virSecretObjGetValueSize
 
 * Sun May  1 2016 Daniel Veillard <veillard@redhat.com> - 1.3.4-1
 - Lot of work on documentation
