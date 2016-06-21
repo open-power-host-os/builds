@@ -374,7 +374,7 @@ ExclusiveOS: Linux
 #
 BuildRequires: module-init-tools, patch >= 2.5.4, bash >= 2.03, sh-utils, tar
 BuildRequires: xz, findutils, gzip, m4, perl, make >= 3.78, diffutils, gawk
-BuildRequires: gcc >= 3.4.2, binutils >= 2.12, base-rpm-config >= 9.1.0-55
+BuildRequires: gcc >= 3.4.2, binutils >= 2.12, system-rpm-config >= 9.1.0-55
 BuildRequires: hostname, net-tools, bc
 BuildRequires: openssl
 %{!?cross_build:BuildRequires: hmaccalc}
@@ -959,7 +959,7 @@ BuildKernel() {
     done
 %endif
 # EFI SecureBoot signing, x86_64-only
-%if %{signmodules}
+%if 0%{?signmodules:0}
 %ifarch x86_64
     %pesign -s -i $KernelImage -o $KernelImage.signed -a %{SOURCE13} -c %{SOURCE13}
     mv $KernelImage.signed $KernelImage
@@ -1118,7 +1118,7 @@ BuildKernel() {
 
     # Save off the .tmp_versions/ directory.  We'll use it in the
     # __debug_install_post macro below to sign the right things
-%if %{signmodules}
+%if 0%{?signmodules:0}
     # Also save the signing keys so we actually sign the modules with the
     # right key.
     cp -r .tmp_versions .tmp_versions.sign${Flavour:+.${Flavour}}
