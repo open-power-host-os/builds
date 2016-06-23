@@ -103,7 +103,3 @@ class Mock(build_system.PackageBuilder):
             datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S'))
         os.makedirs(self.build_dir)
         os.chmod(self.build_dir, 0777)
-        # TODO(maurosr): Constructing the strings like below is ugly, let's
-        # make it better later
-        for f in glob.glob(package.build_files + "*"):
-            shutil.copy(f, self.build_dir)
