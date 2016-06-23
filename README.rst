@@ -1,5 +1,5 @@
 Build the best of OpenPOWER platform virtualization
-***********************************************
+***************************************************
 
 Considering the speed of the development of new features, or even Hardware is
 created in the OpenPOWER ecosystem, it's a challenge to get them in the
@@ -16,15 +16,46 @@ Supported GNU/Linux distributions
 * CentOS 7.2 PPC64LE
 
 Installation
------------
+------------
 
 RPM Based distributions
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 Install
  * PyYAML
+ * git
  * python-pygit2
 
 ::
 
-# sudo yum install -y PyYAML python-pygit2
+# sudo yum install -y PyYAML git python-pygit2
+
+Settings
+--------
+
+ * Disable SMT
+
+::
+
+# sudo ppc64_cpu --smt=off
+
+Running
+-------
+
+ * Build a single package
+
+::
+
+# sudo python host-os-build.py --package libvirt --verbose
+
+ * Build all software
+
+::
+
+# sudo python host-os-build.py --package libvirt --verbose
+
+Validating
+----------
+
+There is a whole repository dedicated to testing available at
+https://github.com/open-power-host-os/tests
