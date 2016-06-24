@@ -8,3 +8,4 @@ Package:
   centos:
    '7.2':
     spec: 'centOS/7.2/libvirt.spec'
+    build_files: 

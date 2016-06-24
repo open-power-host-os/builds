@@ -60,13 +60,13 @@ class Package(object):
                 self.commit_id = package.get('commit_id', None)
 
                 files = package.get('files')
-                build_files = files.get(self.distro_name).get(
+                self.build_files = files.get(self.distro_name).get(
                     self.distro_version).get(
                         'build_files', None)
-                if build_files:
+                if self.build_files:
                     self.build_files = os.path.join(COMPONENTS_DIRECTORY,
                                                     package_name,
-                                                    build_files)
+                                                    self.build_files)
 
                 self.specfile = os.path.join(
                     COMPONENTS_DIRECTORY,

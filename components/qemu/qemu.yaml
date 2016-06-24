@@ -8,4 +8,5 @@ Package:
   centos:
    '7.2': 
     spec: 'centOS/7.2/qemu.spec'
+    build_files: 'centOS/7.2/SOURCES/*'
 
