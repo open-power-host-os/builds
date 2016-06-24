@@ -50,7 +50,7 @@ class Repo(object):
                                                 self.local_path,
                                                 checkout_branch=branch)
 
-            cmd = "cd %s ; git submodule foreach git init; cd %s" % (
+            cmd = "cd %s ; git submodule update; cd %s" % (
                 self.local_path, os.getcwd())
             p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE, shell=True)
@@ -65,11 +65,11 @@ class Repo(object):
         archive_file = os.path.join(build_dir, archive_name + ".tar")
 
         # Generates one tar file for each submodule.
-        cmd = ("cd %s && git submodule foreach git archive --prefix=%s/ "
-               "--format tar --output %s && cd %s " % (
+        cmd = ("cd %s; git submodule foreach 'git archive --prefix=%s/$path/ "
+               "--format tar --output %s HEAD'; cd %s " % (
                    self.local_path,
                    archive_name,
-                   os.path.join(build_dir, "\$name-" + archive_name + ".tar"),
+                   os.path.join(build_dir, "$name-" + archive_name + ".tar"),
                    os.getcwd()))
 
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
@@ -79,9 +79,10 @@ class Repo(object):
         LOG.info("STDERR: %s" % error_output)
 
         # Generates project's archive.
-        cmd = ("cd %s ; git archive --prefix=%s/ --format tar --output %s HEAD; "
+        cmd = ("cd %s; "
+               "git archive --prefix=%s/ --format tar --output %s HEAD; "
                "cd %s" % (self.local_path, archive_name,
-                         archive_file, os.getcwd()))
+                          archive_file, os.getcwd()))
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, shell=True)
         output, error_output = p.communicate()
