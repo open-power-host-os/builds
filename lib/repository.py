@@ -50,7 +50,7 @@ class Repo(object):
                                                 self.local_path,
                                                 checkout_branch=branch)
 
-            cmd = "cd %s ; git submodule update; cd %s" % (
+            cmd = "cd %s ; git submodule init; git submodule update; cd %s" % (
                 self.local_path, os.getcwd())
             p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE, shell=True)
