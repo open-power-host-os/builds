@@ -20,15 +20,23 @@ Installation
 
 RPM Based distributions
 ^^^^^^^^^^^^^^^^^^^^^^^
-
-Install
- * PyYAML
- * git
- * python-pygit2
+* Install epel repository (Extra Packages for Enterprise Linux):
 
 ::
 
-# sudo yum install -y PyYAML git python-pygit2
+# sudo yum install --downloadonly --downloaddir=. epel-release
+# sudo yum localinstall epel-release-7-5.noarch.rpm # Note the version may change.
+
+* Install
+
+ - mock
+ - PyYAML
+ - git
+ - python-pygit2
+
+::
+
+# sudo yum install -y mock PyYAML git python-pygit2
 
 Settings
 --------
@@ -59,3 +67,4 @@ Validating
 
 There is a whole repository dedicated to testing available at
 https://github.com/open-power-host-os/tests
+
