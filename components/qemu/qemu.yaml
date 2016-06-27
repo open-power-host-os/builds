@@ -4,9 +4,8 @@ Package:
  branch: 'powerkvm-v3.1.1'
  commit_id: '7d4a58a'
  expects_source: "qemu-2200.0"
- specs:
+ files:
   centos:
-   '7.2': 
+   '7.2':
     spec: 'centOS/7.2/qemu.spec'
-    build_files: 'centOS/7.2/SOURCES/*'
-
+    build_files: 'centOS/7.2/SOURCES'
