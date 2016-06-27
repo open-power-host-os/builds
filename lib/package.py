@@ -59,20 +59,26 @@ class Package(object):
                 self.branch = package.get('branch', None)
                 self.commit_id = package.get('commit_id', None)
 
-                files = package.get('files')
-                self.build_files = files.get(self.distro_name).get(
-                    self.distro_version).get(
-                        'build_files', None)
+                # load distro files
+                files = package.get('files').get(self.distro_name).get(
+                    self.distro_version)
+
+                self.build_files = files.get('build_files', None)
                 if self.build_files:
                     self.build_files = os.path.join(COMPONENTS_DIRECTORY,
                                                     package_name,
                                                     self.build_files)
 
+                self.rpmmacro = files.get('rpmmacro', None)
+                if self.rpmmacro:
+                    self.rpmmacro = os.path.join(COMPONENTS_DIRECTORY,
+                                                 package_name,
+                                                 self.rpmmacro)
+
                 self.specfile = os.path.join(
                     COMPONENTS_DIRECTORY,
                     package_name,
-                    files.get(self.distro_name).get(self.distro_version).get(
-                        'spec'))
+                    files.get('spec'))
 
                 if os.path.isfile(self.specfile):
                     LOG.info("Package found: %(name)s for %(distro_name)s "

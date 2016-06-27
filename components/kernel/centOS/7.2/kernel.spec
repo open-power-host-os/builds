@@ -376,6 +376,7 @@ BuildRequires: module-init-tools, patch >= 2.5.4, bash >= 2.03, sh-utils, tar
 BuildRequires: xz, findutils, gzip, m4, perl, make >= 3.78, diffutils, gawk
 BuildRequires: gcc >= 3.4.2, binutils >= 2.12, system-rpm-config >= 9.1.0-55
 BuildRequires: hostname, net-tools, bc
+BuildRequires: xmlto, asciidoc
 BuildRequires: openssl
 %{!?cross_build:BuildRequires: hmaccalc}
 %{!?cross_build:BuildRequires: python-devel, perl(ExtUtils::Embed)}
@@ -387,7 +388,7 @@ BuildRequires: pesign >= 0.109-4
 BuildRequires: sparse >= 0.4.1
 %endif
 %if %{with_perf}
-BuildRequires: elfutils-devel zlib-devel binutils-devel bison
+BuildRequires: elfutils-devel zlib-devel binutils-devel bison flex
 BuildRequires: audit-libs-devel
 %ifnarch s390 s390x
 %{!?cross_build:BuildRequires: numactl-devel}

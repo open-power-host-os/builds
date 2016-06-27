@@ -41,6 +41,9 @@ class Mock(build_system.PackageBuilder):
         cmd = "mock -r %s --rebuild %s --no-clean " % (
             self.mock_config, self.build_dir + "/*.rpm")
 
+        if package.rpmmacro:
+            cmd = cmd + " --macro-file=%s" % package.rpmmacro
+
         LOG.info("Command: %s" % cmd)
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, shell=True)
