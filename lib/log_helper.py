@@ -32,11 +32,15 @@ class LogHelper(object):
 
     def _directory_setup(self):
         logpath, _ = os.path.split(self.logfile)
-        try:
-            os.makedirs(logpath)
-        except OSError:
-            # failled to create
-            if not os.path.exists(logpath):
-                raise
-            # Directory already exists
-            pass
+
+        # empty logpath means localdirectory and thus the next steps are
+        # unecessary
+        if logpath:
+            try:
+                os.makedirs(logpath)
+            except OSError:
+                # failled to create
+                if not os.path.exists(logpath):
+                    raise
+                # Directory already exists
+                pass
