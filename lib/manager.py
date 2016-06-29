@@ -15,18 +15,18 @@
 
 import logging
 
+from lib import config
 from lib import exception
 from lib import package
 from lib import utils
 
-
+CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 
 
 class BuildManager(object):
-    def __init__(self, config):
-        self.conf = config
-        self.packages_list = self.conf.config.get('default').get('packages')
+    def __init__(self):
+        self.packages_list = CONF.get('default').get('packages')
         self.packages = None
         self.distro = None
         self.repositories = None
@@ -58,7 +58,7 @@ class BuildManager(object):
                 self.packages_list)]
 
     def _prepare_repositories(self):
-        dest = self.conf.config.get('default').get('repositories_path')
         for package in self.packages:
-            package.setup_repository(dest=dest,
-                                     branch=self.conf.config.get('branch'))
+            package.setup_repository(
+                dest=CONF.get('default').get('repositories_path'),
+                branch=CONF.get('default').get('branch'))

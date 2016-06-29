@@ -23,15 +23,30 @@ from lib import utils
 LOG = logging.getLogger(__name__)
 
 
+config_parser = None
+
+
+def get_config():
+    global config_parser
+    if not config_parser:
+        config_parser = ConfigParser()
+    return config_parser
+
+
 class ConfigParser(object):
 
-    def __init__(self, argv):
-        cmdline_args = self._parse_arguments(argv)
-        self.config = self._parse_config(cmdline_args.get('config_file'))
+    def __init__(self):
+        cmdline_args = self._parse_arguments()
+
+        self._CONF = self._parse_config(cmdline_args.get('config_file'))
 
         # NOTE(maurosr): update the config object overwriting its contents with
         # data gathered from cmdline (cmdline precedence > config file's )
-        self.config.get('default').update(cmdline_args)
+        self._CONF.get('default').update(cmdline_args)
+
+    @property
+    def CONF(self):
+        return self._CONF
 
     def _parse_config(self, config_file):
         conf = {}
@@ -39,7 +54,7 @@ class ConfigParser(object):
             conf = yaml.safe_load(stream)
         return conf
 
-    def _parse_arguments(self, argv):
+    def _parse_arguments(self):
         supported_software = utils.discover_software()
         parser = argparse.ArgumentParser()
         parser.add_argument('--config-file', '-c',

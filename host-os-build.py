@@ -22,14 +22,14 @@ from lib import manager
 
 def main(args):
     try:
-        conf = config.ConfigParser(args)
+        conf = config.get_config().CONF
     except OSError:
         print("Failed to parse settings")
         return 2
 
-    log_helper.LogHelper(logfile=conf.config.get('default').get('log_file'),
-                         verbose=conf.config.get('default').get('verbose'))
-    build_manager = manager.BuildManager(conf)
+    log_helper.LogHelper(logfile=conf.get('default').get('log_file'),
+                         verbose=conf.get('default').get('verbose'))
+    build_manager = manager.BuildManager()
     return build_manager()
 
 if __name__ == '__main__':
