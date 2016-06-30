@@ -14,23 +14,24 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import datetime
-import glob
 import logging
 import os
 import shutil
 import subprocess
 
+from lib import config
 from lib import build_system
 
+CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 MOCK_CHROOT_BUILD_DIR = "/builddir/build/SOURCES"
 
 
 class Mock(build_system.PackageBuilder):
-    def __init__(self, config, **kwargs):
+    def __init__(self, config):
         super(Mock, self).__init__()
         self.mock_config = config
-        self.kwargs = kwargs
+        self.result_dir = CONF.get('default').get('result_dir')
         self.build_dir = None
         self.archive = None
 
@@ -38,8 +39,8 @@ class Mock(build_system.PackageBuilder):
         self._create_build_directory(package)
         self._prepare(package)
         self._build_srpm(package)
-        cmd = "mock -r %s --rebuild %s --no-clean " % (
-            self.mock_config, self.build_dir + "/*.rpm")
+        cmd = "mock -r %s --rebuild %s --no-clean --resultdir=%s" % (
+            self.mock_config, self.build_dir + "/*.rpm", self.build_dir)
 
         if package.rpmmacro:
             cmd = cmd + " --macro-file=%s" % package.rpmmacro
@@ -50,6 +51,14 @@ class Mock(build_system.PackageBuilder):
         output, error_output = p.communicate()
         LOG.info("STDOUT: %s" % output)
         LOG.info("STDERR: %s" % error_output)
+
+        # On success save rpms and destroy build directory unless told
+        # otherwise.
+        if not p.returncode:
+            self._save_rpm()
+            if (CONF.get('keep_build_dir', None) or
+                    not CONF.get('keep_builddir')):
+                self._destroy_build_directory()
 
     def _build_srpm(self, package):
         cmd = ("mock -r %s --buildsrpm --no-clean --spec %s --source %s "
@@ -81,9 +90,6 @@ class Mock(build_system.PackageBuilder):
             cmd = cmd + " --copyin %s %s" % (package.build_files,
                                              MOCK_CHROOT_BUILD_DIR)
 
-        if 'deps' in self.kwargs:
-            cmd = cmd + "--install %s " % " ".join(self.kwargs['deps'])
-
         LOG.info("Command: %s" % cmd)
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, shell=True)
@@ -106,3 +112,20 @@ class Mock(build_system.PackageBuilder):
             datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S'))
         os.makedirs(self.build_dir)
         os.chmod(self.build_dir, 0777)
+
+    def _destroy_build_directory(self):
+        shutil.rmtree(self.build_dir)
+
+    def _save_rpm(self):
+        if not os.path.exists(self.result_dir):
+            LOG.info("Creating directory to store RPM at %s " %
+                     self.result_dir)
+            os.makedirs(self.result_dir)
+            os.chmod(self.result_dir, 0777)
+
+        for f in os.listdir(self.build_dir):
+            if f.endswith(".rpm") and not f.endswith(".src.rpm"):
+                LOG.info("Saving %s at result directory %s" % (f,
+                         self.result_dir))
+                shutil.move(os.path.join(self.build_dir, f),
+                            os.path.join(self.result_dir, f))

@@ -14,48 +14,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
-import os
 import platform
 
 import centos
 import exception
-import package
 
 LOG = logging.getLogger(__name__)
 DISTRIBUTIONS = {
     "centos": centos.CentOS,
 }
-
-
-def discover_software():
-    """
-    Simple mechanism for discoverability of the software we build.
-
-    A discoverable software, and thus potentially buildable, will be assume as
-    any directory name under SOFTWARE_DIRECTORY containing a yaml file with
-    the same name.
-    Considering the example:
-
-    components
-    +-- kernel
-    |   +-- kernel.yaml
-    +-- libvirt
-    |   +-- libvirt.yaml
-    |   +-- someother_file_or_directory
-    +-- not-a-software
-    |   +-- not-following-standards.yaml
-    +-- file
-
-    "kernel" and "libvirt" will be discovered, "not-a-software" and "file"
-    will not.
-    """
-    return [software for software in os.listdir(package.COMPONENTS_DIRECTORY)
-            if os.path.isdir(os.path.join(package.COMPONENTS_DIRECTORY,
-                                          software)) and
-            os.path.isfile(os.path.join(package.COMPONENTS_DIRECTORY,
-                                        software,
-                                        "".join([software, ".yaml"])))
-            ]
 
 
 def detect_distribution():

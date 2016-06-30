@@ -15,10 +15,12 @@
 
 import argparse
 import logging
+import os
 
 import yaml
 
-from lib import utils
+from lib import package
+
 
 LOG = logging.getLogger(__name__)
 
@@ -31,6 +33,37 @@ def get_config():
     if not config_parser:
         config_parser = ConfigParser()
     return config_parser
+
+
+def discover_software():
+    """
+    Simple mechanism for discoverability of the software we build.
+
+    A discoverable software, and thus potentially buildable, will be assume as
+    any directory name under SOFTWARE_DIRECTORY containing a yaml file with
+    the same name.
+    Considering the example:
+
+    components
+    +-- kernel
+    |   +-- kernel.yaml
+    +-- libvirt
+    |   +-- libvirt.yaml
+    |   +-- someother_file_or_directory
+    +-- not-a-software
+    |   +-- not-following-standards.yaml
+    +-- file
+
+    "kernel" and "libvirt" will be discovered, "not-a-software" and "file"
+    will not.
+    """
+    return [software for software in os.listdir(package.COMPONENTS_DIRECTORY)
+            if os.path.isdir(os.path.join(package.COMPONENTS_DIRECTORY,
+                                          software)) and
+            os.path.isfile(os.path.join(package.COMPONENTS_DIRECTORY,
+                                        software,
+                                        "".join([software, ".yaml"])))
+            ]
 
 
 class ConfigParser(object):
@@ -55,7 +88,7 @@ class ConfigParser(object):
         return conf
 
     def _parse_arguments(self):
-        supported_software = utils.discover_software()
+        supported_software = discover_software()
         parser = argparse.ArgumentParser()
         parser.add_argument('--config-file', '-c',
                             help='Path of the configuration file for build '
@@ -73,5 +106,11 @@ class ConfigParser(object):
         parser.add_argument('--verbose', '-v',
                             help='Set the scripts to be verbose',
                             action='store_true')
+        parser.add_argument('--result-dir', '-r',
+                            help='Directory to save the RPMs.',
+                            default=os.path.join(os.getcwd(), 'result'))
+        parser.add_argument('--keep-builddir',
+                            help='Keep build directory and its logs and '
+                            'artifacts.', action='store_true')
         args = parser.parse_args()
         return vars(args)
