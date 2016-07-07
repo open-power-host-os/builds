@@ -1,0 +1,96 @@
+2014-04-09  Richard Henderson  <rth@redhat.com>
+
+	* gcc-interface/Makefile.in: Support aarch64-linux.
+	* init.c: Enable alternate stack support also on aarch64.
+	* types.h (Fat_Pointer): Remove aligned attribute.
+
+--- gcc/ada/gcc-interface/Makefile.in
++++ gcc/ada/gcc-interface/Makefile.in
+@@ -2123,6 +2123,44 @@ ifeq ($(strip $(filter-out alpha% linux%,$(arch) $(osys))),)
+   LIBRARY_VERSION := $(LIB_VERSION)
+ endif
+ 
++# AArch64 Linux
++ifeq ($(strip $(filter-out aarch64% linux%,$(arch) $(osys))),)
++  LIBGNAT_TARGET_PAIRS = \
++  a-exetim.adb<a-exetim-posix.adb \
++  a-exetim.ads<a-exetim-default.ads \
++  a-intnam.ads<a-intnam-linux.ads \
++  a-synbar.adb<a-synbar-posix.adb \
++  a-synbar.ads<a-synbar-posix.ads \
++  s-inmaop.adb<s-inmaop-posix.adb \
++  s-intman.adb<s-intman-posix.adb \
++  s-linux.ads<s-linux.ads \
++  s-mudido.adb<s-mudido-affinity.adb \
++  s-osinte.ads<s-osinte-linux.ads \
++  s-osinte.adb<s-osinte-posix.adb \
++  s-osprim.adb<s-osprim-posix.adb \
++  s-taprop.adb<s-taprop-linux.adb \
++  s-tasinf.ads<s-tasinf-linux.ads \
++  s-tasinf.adb<s-tasinf-linux.adb \
++  s-tpopsp.adb<s-tpopsp-tls.adb \
++  s-taspri.ads<s-taspri-posix.ads \
++  g-sercom.adb<g-sercom-linux.adb \
++  $(ATOMICS_TARGET_PAIRS) \
++  $(ATOMICS_BUILTINS_TARGET_PAIRS) \
++  system.ads<system-linux-x86_64.ads
++  ## ^^ Note the above is a pretty-close placeholder.
++
++  TOOLS_TARGET_PAIRS =  \
++    mlib-tgt-specific.adb<mlib-tgt-specific-linux.adb \
++    indepsw.adb<indepsw-gnu.adb
++
++  EXTRA_GNATRTL_TASKING_OBJS=s-linux.o a-exetim.o
++  EH_MECHANISM=-gcc
++  THREADSLIB=-lpthread -lrt
++  GNATLIB_SHARED=gnatlib-shared-dual
++  GMEM_LIB = gmemlib
++  LIBRARY_VERSION := $(LIB_VERSION)
++endif
++
+ # x86-64 Linux
+ ifeq ($(strip $(filter-out %x86_64 linux%,$(arch) $(osys))),)
+   LIBGNAT_TARGET_PAIRS = \
+--- gcc/ada/init.c
++++ gcc/ada/init.c
+@@ -562,7 +562,9 @@ __gnat_error_handler (int sig, siginfo_t *si ATTRIBUTE_UNUSED, void *ucontext)
+   Raise_From_Signal_Handler (exception, msg);
+ }
+ 
+-#if defined (i386) || defined (__x86_64__) || defined (__powerpc__)
++#if defined (i386) || defined (__x86_64__) || defined (__powerpc__) \
++    || defined (__aarch64__)
++#define HAVE_GNAT_ALTERNATE_STACK 1
+ /* This must be in keeping with System.OS_Interface.Alternate_Stack_Size.  */
+ char __gnat_alternate_stack[16 * 1024]; /* 2 * SIGSTKSZ */
+ #endif
+@@ -603,7 +605,7 @@ __gnat_install_handler (void)
+      handled properly, avoiding a SEGV generation from stack usage by the
+      handler itself.  */
+ 
+-#if defined (i386) || defined (__x86_64__) || defined (__powerpc__)
++#ifdef HAVE_GNAT_ALTERNATE_STACK
+   stack_t stack;
+   stack.ss_sp = __gnat_alternate_stack;
+   stack.ss_size = sizeof (__gnat_alternate_stack);
+@@ -624,7 +626,7 @@ __gnat_install_handler (void)
+     sigaction (SIGILL,  &act, NULL);
+   if (__gnat_get_interrupt_state (SIGBUS) != 's')
+     sigaction (SIGBUS,  &act, NULL);
+-#if defined (i386) || defined (__x86_64__) || defined (__powerpc__)
++#ifdef HAVE_GNAT_ALTERNATE_STACK
+   act.sa_flags |= SA_ONSTACK;
+ #endif
+   if (__gnat_get_interrupt_state (SIGSEGV) != 's')
+--- gcc/ada/types.h
++++ gcc/ada/types.h
+@@ -79,8 +79,7 @@ typedef Char *Str_Ptr;
+ /* Types for the fat pointer used for strings and the template it
+    points to.  */
+ typedef struct {int Low_Bound, High_Bound; } String_Template;
+-typedef struct {const char *Array; String_Template *Bounds; }
+-	__attribute ((aligned (sizeof (char *) * 2))) Fat_Pointer;
++typedef struct {const char *Array; String_Template *Bounds; } Fat_Pointer;
+ 
+ /* Types for Node/Entity Kinds:  */
+ 

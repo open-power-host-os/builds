@@ -1,0 +1,342 @@
+2014-08-08  Richard Henderson  <rth@redhat.com>
+
+	* config/aarch64/aarch64.c (aarch64_save_or_restore_fprs): Add
+	cfi_ops argument, for restore put REG_CFA_RESTORE notes into
+	*cfi_ops rather than on individual insns.  Cleanup.
+	(aarch64_save_or_restore_callee_save_registers): Likewise.
+	(aarch64_expand_prologue): Adjust caller.
+	(aarch64_expand_epilogue): Likewise.  Cleanup.  Emit queued cfi_ops
+	on the stack restore insn.
+
+--- gcc/config/aarch64/aarch64.c	2014-07-15 02:27:16.000000000 -0700
++++ gcc/config/aarch64/aarch64.c	2014-08-21 12:52:44.190455860 -0700
+@@ -1603,24 +1603,23 @@ aarch64_register_saved_on_entry (int reg
+ 
+ static void
+ aarch64_save_or_restore_fprs (int start_offset, int increment,
+-			      bool restore, rtx base_rtx)
+-
++			      bool restore, rtx base_rtx, rtx *cfi_ops)
+ {
+   unsigned regno;
+   unsigned regno2;
+   rtx insn;
+   rtx (*gen_mem_ref)(enum machine_mode, rtx) = (frame_pointer_needed)? gen_frame_mem : gen_rtx_MEM;
+ 
+-
+   for (regno = V0_REGNUM; regno <= V31_REGNUM; regno++)
+     {
+       if (aarch64_register_saved_on_entry (regno))
+ 	{
+-	  rtx mem;
++	  rtx mem, reg1;
+ 	  mem = gen_mem_ref (DFmode,
+ 			     plus_constant (Pmode,
+ 					    base_rtx,
+ 					    start_offset));
++	  reg1 = gen_rtx_REG (DFmode, regno);
+ 
+ 	  for (regno2 = regno + 1;
+ 	       regno2 <= V31_REGNUM
+@@ -1632,54 +1631,51 @@ aarch64_save_or_restore_fprs (int start_
+ 	  if (regno2 <= V31_REGNUM &&
+ 	      aarch64_register_saved_on_entry (regno2))
+ 	    {
+-	      rtx mem2;
++	      rtx mem2, reg2;
+ 	      /* Next highest register to be saved.  */
+ 	      mem2 = gen_mem_ref (DFmode,
+ 				  plus_constant
+ 				  (Pmode,
+ 				   base_rtx,
+ 				   start_offset + increment));
++	      reg2 = gen_rtx_REG (DFmode, regno2);
++
+ 	      if (restore == false)
+ 		{
+-		  insn = emit_insn
+-		    ( gen_store_pairdf (mem, gen_rtx_REG (DFmode, regno),
+-					mem2, gen_rtx_REG (DFmode, regno2)));
+-
++		  insn = emit_insn (gen_store_pairdf (mem, reg1, mem2, reg2));
++		  /* The first part of a frame-related parallel insn
++		     is always assumed to be relevant to the frame
++		     calculations; subsequent parts, are only
++		     frame-related if explicitly marked.  */
++		  RTX_FRAME_RELATED_P (XVECEXP (PATTERN (insn), 0, 1)) = 1;
++		  RTX_FRAME_RELATED_P (insn) = 1;
+ 		}
+ 	      else
+ 		{
+-		  insn = emit_insn
+-		    ( gen_load_pairdf (gen_rtx_REG (DFmode, regno), mem,
+-				       gen_rtx_REG (DFmode, regno2), mem2));
+-
+-		  add_reg_note (insn, REG_CFA_RESTORE, gen_rtx_REG (DFmode, regno));
+-		  add_reg_note (insn, REG_CFA_RESTORE, gen_rtx_REG (DFmode, regno2));
++		  emit_insn (gen_load_pairdf (reg1, mem, reg2, mem2));
++		  *cfi_ops = alloc_reg_note (REG_CFA_RESTORE, reg1, *cfi_ops);
++		  *cfi_ops = alloc_reg_note (REG_CFA_RESTORE, reg2, *cfi_ops);
+ 		}
+ 
+-		  /* The first part of a frame-related parallel insn
+-		     is always assumed to be relevant to the frame
+-		     calculations; subsequent parts, are only
+-		     frame-related if explicitly marked.  */
+-	      RTX_FRAME_RELATED_P (XVECEXP (PATTERN (insn), 0,
+-					    1)) = 1;
+ 	      regno = regno2;
+ 	      start_offset += increment * 2;
+ 	    }
+ 	  else
+ 	    {
+ 	      if (restore == false)
+-		insn = emit_move_insn (mem, gen_rtx_REG (DFmode, regno));
++		{
++		  insn = emit_move_insn (mem, reg1);
++		  RTX_FRAME_RELATED_P (insn) = 1;
++		}
+ 	      else
+ 		{
+-		  insn = emit_move_insn (gen_rtx_REG (DFmode, regno), mem);
+-		  add_reg_note (insn, REG_CFA_RESTORE, gen_rtx_REG (DImode, regno));
++		  emit_move_insn (reg1, mem);
++		  *cfi_ops = alloc_reg_note (REG_CFA_RESTORE, reg1, *cfi_ops);
+ 		}
+ 	      start_offset += increment;
+ 	    }
+-	  RTX_FRAME_RELATED_P (insn) = 1;
+ 	}
+     }
+-
+ }
+ 
+ 
+@@ -1687,13 +1683,14 @@ aarch64_save_or_restore_fprs (int start_
+    restore's have to happen.  */
+ static void
+ aarch64_save_or_restore_callee_save_registers (HOST_WIDE_INT offset,
+-					    bool restore)
++					       bool restore, rtx *cfi_ops)
+ {
+   rtx insn;
+   rtx base_rtx = stack_pointer_rtx;
+   HOST_WIDE_INT start_offset = offset;
+   HOST_WIDE_INT increment = UNITS_PER_WORD;
+-  rtx (*gen_mem_ref)(enum machine_mode, rtx) = (frame_pointer_needed)? gen_frame_mem : gen_rtx_MEM;
++  rtx (*gen_mem_ref)(enum machine_mode, rtx)
++    = (frame_pointer_needed)? gen_frame_mem : gen_rtx_MEM;
+   unsigned limit = (frame_pointer_needed)? R28_REGNUM: R30_REGNUM;
+   unsigned regno;
+   unsigned regno2;
+@@ -1702,11 +1699,13 @@ aarch64_save_or_restore_callee_save_regi
+     {
+       if (aarch64_register_saved_on_entry (regno))
+ 	{
+-	  rtx mem;
++	  rtx mem, reg1;
++
+ 	  mem = gen_mem_ref (Pmode,
+ 			     plus_constant (Pmode,
+ 					    base_rtx,
+ 					    start_offset));
++	  reg1 = gen_rtx_REG (DImode, regno);
+ 
+ 	  for (regno2 = regno + 1;
+ 	       regno2 <= limit
+@@ -1718,56 +1717,54 @@ aarch64_save_or_restore_callee_save_regi
+ 	  if (regno2 <= limit &&
+ 	      aarch64_register_saved_on_entry (regno2))
+ 	    {
+-	      rtx mem2;
++	      rtx mem2, reg2;
+ 	      /* Next highest register to be saved.  */
+ 	      mem2 = gen_mem_ref (Pmode,
+ 				  plus_constant
+ 				  (Pmode,
+ 				   base_rtx,
+ 				   start_offset + increment));
++	      reg2 = gen_rtx_REG (DImode, regno2);
++
+ 	      if (restore == false)
+ 		{
+-		  insn = emit_insn
+-		    ( gen_store_pairdi (mem, gen_rtx_REG (DImode, regno),
+-					mem2, gen_rtx_REG (DImode, regno2)));
+-
++		  insn = emit_insn (gen_store_pairdi (mem, reg1, mem2, reg2));
++		  /* The first part of a frame-related parallel insn
++		     is always assumed to be relevant to the frame
++		     calculations; subsequent parts, are only
++		     frame-related if explicitly marked.  */
++		  RTX_FRAME_RELATED_P (XVECEXP (PATTERN (insn), 0, 1)) = 1;
++	  	  RTX_FRAME_RELATED_P (insn) = 1;
+ 		}
+ 	      else
+ 		{
+-		  insn = emit_insn
+-		    ( gen_load_pairdi (gen_rtx_REG (DImode, regno), mem,
+-				     gen_rtx_REG (DImode, regno2), mem2));
+-
+-		  add_reg_note (insn, REG_CFA_RESTORE, gen_rtx_REG (DImode, regno));
+-		  add_reg_note (insn, REG_CFA_RESTORE, gen_rtx_REG (DImode, regno2));
++		  emit_insn (gen_load_pairdi (reg1, mem, reg2, mem2));
++		  *cfi_ops = alloc_reg_note (REG_CFA_RESTORE, reg1, *cfi_ops);
++		  *cfi_ops = alloc_reg_note (REG_CFA_RESTORE, reg2, *cfi_ops);
+ 		}
+ 
+-		  /* The first part of a frame-related parallel insn
+-		     is always assumed to be relevant to the frame
+-		     calculations; subsequent parts, are only
+-		     frame-related if explicitly marked.  */
+-	      RTX_FRAME_RELATED_P (XVECEXP (PATTERN (insn), 0,
+-					    1)) = 1;
+ 	      regno = regno2;
+ 	      start_offset += increment * 2;
+ 	    }
+ 	  else
+ 	    {
+ 	      if (restore == false)
+-		insn = emit_move_insn (mem, gen_rtx_REG (DImode, regno));
++		{
++		  insn = emit_move_insn (mem, reg1);
++	  	  RTX_FRAME_RELATED_P (insn) = 1;
++		}
+ 	      else
+ 		{
+-		  insn = emit_move_insn (gen_rtx_REG (DImode, regno), mem);
+-		  add_reg_note (insn, REG_CFA_RESTORE, gen_rtx_REG (DImode, regno));
++		  emit_move_insn (reg1, mem);
++		  *cfi_ops = alloc_reg_note (REG_CFA_RESTORE, reg1, *cfi_ops);
+ 		}
+ 	      start_offset += increment;
+ 	    }
+-	  RTX_FRAME_RELATED_P (insn) = 1;
+ 	}
+     }
+ 
+-  aarch64_save_or_restore_fprs (start_offset, increment, restore, base_rtx);
+-
++  aarch64_save_or_restore_fprs (start_offset, increment, restore,
++				base_rtx, cfi_ops);
+ }
+ 
+ /* AArch64 stack frames generated by this compiler look like:
+@@ -1966,7 +1963,7 @@ aarch64_expand_prologue (void)
+ 	}
+ 
+       aarch64_save_or_restore_callee_save_registers
+-	(fp_offset + cfun->machine->frame.hardfp_offset, 0);
++	(fp_offset + cfun->machine->frame.hardfp_offset, 0, NULL);
+     }
+ 
+   /* when offset >= 512,
+@@ -1991,6 +1988,7 @@ aarch64_expand_epilogue (bool for_sibcal
+   HOST_WIDE_INT fp_offset;
+   rtx insn;
+   rtx cfa_reg;
++  rtx cfi_ops = NULL;
+ 
+   aarch64_layout_frame ();
+   original_frame_size = get_frame_size () + cfun->machine->saved_varargs_size;
+@@ -2035,15 +2033,17 @@ aarch64_expand_epilogue (bool for_sibcal
+       insn = emit_insn (gen_add3_insn (stack_pointer_rtx,
+ 				       hard_frame_pointer_rtx,
+ 				       GEN_INT (- fp_offset)));
++      /* CFA should be calculated from the value of SP from now on.  */
++      add_reg_note (insn, REG_CFA_ADJUST_CFA,
++		    gen_rtx_SET (VOIDmode, stack_pointer_rtx,
++				 plus_constant (Pmode, hard_frame_pointer_rtx,
++						-fp_offset)));
+       RTX_FRAME_RELATED_P (insn) = 1;
+-      /* As SP is set to (FP - fp_offset), according to the rules in
+-	 dwarf2cfi.c:dwarf2out_frame_debug_expr, CFA should be calculated
+-	 from the value of SP from now on.  */
+       cfa_reg = stack_pointer_rtx;
+     }
+ 
+   aarch64_save_or_restore_callee_save_registers
+-    (fp_offset + cfun->machine->frame.hardfp_offset, 1);
++    (fp_offset + cfun->machine->frame.hardfp_offset, 1, &cfi_ops);
+ 
+   /* Restore the frame pointer and lr if the frame pointer is needed.  */
+   if (offset > 0)
+@@ -2051,6 +2051,8 @@ aarch64_expand_epilogue (bool for_sibcal
+       if (frame_pointer_needed)
+ 	{
+ 	  rtx mem_fp, mem_lr;
++	  rtx reg_fp = hard_frame_pointer_rtx;
++	  rtx reg_lr = gen_rtx_REG (DImode, LR_REGNUM);
+ 
+ 	  if (fp_offset)
+ 	    {
+@@ -2063,52 +2065,36 @@ aarch64_expand_epilogue (bool for_sibcal
+ 						     stack_pointer_rtx,
+ 						     fp_offset
+ 						     + UNITS_PER_WORD));
+-	      insn = emit_insn (gen_load_pairdi (hard_frame_pointer_rtx,
+-						 mem_fp,
+-						 gen_rtx_REG (DImode,
+-							      LR_REGNUM),
+-						 mem_lr));
++	      emit_insn (gen_load_pairdi (reg_fp, mem_fp, reg_lr, mem_lr));
++
++	      insn = emit_insn (gen_add2_insn (stack_pointer_rtx,
++					       GEN_INT (offset)));
+ 	    }
+ 	  else
+ 	    {
+ 	      insn = emit_insn (gen_loadwb_pairdi_di
+-				(stack_pointer_rtx,
+-				 stack_pointer_rtx,
+-				 hard_frame_pointer_rtx,
+-				 gen_rtx_REG (DImode, LR_REGNUM),
+-				 GEN_INT (offset),
++				(stack_pointer_rtx, stack_pointer_rtx,
++				 reg_fp, reg_lr, GEN_INT (offset),
+ 				 GEN_INT (GET_MODE_SIZE (DImode) + offset)));
+-	      RTX_FRAME_RELATED_P (XVECEXP (PATTERN (insn), 0, 2)) = 1;
+-	      add_reg_note (insn, REG_CFA_ADJUST_CFA,
+-			    (gen_rtx_SET (Pmode, stack_pointer_rtx,
+-					  plus_constant (Pmode, cfa_reg,
+-							 offset))));
+-	    }
+-
+-	  /* The first part of a frame-related parallel insn
+-	     is always assumed to be relevant to the frame
+-	     calculations; subsequent parts, are only
+-	     frame-related if explicitly marked.  */
+-	  RTX_FRAME_RELATED_P (XVECEXP (PATTERN (insn), 0, 1)) = 1;
+-	  RTX_FRAME_RELATED_P (insn) = 1;
+-	  add_reg_note (insn, REG_CFA_RESTORE, hard_frame_pointer_rtx);
+-	  add_reg_note (insn, REG_CFA_RESTORE,
+-			gen_rtx_REG (DImode, LR_REGNUM));
+-
+-	  if (fp_offset)
+-	    {
+-	      insn = emit_insn (gen_add2_insn (stack_pointer_rtx,
+-					       GEN_INT (offset)));
+-	      RTX_FRAME_RELATED_P (insn) = 1;
+ 	    }
++	  cfi_ops = alloc_reg_note (REG_CFA_RESTORE, reg_fp, cfi_ops);
++	  cfi_ops = alloc_reg_note (REG_CFA_RESTORE, reg_lr, cfi_ops);
+ 	}
+       else
+ 	{
+ 	  insn = emit_insn (gen_add2_insn (stack_pointer_rtx,
+ 					   GEN_INT (offset)));
+-	  RTX_FRAME_RELATED_P (insn) = 1;
+ 	}
++      cfi_ops = alloc_reg_note (REG_CFA_ADJUST_CFA,
++				gen_rtx_SET (VOIDmode, stack_pointer_rtx,
++					     plus_constant (Pmode, cfa_reg,
++							    offset)),
++				cfi_ops);
++      REG_NOTES (insn) = cfi_ops;
++      RTX_FRAME_RELATED_P (insn) = 1;
+     }
++  else
++    gcc_assert (cfi_ops == NULL);
+ 
+   /* Stack adjustment for exception handler.  */
+   if (crtl->calls_eh_return)
