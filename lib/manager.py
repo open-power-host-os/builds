@@ -18,6 +18,7 @@ import logging
 from lib import config
 from lib import exception
 from lib import package
+import lib.scheduler
 from lib import utils
 
 CONF = config.get_config().CONF
@@ -35,7 +36,6 @@ class BuildManager(object):
         try:
             self._distro = utils.detect_distribution()
             self.packages = self._prepare_packages()
-            self._prepare_repositories()
         # distro related issues
         except (exception.DistributionNotSupportedError,
                 exception.DistributionVersionNotSupportedError,
@@ -51,14 +51,9 @@ class BuildManager(object):
         return self.build()
 
     def build(self):
-        self._distro.build_packages(self.packages)
+        scheduler = lib.scheduler.Scheduler()
+        self._distro.build_packages(scheduler(self.packages))
 
     def _prepare_packages(self):
         return [package.Package(x, self._distro) for x in set(
                 self.packages_list)]
-
-    def _prepare_repositories(self):
-        for package in self.packages:
-            package.setup_repository(
-                dest=CONF.get('default').get('repositories_path'),
-                branch=CONF.get('default').get('branch'))

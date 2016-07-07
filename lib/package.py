@@ -17,29 +17,42 @@ import os
 import logging
 import yaml
 
+from lib import config
 from lib import exception
 from lib import repository
 
+CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
-COMPONENTS_DIRECTORY = os.path.join(os.getcwd(), "components")
 
 
 class Package(object):
 
-    def __init__(self, package, distro):
+    def __init__(self, package, distro, category=None):
+        self.name = package
+        self.distro = distro
+        self.category = category
+        self.dependencies = []
+        self.build_dependencies = []
+        self.result_packages = []
+        self.repository = None
+
+        self.package_dir = os.path.join(
+            config.COMPONENTS_DIRECTORY, self.category) if(
+                self.category) else config.COMPONENTS_DIRECTORY
+        self.package_file = os.path.join(self.package_dir, self.name,
+                                         '%s.yaml' % self.name)
+
         self.load_package(package, distro)
+        self.setup_repository(
+            dest=CONF.get('default').get('repositories_path'),
+            branch=CONF.get('default').get('branch'))
 
     def load_package(self, package_name, distro):
         """
         Read yaml files descbring our supported packages
         """
-        self.name = package_name
-        self.distro_name = distro.lsb_name
-        self.distro_version = distro.version
         try:
-            with open(os.path.join(COMPONENTS_DIRECTORY, package_name,
-                                   '%s.yaml' % package_name),
-                      'r') as package_file:
+            with open(self.package_file, 'r') as package_file:
                 package = yaml.load(package_file)['Package']
 
                 self.name = package['name']
@@ -60,34 +73,40 @@ class Package(object):
                 self.commit_id = package.get('commit_id', None)
 
                 # load distro files
-                files = package.get('files').get(self.distro_name).get(
-                    self.distro_version)
+                files = package.get('files').get(self.distro.lsb_name).get(
+                    self.distro.version)
 
                 self.build_files = files.get('build_files', None)
                 if self.build_files:
-                    self.build_files = os.path.join(COMPONENTS_DIRECTORY,
+                    self.build_files = os.path.join(self.package_dir,
                                                     package_name,
                                                     self.build_files)
+                # list of dependencies
+                for dep in files.get('dependencies', []):
+                    self.dependencies.append(Package(dep, self.distro,
+                                                     category='dependencies'))
+
+                for dep in files.get('build_dependencies', []):
+                    self.build_dependencies.append(Package(dep, self.distro,
+                                                   category='dependencies'))
 
                 self.rpmmacro = files.get('rpmmacro', None)
                 if self.rpmmacro:
-                    self.rpmmacro = os.path.join(COMPONENTS_DIRECTORY,
+                    self.rpmmacro = os.path.join(self.package_dir,
                                                  package_name,
                                                  self.rpmmacro)
 
-                self.specfile = os.path.join(
-                    COMPONENTS_DIRECTORY,
-                    package_name,
-                    files.get('spec'))
+                self.specfile = os.path.join(self.package_dir, package_name,
+                                             files.get('spec'))
 
                 if os.path.isfile(self.specfile):
-                    LOG.info("Package found: %(name)s for %(distro_name)s "
-                             "%(distro_version)s" % vars(self))
+                    LOG.info("Package found: %s for %s %s" % (
+                        self.name, self.distro.lsb_name, self.distro.version))
                 else:
                     raise exception.PackageSpecError(
                         package=self.name,
-                        distro=self.distro_name,
-                        distro_version=self.distro_version)
+                        distro=self.distro.lsb_name,
+                        distro_version=self.distro.version)
 
         except TypeError:
             raise exception.PackageDescriptorError(package=self.name)

@@ -36,9 +36,9 @@ class Mock(build_system.PackageBuilder):
         self.archive = None
 
     def build(self, package):
-        self._create_build_directory(package)
         self._prepare(package)
         self._build_srpm(package)
+        self._install_external_dependencies(package)
         cmd = "mock -r %s --rebuild %s --no-clean --resultdir=%s" % (
             self.mock_config, self.build_dir + "/*.rpm", self.build_dir)
 
@@ -55,7 +55,7 @@ class Mock(build_system.PackageBuilder):
         # On success save rpms and destroy build directory unless told
         # otherwise.
         if not p.returncode:
-            self._save_rpm()
+            self._save_rpm(package)
             if (CONF.get('keep_build_dir', None) or
                     not CONF.get('keep_builddir')):
                 self._destroy_build_directory()
@@ -75,8 +75,9 @@ class Mock(build_system.PackageBuilder):
         LOG.info("STDERR: %s" % error_output)
 
     def _prepare(self, package):
-        self._prepare_chroot(package)
+        self._create_build_directory(package)
         self._prepare_archive(package)
+        self._prepare_chroot(package)
 
     def _prepare_archive(self, package):
         self.archive = package.repository.archive(package.expects_source,
@@ -106,6 +107,23 @@ class Mock(build_system.PackageBuilder):
         LOG.info("STDOUT: %s" % output)
         LOG.info("STDERR: %s" % error_output)
 
+    def _install_external_dependencies(self, package):
+        cmd = "mock -r %s " % self.mock_config
+        if package.build_dependencies or package.dependencies:
+            install = " --install"
+            for dep in package.build_dependencies:
+                install = " ".join([install, " ".join(dep.result_packages)])
+            for dep in package.dependencies:
+                install = " ".join([install, " ".join(dep.result_packages)])
+
+            cmd = cmd + install
+        LOG.info("Command: %s" % cmd)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, shell=True)
+        output, error_output = p.communicate()
+        LOG.info("STDOUT: %s" % output)
+        LOG.info("STDERR: %s" % error_output)
+
     def _create_build_directory(self, package):
         self.build_dir = os.path.join(
             os.getcwd(), 'build',
@@ -116,7 +134,7 @@ class Mock(build_system.PackageBuilder):
     def _destroy_build_directory(self):
         shutil.rmtree(self.build_dir)
 
-    def _save_rpm(self):
+    def _save_rpm(self, package):
         if not os.path.exists(self.result_dir):
             LOG.info("Creating directory to store RPM at %s " %
                      self.result_dir)
@@ -127,5 +145,7 @@ class Mock(build_system.PackageBuilder):
             if f.endswith(".rpm") and not f.endswith(".src.rpm"):
                 LOG.info("Saving %s at result directory %s" % (f,
                          self.result_dir))
-                shutil.move(os.path.join(self.build_dir, f),
-                            os.path.join(self.result_dir, f))
+                orig = os.path.join(self.build_dir, f)
+                dest = os.path.join(self.result_dir, f)
+                shutil.move(orig, dest)
+                package.result_packages.append(dest)

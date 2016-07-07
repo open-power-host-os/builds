@@ -19,11 +19,8 @@ import os
 
 import yaml
 
-from lib import package
-
-
 LOG = logging.getLogger(__name__)
-
+COMPONENTS_DIRECTORY = os.path.join(os.getcwd(), "components")
 
 config_parser = None
 
@@ -57,11 +54,9 @@ def discover_software():
     "kernel" and "libvirt" will be discovered, "not-a-software" and "file"
     will not.
     """
-    return [software for software in os.listdir(package.COMPONENTS_DIRECTORY)
-            if os.path.isdir(os.path.join(package.COMPONENTS_DIRECTORY,
-                                          software)) and
-            os.path.isfile(os.path.join(package.COMPONENTS_DIRECTORY,
-                                        software,
+    return [software for software in os.listdir(COMPONENTS_DIRECTORY)
+            if os.path.isdir(os.path.join(COMPONENTS_DIRECTORY, software)) and
+            os.path.isfile(os.path.join(COMPONENTS_DIRECTORY, software,
                                         "".join([software, ".yaml"])))
             ]
 

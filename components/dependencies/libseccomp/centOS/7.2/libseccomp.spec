@@ -9,7 +9,7 @@ Group: System Environment/Libraries
 Source: https://github.com/seccomp/libseccomp/releases/download/v%{version}/%{name}-%{version}.tar.gz
 URL: https://github.com/seccomp/libseccomp
 %ifnarch s390
-BuildRequires: valgrind
+BuildRequires: valgrind automake autoconf libtool
 %endif
 
 %description
@@ -47,6 +47,7 @@ Kernel.
 %setup -q
 
 %build
+./autogen.sh
 %configure
 make V=1 %{?_smp_mflags}
 
