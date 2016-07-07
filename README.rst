@@ -60,7 +60,7 @@ Running
 
 ::
 
-# sudo python host-os-build.py --package libvirt --verbose
+# sudo python host-os-build.py --verbose
 
 Validating
 ----------
