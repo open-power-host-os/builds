@@ -80,15 +80,21 @@ class Mock(build_system.PackageBuilder):
         self._prepare_chroot(package)
 
     def _prepare_archive(self, package):
-        self.archive = package.repository.archive(package.expects_source,
-                                                  package.commit_id,
-                                                  self.build_dir)
+        if package.repository:
+            self.archive = package.repository.archive(package.expects_source,
+                                                      package.commit_id,
+                                                      self.build_dir)
+        else:
+            self.archive = package._download_source(self.build_dir)
 
     def _prepare_chroot(self, package):
         cmd = "mock --init -r %s " % self.mock_config
 
         if package.build_files:
-            cmd = cmd + " --copyin %s %s" % (package.build_files,
+            files = []
+            for f in os.listdir(package.build_files):
+                files.append(os.path.join(package.build_files, f))
+            cmd = cmd + " --copyin %s %s" % (" ".join(files),
                                              MOCK_CHROOT_BUILD_DIR)
 
         LOG.info("Command: %s" % cmd)
@@ -117,12 +123,12 @@ class Mock(build_system.PackageBuilder):
                 install = " ".join([install, " ".join(dep.result_packages)])
 
             cmd = cmd + install
-        LOG.info("Command: %s" % cmd)
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, shell=True)
-        output, error_output = p.communicate()
-        LOG.info("STDOUT: %s" % output)
-        LOG.info("STDERR: %s" % error_output)
+            LOG.info("Command: %s" % cmd)
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, shell=True)
+            output, error_output = p.communicate()
+            LOG.info("STDOUT: %s" % output)
+            LOG.info("STDERR: %s" % error_output)
 
     def _create_build_directory(self, package):
         self.build_dir = os.path.join(

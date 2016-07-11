@@ -15,6 +15,8 @@
 
 import os
 import logging
+import subprocess
+import urllib2
 import yaml
 
 from lib import config
@@ -31,6 +33,8 @@ class Package(object):
         self.name = package
         self.distro = distro
         self.category = category
+        self.clone_url = None
+        self.download_source = None
         self.dependencies = []
         self.build_dependencies = []
         self.result_packages = []
@@ -43,9 +47,15 @@ class Package(object):
                                          '%s.yaml' % self.name)
 
         self.load_package(package, distro)
-        self.setup_repository(
-            dest=CONF.get('default').get('repositories_path'),
-            branch=CONF.get('default').get('branch'))
+        self.download_source_code()
+
+    def download_source_code(self):
+        if self.clone_url:
+            self._setup_repository(
+                dest=CONF.get('default').get('repositories_path'),
+                branch=CONF.get('default').get('branch'))
+        # else let it download later during build, it's ugly, but a temporary
+        # solution
 
     def load_package(self, package_name, distro):
         """
@@ -53,16 +63,17 @@ class Package(object):
         """
         try:
             with open(self.package_file, 'r') as package_file:
-                package = yaml.load(package_file)['Package']
+                package = yaml.load(package_file).get('Package')
 
-                self.name = package['name']
-                self.clone_url = package['clone_url']
+                self.name = package.get('name')
+                self.clone_url = package.get('clone_url', None)
+                self.download_source = package.get('download_source', None)
 
                 # NOTE(maurosr): Unfortunately some of the packages we build
                 # depend on a gziped file which changes according to the build
                 # version so we need to get that name somehow, grep the
                 # specfile would be uglier imho.
-                self.expects_source = package['expects_source']
+                self.expects_source = package.get('expects_source')
 
                 # NOTE(maurosr): branch and commit id are special cases for the
                 # future, we plan to use tags on every project for every build
@@ -81,6 +92,10 @@ class Package(object):
                     self.build_files = os.path.join(self.package_dir,
                                                     package_name,
                                                     self.build_files)
+		self.download_build_files = files.get('download_build_files', None)
+                if self.download_build_files:
+                    self._download_build_files()
+
                 # list of dependencies
                 for dep in files.get('dependencies', []):
                     self.dependencies.append(Package(dep, self.distro,
@@ -111,8 +126,31 @@ class Package(object):
         except TypeError:
             raise exception.PackageDescriptorError(package=self.name)
 
-    def setup_repository(self, dest=None, branch=None):
+    def _setup_repository(self, dest=None, branch=None):
         self.repository = repository.Repo(package_name=self.name,
                                           clone_url=self.clone_url,
                                           dest_path=dest,
-                                          branch=self.branch or branch)
+                                          branch=self.branch or branch,
+                                          commit_id=self.commit_id)
+
+    def _download_source(self, build_dir):
+        """
+        An alternative to just execute a given command to obtain sources.
+        """
+        cmd = "cd %s; %s; cd %s" % (build_dir, self.download_source,
+                                    os.getcwd())
+        LOG.info("Command: %s" % cmd)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, shell=True)
+        output, error_output = p.communicate()
+        LOG.info("STDOUT: %s" % output)
+        LOG.info("STDERR: %s" % error_output)
+	return os.path.join(build_dir, self.expects_source)
+
+    def _download_build_files(self):
+        for url in self.download_build_files:
+            f = urllib2.urlopen(url)
+            data = f.read()
+            filename = os.path.join(self.build_files, url.split('/')[-1])
+            with open(filename, "wb") as file_data:
+                file_data.write(data)

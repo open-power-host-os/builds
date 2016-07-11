@@ -6,7 +6,7 @@
 %global _unpackaged_files_terminate_build 0
 %global _performance_build 1
 %global multilib_64_archs sparc64 ppc64 ppc64p7 s390x x86_64
-%ifarch %{ix86} x86_64 ia64 ppc ppc64 ppc64le ppc64p7 alpha aarch64
+%ifarch %{ix86} x86_64 ia64 alpha aarch64
 %global build_ada 1
 %else
 %global build_ada 0
@@ -218,6 +218,7 @@ Patch18: gcc48-aarch64-ada.patch
 Patch19: gcc48-aarch64-async-unw-tables.patch
 Patch20: gcc48-aarch64-unwind-opt.patch
 Patch21: gcc48-rh1243366.patch
+Patch22: gcc48-rh1296211.patch
 
 Patch1000: fastjar-0.97-segfault.patch
 Patch1001: fastjar-0.97-len1.patch
@@ -916,6 +917,7 @@ rm -f libgo/go/crypto/elliptic/p224{,_test}.go
 %patch19 -p0 -b .aarch64-async-unw-tables~
 %patch20 -p0 -b .aarch64-unwind-opt~
 %patch21 -p0 -b .rh1243366~
+%patch22 -p0 -b .rh1296211~
 
 %if 0%{?_enable_debug_packages}
 cat > split-debuginfo.sh <<\EOF

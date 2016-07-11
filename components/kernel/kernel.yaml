@@ -9,4 +9,4 @@ Package:
    '7.2':
     spec: 'centOS/7.2/kernel.spec'
     rpmmacro: 'centOS/7.2/rpmmacro'
-    build_files: 'centOS/7.2/SOURCES/*'
+    build_files: 'centOS/7.2/SOURCES'

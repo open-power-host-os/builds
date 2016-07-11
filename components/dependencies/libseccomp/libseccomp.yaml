@@ -8,3 +8,4 @@ Package:
   centos:
    '7.2':
     spec: 'centOS/7.2/libseccomp.spec'
+    build_files: 
