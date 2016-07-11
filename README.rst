@@ -33,10 +33,12 @@ RPM Based distributions
  - PyYAML
  - git
  - python-pygit2
+ - svn
+ - bzip2
 
 ::
 
-# sudo yum install -y mock PyYAML git python-pygit2
+# sudo yum install -y mock PyYAML git python-pygit2 svn bzip2
 
 Settings
 --------
@@ -60,7 +62,7 @@ Running
 
 ::
 
-# sudo python host-os-build.py --verbose
+# sudo python host-os-build.py --package libvirt --verbose
 
 Validating
 ----------
