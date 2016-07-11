@@ -21,7 +21,7 @@ class BaseException(Exception):
 
     def __init__(self, message=None, **kwargs):
         if message is None:
-            self.message = self.msg % kwargs
+            message = self.msg % kwargs
         super(BaseException, self).__init__(message)
 
 
