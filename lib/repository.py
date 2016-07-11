@@ -26,7 +26,7 @@ LOG = logging.getLogger(__name__)
 
 class Repo(object):
     def __init__(self, package_name=None, clone_url=None, dest_path=None,
-                 branch='master'):
+                 branch='master', commit_id=None):
         self.repo_name = package_name
         self.repo_url = clone_url
         self.local_path = os.path.join(dest_path, package_name)
@@ -36,10 +36,8 @@ class Repo(object):
         if os.path.exists(self.local_path):
             try:
                 self.repo = pygit2.Repository(self.local_path)
-                self.repo.checkout('refs/heads/' + branch)
                 LOG.info("Found existent repository at destination path %s" % (
-                    self.local_path))
-
+                         self.local_path))
             except KeyError:
                 raise exception.RepositoryError(package=package_name,
                                                 repo_path=dest_path)
@@ -49,14 +47,21 @@ class Repo(object):
             self.repo = pygit2.clone_repository(self.repo_url,
                                                 self.local_path,
                                                 checkout_branch=branch)
+        if commit_id:
+            LOG.info("Checking out into %s" % commit_id)
+            obj = self.repo.git_object_lookup_prefix(commit_id)
+            self.repo.checkout_tree(obj)
+        else:
+            LOG.info("Checking out into %s" % branch)
+            self.repo.checkout('refs/heads/' + branch)
 
-            cmd = "cd %s ; git submodule init; git submodule update; cd %s" % (
-                self.local_path, os.getcwd())
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE, shell=True)
-            output, error_output = p.communicate()
-            LOG.info("STDOUT: %s" % output)
-            LOG.info("STDERR: %s" % error_output)
+        cmd = "cd %s ; git submodule init; git submodule update; cd %s" % (
+            self.local_path, os.getcwd())
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, shell=True)
+        output, error_output = p.communicate()
+        LOG.info("STDOUT: %s" % output)
+        LOG.info("STDERR: %s" % error_output)
 
     def archive(self, archive_name, commit_id, build_dir):
         # NOTE(maurosr): CentOS's pygit2  doesn't fully support archives as we
