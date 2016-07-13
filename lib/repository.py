@@ -38,6 +38,11 @@ class Repo(object):
                 self.repo = pygit2.Repository(self.local_path)
                 LOG.info("Found existent repository at destination path %s" % (
                          self.local_path))
+                # Reset hard repository so we clean up any changes that may
+                # prevent checkout on the right point of the three.
+                self.repo.reset(self.repo.head.get_object().oid,
+                                pygit2.GIT_RESET_HARD)
+
             except KeyError:
                 raise exception.RepositoryError(package=package_name,
                                                 repo_path=dest_path)
@@ -47,6 +52,7 @@ class Repo(object):
             self.repo = pygit2.clone_repository(self.repo_url,
                                                 self.local_path,
                                                 checkout_branch=branch)
+
         if commit_id:
             LOG.info("Checking out into %s" % commit_id)
             obj = self.repo.git_object_lookup_prefix(commit_id)
