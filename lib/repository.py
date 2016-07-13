@@ -52,14 +52,31 @@ class Repo(object):
             self.repo = pygit2.clone_repository(self.repo_url,
                                                 self.local_path,
                                                 checkout_branch=branch)
+        try:
+            for remote in self.repo.remotes:
+                remote.fetch()
+                LOG.info("Fetched changes for %s" % remote.name)
+            # NOTE(maurosr): Get references and rearrange local master's HEAD
+            # we are always **assuming a fastforward**
+            remote = self.repo.lookup_reference('refs/remotes/origin/%s' % (
+                branch))
+            master = self.repo.lookup_reference('refs/heads/%s' % branch)
+            master.set_target(remote.target)
+            self.repo.head.set_target(master.target)
+            LOG.info("%(package_name)s Repository updated" % locals())
 
-        if commit_id:
-            LOG.info("Checking out into %s" % commit_id)
-            obj = self.repo.git_object_lookup_prefix(commit_id)
-            self.repo.checkout_tree(obj)
-        else:
-            LOG.info("Checking out into %s" % branch)
-            self.repo.checkout('refs/heads/' + branch)
+            if commit_id:
+                LOG.info("Checking out into %s" % commit_id)
+                obj = self.repo.git_object_lookup_prefix(commit_id)
+                self.repo.checkout_tree(obj)
+            else:
+                LOG.info("Checking out into %s" % branch)
+                self.repo.checkout('refs/heads/' + branch)
+        except ValueError:
+            ref = commit_id if commit_id else branch
+            raise exception.RepositoryError(message="Could not find reference "
+                                            "%s at %s repository" % (ref,
+                                            package_name))
 
         cmd = "cd %s ; git submodule init; git submodule update; cd %s" % (
             self.local_path, os.getcwd())
