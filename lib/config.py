@@ -21,6 +21,9 @@ import yaml
 
 LOG = logging.getLogger(__name__)
 COMPONENTS_DIRECTORY = os.path.join(os.getcwd(), "components")
+# NOTE(maurosr): This was made a constant cause it doesn't make any sense to
+# let it be a configurable value.
+VERSIONS_REPOSITORY = "https://github.com/open-power-host-os/versions.git"
 
 config_parser = None
 
@@ -54,18 +57,26 @@ def discover_software():
     "kernel" and "libvirt" will be discovered, "not-a-software" and "file"
     will not.
     """
-    return [software for software in os.listdir(COMPONENTS_DIRECTORY)
+    software_list = []
+    try:
+        software_list = [
+            software for software in os.listdir(COMPONENTS_DIRECTORY)
             if os.path.isdir(os.path.join(COMPONENTS_DIRECTORY, software)) and
             os.path.isfile(os.path.join(COMPONENTS_DIRECTORY, software,
                                         "".join([software, ".yaml"])))
             ]
+    except OSError:
+        # This is expected to happen on the first run, when the components
+        # directory doesn't exist yet.
+        pass
+    finally:
+        return software_list
 
 
 class ConfigParser(object):
 
     def __init__(self):
         cmdline_args = self._parse_arguments()
-
         self._CONF = self._parse_config(cmdline_args.get('config_file'))
 
         # NOTE(maurosr): update the config object overwriting its contents with
@@ -107,5 +118,15 @@ class ConfigParser(object):
         parser.add_argument('--keep-builddir',
                             help='Keep build directory and its logs and '
                             'artifacts.', action='store_true')
-        args = parser.parse_args()
-        return vars(args)
+        parser.add_argument('--build-version',
+                            help='Select build version from versions '
+                                 'repository')
+
+        args = vars(parser.parse_args())
+
+        # drop None values
+        for key, value in args.items():
+            if not value:
+                args.pop(key)
+
+        return args
