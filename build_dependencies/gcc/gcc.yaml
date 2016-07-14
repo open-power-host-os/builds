@@ -1,0 +1,13 @@
+Package:
+ name: 'gcc'
+ download_source: 'svn export svn://gcc.gnu.org/svn/gcc/branches/redhat/gcc-4_8-branch@225304 gcc-4.8.5-20150702; tar cf - gcc-4.8.5-20150702 | bzip2 -9 > gcc-4.8.5-20150702.tar.bz2'
+ expects_source: 'gcc-4.8.5-20150702.tar.bz2'
+ files:
+  centos:
+   '7.2':
+    spec: 'centOS/7.2/gcc.spec'
+    build_files: 'centOS/7.2/SOURCES'
+    download_build_files:
+     - 'ftp://gcc.gnu.org/pub/gcc/infrastructure/isl-0.11.1.tar.bz2'
+     - 'ftp://gcc.gnu.org/pub/gcc/infrastructure/cloog-0.18.0.tar.gz'
+     - 'http://download.savannah.nongnu.org/releases/fastjar/fastjar-0.97.tar.gz'
