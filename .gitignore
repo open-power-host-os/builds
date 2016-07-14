@@ -1,0 +1,5 @@
+build_dependencies/gcc/centOS/7.2/SOURCES/cloog-0.18.0.tar.gz
+build_dependencies/gcc/centOS/7.2/SOURCES/fastjar-0.97.tar.gz
+build_dependencies/gcc/centOS/7.2/SOURCES/isl-0.11.1.tar.bz2
+*.swo
+*.swp
