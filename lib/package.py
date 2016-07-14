@@ -25,6 +25,8 @@ from lib import repository
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
+BUILD_DEPENDENCIES = "build_dependencies"
+DEPENDENCIES = "dependencies"
 
 
 class Package(object):
@@ -50,6 +52,7 @@ class Package(object):
         self.download_source_code()
 
     def download_source_code(self):
+        print("%s: Downloading source code." % self.name)
         if self.clone_url:
             self._setup_repository(
                 dest=CONF.get('default').get('repositories_path'),
@@ -59,7 +62,7 @@ class Package(object):
 
     def load_package(self, package_name, distro):
         """
-        Read yaml files descbring our supported packages
+        Read yaml files describing our supported packages
         """
         try:
             with open(self.package_file, 'r') as package_file:
@@ -78,7 +81,7 @@ class Package(object):
                 # NOTE(maurosr): branch and commit id are special cases for the
                 # future, we plan to use tags on every project for every build
                 # globally set in config.yaml, then this would allow some user
-                # customization to set their prefered commit id/branch or even
+                # customization to set their preferred commit id/branch or even
                 # a custom git tree.
                 self.branch = package.get('branch', None)
                 self.commit_id = package.get('commit_id', None)
@@ -92,18 +95,19 @@ class Package(object):
                     self.build_files = os.path.join(self.package_dir,
                                                     package_name,
                                                     self.build_files)
-		self.download_build_files = files.get('download_build_files', None)
+                self.download_build_files = files.get('download_build_files',
+                                                      None)
                 if self.download_build_files:
                     self._download_build_files()
 
                 # list of dependencies
                 for dep in files.get('dependencies', []):
                     self.dependencies.append(Package(dep, self.distro,
-                                                     category='dependencies'))
+                                                     category=DEPENDENCIES))
 
                 for dep in files.get('build_dependencies', []):
-                    self.build_dependencies.append(Package(dep, self.distro,
-                                                   category='dependencies'))
+                    self.build_dependencies.append(Package(
+                        dep, self.distro, category=BUILD_DEPENDENCIES))
 
                 self.rpmmacro = files.get('rpmmacro', None)
                 if self.rpmmacro:
@@ -122,7 +126,7 @@ class Package(object):
                         package=self.name,
                         distro=self.distro.lsb_name,
                         distro_version=self.distro.version)
-
+                print("%s: Loaded package metadata successfully" % self.name)
         except TypeError:
             raise exception.PackageDescriptorError(package=self.name)
 
@@ -145,7 +149,7 @@ class Package(object):
         output, error_output = p.communicate()
         LOG.info("STDOUT: %s" % output)
         LOG.info("STDERR: %s" % error_output)
-	return os.path.join(build_dir, self.expects_source)
+        return os.path.join(build_dir, self.expects_source)
 
     def _download_build_files(self):
         for url in self.download_build_files:
@@ -154,3 +158,16 @@ class Package(object):
             filename = os.path.join(self.build_files, url.split('/')[-1])
             with open(filename, "wb") as file_data:
                 file_data.write(data)
+
+    def clean_build_dependencies(self):
+        """
+        This is a very simple method were the package cleans up its own RPMs
+        if it fits on BUILD_DEPENDENCIES category.
+        There is no need, now, to go recursively cause this method will be
+        called for all packages built.
+        Straightforward right now where a build dep is never a package itself.
+        """
+        print("%s: Removing build dependencies" % self.name)
+        if self.category is BUILD_DEPENDENCIES:
+            for f in self.result_packages:
+                os.remove(f)

@@ -38,6 +38,8 @@ class Scheduler(object):
                 visited.append(p)
                 if p.dependencies:
                     order.extend(self._dfs(p.dependencies, visited))
+                if p.build_dependencies:
+                    order.extend(self._dfs(p.build_dependencies, visited))
                 order.append(p)
                 order.extend(self._dfs(packages[1:], visited))
         return order

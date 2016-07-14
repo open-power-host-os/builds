@@ -55,4 +55,3 @@ class PackageDescriptorError(PackageError):
 
 class RepositoryError(BaseException):
     msg = "Failed to setup %(package)s's repository at %(repo_path)s."
-

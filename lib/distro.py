@@ -55,3 +55,9 @@ class LinuxDistribution(object):
         """
         for package in packages:
             self.package_builder.build(package)
+        self.clean(packages)
+
+    def clean(self, packages):
+        self.package_builder.clean()
+        for package in packages:
+            package.clean_build_dependencies()
