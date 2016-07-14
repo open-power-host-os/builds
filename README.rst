@@ -64,6 +64,60 @@ Running
 
 # sudo python host-os-build.py --package libvirt --verbose
 
+Using the RPMs
+--------------
+We decided that's is a little bit intrusive to install all the produced RPMs
+since some of them may not fit your necessities. At the end of the process
+you'll see a new results directory inside this project's root.
+
+A suggested set of packages tested will is the follow:
+ - kernel
+ - qemu
+ - qemu-kvm-tools
+ - qemu-system-ppc
+ - qemu-guest-agent
+ - qemu-system-x86
+ - qemu-kvm
+ - qemu-debuginfo
+ - qemu-common
+ - qemu-img
+ - libseccomp
+ - libvirt-daemon-kvm
+ - libvirt-lock-sanlock
+ - libvirt-docs
+ - libvirt-daemon-driver-nodedev
+ - libvirt-daemon-driver-interface
+ - libvirt-daemon-driver-network
+ - libvirt-daemon-qemu
+ - libvirt
+ - libvirt-nss
+ - libvirt-devel
+ - libvirt-debuginfo
+ - libvirt-client
+ - libvirt-daemon-driver-nwfilter
+ - libvirt-daemon-driver-secret
+ - libvirt-daemon-driver-qemu
+ - libvirt-daemon-config-network
+ - libvirt-daemon-lxc
+ - libvirt-login-shell
+ - libvirt-daemon
+ - libvirt-daemon-config-nwfilter
+ - libvirt-daemon-driver-storage
+ - libvirt-daemon-driver-lxc
+ - SLOF
+
+You can use the follow command to install, for instance, libseccomp's RPM:
+
+::
+
+# sudo yum localinstall  result/libseccomp-2.3.1-0.el7.centos.1.ppc64le.rpm
+
+Note that some of those packages are debuginfo which are recommended in order to
+provide useful information for bugs in the case of any failures.
+
+Also no version is informed on the list above to make it valid even for future
+versions with minor version changes.
+
 Validating
 ----------
 
