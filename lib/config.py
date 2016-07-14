@@ -87,7 +87,7 @@ class ConfigParser(object):
         parser = argparse.ArgumentParser()
         parser.add_argument('--config-file', '-c',
                             help='Path of the configuration file for build '
-                                 'scrpits',
+                                 'scripts',
                             #NOTE(maurosr): move this to /etc in the future
                             default='./config.yaml')
         parser.add_argument('--packages', '-p',

@@ -56,13 +56,20 @@ Running
 
 ::
 
-# sudo python host-os-build.py --package libvirt --verbose
+# sudo python host-os-build.py --package libvirt
 
  * Build all software
 
 ::
 
-# sudo python host-os-build.py --package libvirt --verbose
+# sudo python host-os-build.py --verbose
+
+Note the --verbose parameter to get all the log messages in the console. Insted
+of the standard ordinary messages. Please see --help for more options.
+
+::
+
+# sudo python host-os-build.py --help
 
 Using the RPMs
 --------------

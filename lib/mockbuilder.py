@@ -36,6 +36,7 @@ class Mock(build_system.PackageBuilder):
         self.archive = None
 
     def build(self, package):
+        print("%s: Starting build process" % package.name)
         self._prepare(package)
         self._build_srpm(package)
         self._install_external_dependencies(package)
@@ -45,6 +46,7 @@ class Mock(build_system.PackageBuilder):
         if package.rpmmacro:
             cmd = cmd + " --macro-file=%s" % package.rpmmacro
 
+        print("%s: Building RPM" % package.name)
         LOG.info("Command: %s" % cmd)
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, shell=True)
@@ -55,12 +57,16 @@ class Mock(build_system.PackageBuilder):
         # On success save rpms and destroy build directory unless told
         # otherwise.
         if not p.returncode:
+            print("%s: Success! RPMs built!" % package.name)
             self._save_rpm(package)
             if (CONF.get('keep_build_dir', None) or
                     not CONF.get('keep_builddir')):
                 self._destroy_build_directory()
+        else:
+            print("%s: Failed to build RPMs" % package.name)
 
     def _build_srpm(self, package):
+        print("%s: Building SRPM" % package.name)
         cmd = ("mock -r %s --buildsrpm --no-clean --spec %s --source %s "
                "--resultdir=%s" % (self.mock_config,
                                    package.specfile,
@@ -80,6 +86,7 @@ class Mock(build_system.PackageBuilder):
         self._prepare_chroot(package)
 
     def _prepare_archive(self, package):
+        print("%s: Preparing archive." % package.name)
         if package.repository:
             self.archive = package.repository.archive(package.expects_source,
                                                       package.commit_id,
@@ -123,6 +130,7 @@ class Mock(build_system.PackageBuilder):
                 install = " ".join([install, " ".join(dep.result_packages)])
 
             cmd = cmd + install
+            print("%s: Installing dependencies on chroot" % package.name)
             LOG.info("Command: %s" % cmd)
             p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE, shell=True)
@@ -147,6 +155,7 @@ class Mock(build_system.PackageBuilder):
             os.makedirs(self.result_dir)
             os.chmod(self.result_dir, 0777)
 
+        print("%s: Saving RPMs at %s" % (package.name, self.result_dir))
         for f in os.listdir(self.build_dir):
             if f.endswith(".rpm") and not f.endswith(".src.rpm"):
                 LOG.info("Saving %s at result directory %s" % (f,

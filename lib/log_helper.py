@@ -26,6 +26,7 @@ class LogHelper(object):
         self._directory_setup()
 
         logging.basicConfig(filename=logfile, level=level)
+        print("Logs available at %s" % logfile)
         if verbose:
             logger = logging.getLogger()
             logger.addHandler(logging.StreamHandler(sys.stdout))
@@ -33,13 +34,13 @@ class LogHelper(object):
     def _directory_setup(self):
         logpath, _ = os.path.split(self.logfile)
 
-        # empty logpath means localdirectory and thus the next steps are
-        # unecessary
+        # empty logpath means local directory and thus the next steps are
+        # unnecessary
         if logpath:
             try:
                 os.makedirs(logpath)
             except OSError:
-                # failled to create
+                # failed to create
                 if not os.path.exists(logpath):
                     raise
                 # Directory already exists

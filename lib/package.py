@@ -50,6 +50,7 @@ class Package(object):
         self.download_source_code()
 
     def download_source_code(self):
+        print("%s: Downloading source code." % self.name)
         if self.clone_url:
             self._setup_repository(
                 dest=CONF.get('default').get('repositories_path'),
@@ -59,7 +60,7 @@ class Package(object):
 
     def load_package(self, package_name, distro):
         """
-        Read yaml files descbring our supported packages
+        Read yaml files describing our supported packages
         """
         try:
             with open(self.package_file, 'r') as package_file:
@@ -78,7 +79,7 @@ class Package(object):
                 # NOTE(maurosr): branch and commit id are special cases for the
                 # future, we plan to use tags on every project for every build
                 # globally set in config.yaml, then this would allow some user
-                # customization to set their prefered commit id/branch or even
+                # customization to set their preferred commit id/branch or even
                 # a custom git tree.
                 self.branch = package.get('branch', None)
                 self.commit_id = package.get('commit_id', None)
@@ -92,7 +93,8 @@ class Package(object):
                     self.build_files = os.path.join(self.package_dir,
                                                     package_name,
                                                     self.build_files)
-		self.download_build_files = files.get('download_build_files', None)
+                self.download_build_files = files.get('download_build_files',
+                                                      None)
                 if self.download_build_files:
                     self._download_build_files()
 
@@ -122,7 +124,7 @@ class Package(object):
                         package=self.name,
                         distro=self.distro.lsb_name,
                         distro_version=self.distro.version)
-
+                print("%s: Loaded package metadata successfully" % self.name)
         except TypeError:
             raise exception.PackageDescriptorError(package=self.name)
 
@@ -145,7 +147,7 @@ class Package(object):
         output, error_output = p.communicate()
         LOG.info("STDOUT: %s" % output)
         LOG.info("STDERR: %s" % error_output)
-	return os.path.join(build_dir, self.expects_source)
+        return os.path.join(build_dir, self.expects_source)
 
     def _download_build_files(self):
         for url in self.download_build_files:
