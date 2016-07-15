@@ -5,7 +5,7 @@ Considering the speed of the development of new features, or even Hardware is
 created in the OpenPOWER ecosystem, it's a challenge to get them in the
 traditional stable GNU/Linux distribution scenario.
 
-open-power-host-os/builds repository is a open source collaboration effort that
+open-power-host-os/builds repository is an open source collaboration effort that
 aims to help administrators to build and deploy the latest and greatest
 capabilities in the OpenPOWER world through a build script that provides
 software well packaged and designed for the `Supported GNU/Linux distributions`_
@@ -74,10 +74,10 @@ of the standard ordinary messages. Please see --help for more options.
 Using the RPMs
 --------------
 We decided that's is a little bit intrusive to install all the produced RPMs
-since some of them may not fit your necessities. At the end of the process
+since some of them may not fit your needs. At the end of the process
 you'll see a new results directory inside this project's root.
 
-A suggested set of packages tested will is the follow:
+A suggested set of packages tested is the following:
  - kernel
  - qemu
  - qemu-kvm-tools
@@ -113,7 +113,7 @@ A suggested set of packages tested will is the follow:
  - libvirt-daemon-driver-lxc
  - SLOF
 
-You can use the follow command to install, for instance, libseccomp's RPM:
+You can use the following command to install, for instance, libseccomp's RPM:
 
 ::
 
