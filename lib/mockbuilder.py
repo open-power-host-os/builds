@@ -17,10 +17,11 @@ import datetime
 import logging
 import os
 import shutil
-import subprocess
 
 from lib import config
 from lib import build_system
+from lib import exception
+from lib import utils
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
@@ -47,23 +48,22 @@ class Mock(build_system.PackageBuilder):
             cmd = cmd + " --macro-file=%s" % package.rpmmacro
 
         print("%s: Building RPM" % package.name)
-        LOG.info("Command: %s" % cmd)
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, shell=True)
-        output, error_output = p.communicate()
-        LOG.info("STDOUT: %s" % output)
-        LOG.info("STDERR: %s" % error_output)
+        try:
+            utils.run_command(cmd)
 
-        # On success save rpms and destroy build directory unless told
-        # otherwise.
-        if not p.returncode:
-            print("%s: Success! RPMs built!" % package.name)
-            self._save_rpm(package)
-            if (CONF.get('keep_build_dir', None) or
-                    not CONF.get('keep_builddir')):
-                self._destroy_build_directory()
-        else:
-            print("%s: Failed to build RPMs" % package.name)
+            # On success save rpms and destroy build directory unless told
+            # otherwise.
+        except exception.SubprocessError:
+            print("%s: Failed to build RPMs, build artifacts are kept at "
+                  "%s" % (package.name, self.build_dir))
+            raise
+
+        msg = "%s: Success! RPMs built!" % (package.name)
+        self._save_rpm(package)
+        print(msg)
+        LOG.info(msg)
+        if (CONF.get('keep_builddir', None) or not CONF.get('keep_builddir')):
+            self._destroy_build_directory()
 
     def _build_srpm(self, package):
         print("%s: Building SRPM" % package.name)
@@ -73,12 +73,7 @@ class Mock(build_system.PackageBuilder):
                                    self.archive,
                                    self.build_dir))
 
-        LOG.info("Command: %s" % cmd)
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, shell=True)
-        output, error_output = p.communicate()
-        LOG.info("STDOUT: %s" % output)
-        LOG.info("STDERR: %s" % error_output)
+        utils.run_command(cmd)
 
     def _prepare(self, package):
         self._create_build_directory(package)
@@ -104,21 +99,10 @@ class Mock(build_system.PackageBuilder):
             cmd = cmd + " --copyin %s %s" % (" ".join(files),
                                              MOCK_CHROOT_BUILD_DIR)
 
-        LOG.info("Command: %s" % cmd)
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, shell=True)
-        output, error_output = p.communicate()
-        LOG.info("STDOUT: %s" % output)
-        LOG.info("STDERR: %s" % error_output)
+        utils.run_command(cmd)
 
     def clean(self):
-        cmd = "mock --clean "
-        LOG.info("Command: %s" % cmd)
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, shell=True)
-        output, error_output = p.communicate()
-        LOG.info("STDOUT: %s" % output)
-        LOG.info("STDERR: %s" % error_output)
+        utils.run_command("mock --clean")
 
     def _install_external_dependencies(self, package):
         cmd = "mock -r %s " % self.mock_config
@@ -131,12 +115,7 @@ class Mock(build_system.PackageBuilder):
 
             cmd = cmd + install
             print("%s: Installing dependencies on chroot" % package.name)
-            LOG.info("Command: %s" % cmd)
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE, shell=True)
-            output, error_output = p.communicate()
-            LOG.info("STDOUT: %s" % output)
-            LOG.info("STDERR: %s" % error_output)
+            utils.run_command(cmd)
 
     def _create_build_directory(self, package):
         self.build_dir = os.path.join(

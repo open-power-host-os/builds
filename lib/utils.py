@@ -15,14 +15,27 @@
 
 import logging
 import platform
+import subprocess
 
-import centos
 import exception
 
 LOG = logging.getLogger(__name__)
-DISTRIBUTIONS = {
-    "centos": centos.CentOS,
-}
+
+
+def run_command(cmd, verbose=False, **kwargs):
+    LOG.info("Command: %s" % cmd)
+    shell = kwargs.pop('shell', True)
+
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, shell=shell, **kwargs)
+    output, error_output = process.communicate()
+
+    if process.returncode:
+        raise exception.SubprocessError(cmd=cmd, ret=process.returncode,
+                                        stdout=output, stderr=error_output)
+    if verbose:
+        LOG.info("stdout: %s" % output)
+        LOG.info("stderr: %s" % error_output)
 
 
 def detect_distribution():
@@ -38,7 +51,4 @@ def detect_distribution():
     # values are empty strings.
     if not distro or not version or not arch_and_endianess:
         raise exception.DistributionDetectionError
-    if not DISTRIBUTIONS.get(distro, None):
-        raise exception.DistributionNotSupportedError(distribution=distro)
-
-    return DISTRIBUTIONS.get(distro, None)(distro, version, arch_and_endianess)
+    return (distro, version, arch_and_endianess)

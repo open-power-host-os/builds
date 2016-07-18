@@ -55,3 +55,8 @@ class PackageDescriptorError(PackageError):
 
 class RepositoryError(BaseException):
     msg = "Failed to setup %(package)s's repository at %(repo_path)s."
+
+
+class SubprocessError(BaseException):
+    msg = ("%(cmd)s returned non-zero exit code: ret:%(ret)i, stdout: "
+           "%(stdout)s, stderr: %(stderr)s")

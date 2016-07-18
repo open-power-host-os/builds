@@ -34,7 +34,7 @@ class Scheduler(object):
         except IndexError:
             pass
         else:
-            if not p in visited:
+            if p not in visited:
                 visited.append(p)
                 if p.dependencies:
                     order.extend(self._dfs(p.dependencies, visited))

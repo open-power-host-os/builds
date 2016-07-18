@@ -15,13 +15,13 @@
 
 import os
 import logging
-import subprocess
 import urllib2
 import yaml
 
 from lib import config
 from lib import exception
 from lib import repository
+from lib import utils
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
@@ -141,14 +141,7 @@ class Package(object):
         """
         An alternative to just execute a given command to obtain sources.
         """
-        cmd = "cd %s; %s; cd %s" % (build_dir, self.download_source,
-                                    os.getcwd())
-        LOG.info("Command: %s" % cmd)
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, shell=True)
-        output, error_output = p.communicate()
-        LOG.info("STDOUT: %s" % output)
-        LOG.info("STDERR: %s" % error_output)
+        utils.run_command(self.download_source, cwd=build_dir)
         return os.path.join(build_dir, self.expects_source)
 
     def _download_build_files(self):

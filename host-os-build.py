@@ -12,7 +12,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-import os 
+import os
 import logging
 import sys
 
@@ -23,8 +23,9 @@ from lib import manager
 
 import pygit2
 
-
 LOG = logging.getLogger(__name__)
+
+
 def setup_versions_repository(versions_git_url, dest, version):
     # Load if it is an existing git repo
     if os.path.exists(dest):
@@ -33,8 +34,8 @@ def setup_versions_repository(versions_git_url, dest, version):
             LOG.info("Found versions repository!")
 
         except KeyError:
-           raise exception.RepositoryError(
-               message="Failed to setup Versions repository")
+            raise exception.RepositoryError(
+                message="Failed to setup Versions repository")
     else:
         LOG.info("Cloning into %s..." % dest)
         versions_repo = pygit2.clone_repository(versions_git_url,
@@ -74,15 +75,16 @@ def main(args):
     log_helper.LogHelper(logfile=conf.get('default').get('log_file'),
                          verbose=conf.get('default').get('verbose'))
     try:
-	version = conf.get('default').get('build_version')
-	version = 'refs/heads/master' if version == 'latest' else (
+        version = conf.get('default').get('build_version')
+        version = 'refs/heads/master' if version == 'latest' else (
             'refs/tags/' + version)
         setup_versions_repository(config.VERSIONS_REPOSITORY,
                                   config.COMPONENTS_DIRECTORY, version)
 
         # rediscovery software if it was not set
         conf['default']['packages'] = conf['default']['packages'] if (
-            conf.get('default').get('packages')) else config.discover_software()
+            conf.get('default').get('packages')) else (
+                config.discover_software())
 
     except exception.RepositoryError as e:
         return e.errno

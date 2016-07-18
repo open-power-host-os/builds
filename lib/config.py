@@ -64,7 +64,7 @@ def discover_software():
             if os.path.isdir(os.path.join(COMPONENTS_DIRECTORY, software)) and
             os.path.isfile(os.path.join(COMPONENTS_DIRECTORY, software,
                                         "".join([software, ".yaml"])))
-            ]
+        ]
     except OSError:
         # This is expected to happen on the first run, when the components
         # directory doesn't exist yet.
@@ -99,7 +99,7 @@ class ConfigParser(object):
         parser.add_argument('--config-file', '-c',
                             help='Path of the configuration file for build '
                                  'scripts',
-                            #NOTE(maurosr): move this to /etc in the future
+                            # NOTE(maurosr): move this to /etc in the future
                             default='./config.yaml')
         parser.add_argument('--packages', '-p',
                             help='Packages to be built',

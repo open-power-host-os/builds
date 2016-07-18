@@ -15,6 +15,7 @@
 
 import logging
 
+import lib.centos
 from lib import config
 from lib import exception
 from lib import package
@@ -23,6 +24,10 @@ from lib import utils
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
+
+DISTRIBUTIONS = {
+    "centos": lib.centos.CentOS,
+}
 
 
 class BuildManager(object):
@@ -34,7 +39,7 @@ class BuildManager(object):
 
     def __call__(self):
         try:
-            self._distro = utils.detect_distribution()
+            self._distro = self._get_distro()
             self.packages = self._prepare_packages()
         # distro related issues
         except (exception.DistributionNotSupportedError,
@@ -43,12 +48,24 @@ class BuildManager(object):
             LOG.exception("Error during distribution detection. "
                           "See the logs for more information")
             return exc.errno
+        # package issues
         except exception.PackageError as exc:
             LOG.exception("Failed to load the package in components. "
                           "See the logs for more information")
             return exc.errno
 
         return self.build()
+
+    def _get_distro(self):
+        distro_metadata = utils.detect_distribution()
+        distro_name = distro_metadata[0]
+        # let's make this explicity to avoid catching for a TypeError
+        # exception which could be raised from the attempt to instantiate
+        # the distro object.
+        if not DISTRIBUTIONS.get(distro_name):
+            raise exception.DistributionNotSupportedError(
+                distribution=distro_name)
+        return DISTRIBUTIONS.get(distro_name)(*distro_metadata)
 
     def build(self):
         scheduler = lib.scheduler.Scheduler()
