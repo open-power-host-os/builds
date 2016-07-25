@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import logging.handlers
 import os
 import sys
 
@@ -25,10 +26,14 @@ class LogHelper(object):
 
         self._directory_setup()
 
+        logger = logging.getLogger()
         logging.basicConfig(filename=logfile, level=level)
         print("Logs available at %s" % logfile)
+        # NOTE(maurosr): RotatingFileHandler expects file size in bytes, in
+        # short terms we're defining 2MB limit here.
+        logger.addHandler(logging.handlers.RotatingFileHandler(
+            logfile, maxBytes=2 << 20, backupCount=1))
         if verbose:
-            logger = logging.getLogger()
             logger.addHandler(logging.StreamHandler(sys.stdout))
 
     def _directory_setup(self):
