@@ -195,7 +195,7 @@ Version: 2.5
 %define pkvm_release .pkvm3_1_1.%{?release_week}0%{?release_day}.%{?release_spin}
 
 Release: 6%{?dist}%{?pkvm_release}
-Epoch: 2
+Epoch: 11
 License: GPLv2+ and LGPLv2+ and BSD
 Group: Development/Tools
 URL: http://www.qemu.org/

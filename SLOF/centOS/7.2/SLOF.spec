@@ -3,7 +3,7 @@
 %global gittag qemu-slof-%{gittagdate}
 
 Name:           SLOF
-Version:        0.1.git%{gittagdate}
+Version:        %{gittagdate}
 %define ibm_release  %{?repo}.1
 Release:        1%{?dist}%{?ibm_release}
 Summary:        Slimline Open Firmware
@@ -14,7 +14,7 @@ BuildArch:      noarch
 
 # There are no upstream tarballs.  To prepare a tarball, do:
 #
-#  git clone git://9.42.66.204/slof/slof-frobisher.git
+#  git clone https://github.com/open-power-host-os/slof.git
 #  cd slof-frobisher
 #  git checkout powerkvm-v3.1
 #  git archive --format=tar --prefix=SLOF-%{gittagdate}/ HEAD | gzip > ../SLOF-%{gittagdate}.tar.gz
