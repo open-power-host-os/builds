@@ -60,5 +60,5 @@ class RepositoryError(BaseException):
 
 
 class SubprocessError(BaseException):
-    msg = ("%(cmd)s returned non-zero exit code: ret:%(ret)i, stdout: "
+    msg = ("%(cmd)s returned non-zero exit code: ret:%(returncode)i, stdout: "
            "%(stdout)s, stderr: %(stderr)s")

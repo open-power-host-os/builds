@@ -31,7 +31,7 @@ def run_command(cmd, verbose=False, **kwargs):
     output, error_output = process.communicate()
 
     if process.returncode:
-        raise exception.SubprocessError(cmd=cmd, ret=process.returncode,
+        raise exception.SubprocessError(cmd=cmd, returncode=process.returncode,
                                         stdout=output, stderr=error_output)
     if verbose:
         LOG.info("stdout: %s" % output)
