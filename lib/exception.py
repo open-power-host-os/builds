@@ -22,6 +22,8 @@ class BaseException(Exception):
     def __init__(self, message=None, **kwargs):
         if message is None:
             message = self.msg % kwargs
+        for key, value in kwargs.items():
+            setattr(self, key, value)
         super(BaseException, self).__init__(message)
 
 
