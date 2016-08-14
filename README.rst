@@ -43,33 +43,44 @@ RPM Based distributions
 Settings
 --------
 
- * Disable SMT
+* Disable SMT
 
 ::
 
 # sudo ppc64_cpu --smt=off
 
+* Setup environment and user
+
+::
+
+# sudo python setup_environment.py LOGIN
+
+Naturally, you need to replace LOGIN by the user name you'll use to run
+host-os-build.py, which should not run using root user, even if that user
+doesn't exists yet.
+
 Running
 -------
 
- * Build a single package
+* Build a single package
 
 ::
 
-# sudo python host-os-build.py --package libvirt
+# python host-os-build.py --package libvirt
 
- * Build all software
+* Build all software
 
 ::
 
-# sudo python host-os-build.py --verbose
+# python host-os-build.py --verbose
 
-Note the --verbose parameter to get all the log messages in the console. Insted
+Note the --verbose parameter to get all the log messages in the console. Instead
 of the standard ordinary messages. Please see --help for more options.
 
 ::
 
-# sudo python host-os-build.py --help
+# python host-os-build.py --help
+
 
 Using the RPMs
 --------------
@@ -117,7 +128,7 @@ You can use the following command to install, for instance, libseccomp's RPM:
 
 ::
 
-# sudo yum localinstall  result/libseccomp-2.3.1-0.el7.centos.1.ppc64le.rpm
+# sudo yum localinstall result/libseccomp-2.3.1-0.el7.centos.1.ppc64le.rpm
 
 Note that some of those packages are debuginfo which are recommended in order to
 provide useful information for bugs in the case of any failures.

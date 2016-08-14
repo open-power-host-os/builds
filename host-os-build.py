@@ -12,8 +12,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-import os
 import logging
+import os
 import sys
 
 from lib import config
@@ -92,4 +92,9 @@ def main(args):
     return build_manager()
 
 if __name__ == '__main__':
+    if os.getuid() is 0:
+        print("Please, do not run this script as root, run "
+              "setup_environment.py script in order to properly setup user and"
+              " directory for build scripts")
+        sys.exit(3)
     sys.exit(main(sys.argv[1:]))
