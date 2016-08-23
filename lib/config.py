@@ -104,7 +104,6 @@ class ConfigParser(object):
         parser.add_argument('--packages', '-p',
                             help='Packages to be built',
                             nargs='*',
-                            choices=supported_software,
                             default=supported_software)
         parser.add_argument('--log-file', '-l',
                             help='Log file',
