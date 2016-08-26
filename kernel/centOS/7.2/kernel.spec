@@ -24,12 +24,12 @@ Summary: The Linux kernel
 
 # This crazy release structure is so the daily scratch builds and the weekly official builds
 #   will always yum install correctly over each other
-%define release_week 22
+%define release_week 31
 %define release_day 0
 %define release_spin 0
 %define pkvm_release .pkvm3_1_1.%{?release_week}0%{?release_day}.%{?release_spin}
 
-%define rpmversion 4.4.11
+%define rpmversion 4.7.0
 %define pkgrelease 3
 
 # allow pkg_release to have configurable %{?dist} tag
@@ -1638,7 +1638,7 @@ fi
 %files -n kernel-tools-libs
 %defattr(-,root,root)
 %{_libdir}/libcpupower.so.0
-%{_libdir}/libcpupower.so.0.0.0
+%{_libdir}/libcpupower.so.0.0.1
 
 %files -n kernel-tools-libs-devel
 %defattr(-,root,root)

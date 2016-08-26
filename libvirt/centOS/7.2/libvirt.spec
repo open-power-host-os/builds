@@ -382,7 +382,7 @@ Version: 1.3.4
 #define ibm_release %{?repo}.1
 # This release structure is so the daily scratch builds and the weekly official builds
 #   will always yum install correctly over each other
-%define release_week 22
+%define release_week 31
 %define release_day 0
 %define release_spin 0
 %define pkvm_release .pkvm3_1_1.%{?release_week}0%{?release_day}.%{?release_spin}

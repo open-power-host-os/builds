@@ -185,11 +185,11 @@
 
 Summary: QEMU is a FAST! processor emulator
 Name: qemu
-Version: 2.5
+Version: 2.6.93
 
 # This crazy release structure is so the daily scratch builds and the weekly official builds
 #   will always yum install correctly over each other
-%define release_week 22
+%define release_week 31
 %define release_day 0
 %define release_spin 0
 %define pkvm_release .pkvm3_1_1.%{?release_week}0%{?release_day}.%{?release_spin}
@@ -716,8 +716,7 @@ Summary: KVM debugging and diagnostics tools
 Group: Development/Tools
 
 %description kvm-tools
-This package contains some diagnostics and debugging tools for KVM,
-such as kvm_stat.
+This package contains some diagnostics and debugging tools for KVM.
 %endif
 
 %if %{without separate_kvm}
@@ -852,7 +851,6 @@ install -m 0755 %{SOURCE2} $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/modules/kvm.m
 mkdir -p $RPM_BUILD_ROOT%{_bindir}/
 mkdir -p $RPM_BUILD_ROOT%{_udevdir}
 
-install -m 0755 scripts/kvm/kvm_stat $RPM_BUILD_ROOT%{_bindir}/
 install -m 0644 %{SOURCE3} $RPM_BUILD_ROOT%{_udevdir}
 %endif
 
@@ -1182,7 +1180,7 @@ getent passwd qemu >/dev/null || \
 %dir %{_datadir}/%{name}/
 #{_datadir}/%{name}/qemu-icon.bmp
 %{_datadir}/%{name}/qemu_logo_no_text.svg
-%{_datadir}/%{name}/trace-events
+%{_datadir}/%{name}/trace-events-all
 %{_datadir}/%{name}/keymaps/
 %{_mandir}/man1/qemu.1*
 %{_mandir}/man1/virtfs-proxy-helper.1*
@@ -1324,7 +1322,6 @@ getent passwd qemu >/dev/null || \
 %ifarch %{kvm_archs}
 %files kvm-tools
 %defattr(-,root,root,-)
-%{_bindir}/kvm_stat
 %endif
 %endif
 

@@ -2,8 +2,8 @@ Package:
  name: 'libvirt'
  clone_url: 'https://github.com/open-power-host-os/libvirt.git'
  branch: 'powerkvm-v3.1.1'
- commit_id: '232c054' 
- expects_source: "libvirt-2200.0"
+ commit_id: '232c054'
+ expects_source: "libvirt-3100.0"
  files:
   centos:
    '7.2':

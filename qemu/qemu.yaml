@@ -1,13 +1,14 @@
 Package:
  name: 'QEMU'
  clone_url: 'https://github.com/open-power-host-os/qemu.git'
- branch: 'powerkvm-v3.1.1'
- commit_id: '7d4a58a'
- expects_source: "qemu-2200.0"
+ branch: 'hostos-devel'
+ commit_id: '5f0e775'
+ expects_source: "qemu-3100.0"
  files:
   centos:
    '7.2':
     spec: 'centOS/7.2/qemu.spec'
+    rpmmacro: 'centOS/7.2/rpmmacro'
     build_files: 'centOS/7.2/SOURCES'
     dependencies:
      - 'libseccomp'
