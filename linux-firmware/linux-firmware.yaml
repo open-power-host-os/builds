@@ -1,0 +1,11 @@
+Package:
+ name: 'linux-firmware'
+ clone_url: 'https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git'
+ branch: 'master'
+ commit_id: '70a3c2a'
+ expects_source: "linux-firmware"
+ files:
+  centos:
+   '7.2':
+    spec: 'centOS/7.2/linux-firmware.spec'
+    rpmmacro: 'centOS/7.2/rpmmacro'
