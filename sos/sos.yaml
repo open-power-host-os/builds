@@ -1,0 +1,10 @@
+Package:
+ name: 'sos'
+ clone_url: 'https://github.com/open-power-host-os/sos.git'
+ branch: 'powerkvm-v3.1.1'
+ commit_id: '52dd1db'
+ expects_source: "sos"
+ files:
+  centos:
+   '7.2':
+    spec: 'centOS/7.2/sos.spec'
