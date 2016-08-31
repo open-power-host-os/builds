@@ -2,7 +2,7 @@ Summary: Enhanced seccomp library
 Name: libseccomp
 %define ibm_release %{?repo}.1
 Version: 2.3.1
-Release: 0%{?dist}%{?ibm_release}
+Release: 1%{?dist}%{?ibm_release}
 ExclusiveArch: %{ix86} x86_64 %{arm} aarch64 mipsel mips64el ppc64 ppc64le s390 s390x
 License: LGPLv2
 Group: System Environment/Libraries
@@ -87,6 +87,9 @@ make V=1 check
 %{_libdir}/libseccomp.a
 
 %changelog
+* Tue Aug 30 2016 Mauro S. M. Rodrigues <maurosr@linux.vnet.ibm.com> - 2.3.1-1.1
+- Build August, 24th, 2016
+
 * Wed Apr 20 2016 Paul Moore <pmoore@redhat.com> - 2.3.1-0
 - New upstream version
 

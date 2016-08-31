@@ -4,7 +4,7 @@ Summary: A set of tools to gather troubleshooting information from a system
 Name: sos
 Version: 3.3
 %define ibm_release %{?repo}.1
-Release: 16%{?dist}%{?ibm_release}
+Release: 17%{?dist}%{?ibm_release}
 Group: Applications/System
 Source0: %{name}.tar.gz
 License: GPLv2+
@@ -54,6 +54,9 @@ rm -rf ${RPM_BUILD_ROOT}
 %config(noreplace) %{_sysconfdir}/sos.conf
 
 %changelog
+* Tue Aug 30 2016 Mauro S. M. Rodrigues <maurosr@linux.vnet.ibm.com> - 3.3-17.1
+- Build August, 24th, 2016
+
 * Wed Jul 13 2016 baseuser <baseuser@us.ibm.com> = 3.3
 - 52dd1dbc52783e622ca0a96e3e9c182bb26887fe sos: Decrease sos timeout from 300 to 180 sec
 - b4bb649d64b62051893fa22803205b30fd6cc84b IBM branding

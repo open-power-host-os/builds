@@ -189,12 +189,12 @@ Version: 2.6.93
 
 # This crazy release structure is so the daily scratch builds and the weekly official builds
 #   will always yum install correctly over each other
-%define release_week 31
+%define release_week 32
 %define release_day 0
 %define release_spin 0
 %define pkvm_release .pkvm3_1_1.%{?release_week}0%{?release_day}.%{?release_spin}
 
-Release: 6%{?dist}%{?pkvm_release}
+Release: 7%{?dist}%{?pkvm_release}
 Epoch: 11
 License: GPLv2+ and LGPLv2+ and BSD
 Group: Development/Tools
@@ -1529,6 +1529,9 @@ getent passwd qemu >/dev/null || \
 %endif
 
 %changelog
+* Tue Aug 30 2016 Mauro S. M. Rodrigues <maurosr@linux.vnet.ibm.com> - 11:2.6.93-7.pkvm3_1_1.3100.0
+- Build August, 24th, 2016
+
 * Wed Jun 15 2016 <baseuser@ibm.com>
   Log from git:
 - 7d4a58ab9de6d2758451d4f5e55f3612ccc8a885 spapr: Ensure all LMBs are represented in ibm, dynamic-memory

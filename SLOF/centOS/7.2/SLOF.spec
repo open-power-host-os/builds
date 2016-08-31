@@ -5,7 +5,7 @@
 Name:           SLOF
 Version:        %{gittagdate}
 %define ibm_release  %{?repo}.1
-Release:        1%{?dist}%{?ibm_release}
+Release:        2%{?dist}%{?ibm_release}
 Summary:        Slimline Open Firmware
 
 License:        BSD
@@ -67,5 +67,8 @@ cp -a boot_rom.bin $RPM_BUILD_ROOT%{_datadir}/qemu/slof.bin
 
 
 %changelog
+* Tue Aug 30 2016 Mauro S. M. Rodrigues <maurosr@linux.vnet.ibm.com> - 20160525-2.1
+- Build August, 24th, 2016
+
 * Tue Sep 10 2013 baseuser@ibm.com
 - Base-8.x spec file

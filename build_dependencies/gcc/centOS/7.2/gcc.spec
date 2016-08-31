@@ -79,7 +79,7 @@ Name: gcc
 %global gcc_version 4.8.5
 %endif
 Version: 4.8.5
-Release: %{gcc_release}%{?dist}
+Release: %{gcc_release}%{?dist}.1
 %if "%{version}" != "%{gcc_version}"
 %define gcc_provides %{gcc_version}-16%{?dist}
 %endif
@@ -3359,6 +3359,9 @@ fi
 %{_prefix}/libexec/gcc/%{gcc_target_platform}/%{gcc_version}/plugin
 
 %changelog
+* Tue Aug 30 2016 Mauro S. M. Rodrigues <maurosr@linux.vnet.ibm.com> - 4.8.5-4.1
+- Build August, 24th, 2016
+
 * Wed Jul 15 2015 Jakub Jelinek <jakub@redhat.com> 4.8.5-4
 - fix up basic_streambuf copy constructor and assignment operator
   (#1243366)

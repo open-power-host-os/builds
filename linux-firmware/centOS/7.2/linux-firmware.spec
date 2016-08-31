@@ -3,7 +3,7 @@
 
 Name:		linux-firmware
 Version:	20150904
-Release:	%{firmware_release}.git%{checkout}%{?dist}.1
+Release:	%{firmware_release}.git%{checkout}%{?dist}.2
 Summary:	Firmware files used by the Linux kernel
 
 Group:		System Environment/Kernel
@@ -51,7 +51,7 @@ operate.
 Summary:	Firmware for Intel(R) Wireless WiFi Link 100 Series Adapters
 License:	Redistributable, no modification permitted
 Version:	39.31.5.1
-Release:	%{firmware_release}%{?dist}.1
+Release:	%{firmware_release}%{?dist}.2
 Obsoletes:	iwl100-firmware < 39.31.5.1-4
 %description -n iwl100-firmware
 This package contains the firmware required by the iwlagn driver
@@ -63,7 +63,7 @@ LICENSE file. Please read it carefully.
 Summary:	Firmware for Intel(R) Centrino Wireless-N 105 Series Adapters
 License:	Redistributable, no modification permitted
 Version:	18.168.6.1
-Release:	%{firmware_release}%{?dist}.1
+Release:	%{firmware_release}%{?dist}.2
 %description -n iwl105-firmware
 This package contains the firmware required by the iwlagn driver
 for Linux to support the iwl105 hardware.  Usage of the firmware
@@ -74,7 +74,7 @@ LICENSE file. Please read it carefully.
 Summary:	Firmware for Intel(R) Centrino Wireless-N 135 Series Adapters
 License:	Redistributable, no modification permitted
 Version:	18.168.6.1
-Release:	%{firmware_release}%{?dist}.1
+Release:	%{firmware_release}%{?dist}.2
 %description -n iwl135-firmware
 This package contains the firmware required by the iwlagn driver
 for Linux to support the iwl135 hardware.  Usage of the firmware
@@ -86,7 +86,7 @@ Summary:	Firmware for Intel® PRO/Wireless 1000 B/G/N network adaptors
 License:	Redistributable, no modification permitted
 Version:	39.31.5.1
 Epoch:		1
-Release:	%{firmware_release}%{?dist}.1
+Release:	%{firmware_release}%{?dist}.2
 Obsoletes:	iwl1000-firmware < 1:39.31.5.1-3
 %description -n iwl1000-firmware
 This package contains the firmware required by the iwlagn driver
@@ -98,7 +98,7 @@ LICENSE file. Please read it carefully.
 Summary:	Firmware for Intel(R) Centrino Wireless-N 2000 Series Adapters
 License:	Redistributable, no modification permitted
 Version:	18.168.6.1
-Release:	%{firmware_release}%{?dist}.1
+Release:	%{firmware_release}%{?dist}.2
 %description -n iwl2000-firmware
 This package contains the firmware required by the iwlagn driver
 for Linux to support the iwl2000 hardware.  Usage of the firmware
@@ -109,7 +109,7 @@ LICENSE file. Please read it carefully.
 Summary:	Firmware for Intel(R) Centrino Wireless-N 2030 Series Adapters
 License:	Redistributable, no modification permitted
 Version:	18.168.6.1
-Release:	%{firmware_release}%{?dist}.1
+Release:	%{firmware_release}%{?dist}.2
 %description -n iwl2030-firmware
 This package contains the firmware required by the iwlagn driver
 for Linux to support the iwl2030 hardware.  Usage of the firmware
@@ -120,7 +120,7 @@ LICENSE file. Please read it carefully.
 Summary:	Firmware for Intel(R) Dual Band Wireless-AC 3160 Series Adapters
 License:	Redistributable, no modification permitted
 Version:	22.0.7.0
-Release:	%{firmware_release}%{?dist}.1
+Release:	%{firmware_release}%{?dist}.2
 %description -n iwl3160-firmware
 This package contains the firmware required by the iwlagn driver
 for Linux to support the iwl3160 hardware.  Usage of the firmware
@@ -131,7 +131,7 @@ LICENSE file. Please read it carefully.
 Summary:	Firmware for Intel® PRO/Wireless 3945 A/B/G network adaptors
 License:	Redistributable, no modification permitted
 Version:	15.32.2.9
-Release:	%{firmware_release}%{?dist}.1
+Release:	%{firmware_release}%{?dist}.2
 Obsoletes:	iwl3945-firmware < 15.32.2.9-7
 %description -n iwl3945-firmware
 This package contains the firmware required by the iwl3945 driver
@@ -142,7 +142,7 @@ contained inside the provided LICENSE file. Please read it carefully.
 Summary:	Firmware for Intel® PRO/Wireless 4965 A/G/N network adaptors
 License:	Redistributable, no modification permitted
 Version:	228.61.2.24
-Release:	%{firmware_release}%{?dist}.1
+Release:	%{firmware_release}%{?dist}.2
 Obsoletes:	iwl4965-firmware < 228.61.2.24-5
 %description -n iwl4965-firmware
 This package contains the firmware required by the iwl4965 driver
@@ -153,7 +153,7 @@ contained inside the provided LICENSE file. Please read it carefully.
 Summary:	Firmware for Intel® PRO/Wireless 5000 A/G/N network adaptors
 License:	Redistributable, no modification permitted
 Version:	8.83.5.1_1
-Release:	%{firmware_release}%{?dist}.1
+Release:	%{firmware_release}%{?dist}.2
 Obsoletes:	iwl5000-firmware < 8.83.5.1_1-3
 %description -n iwl5000-firmware
 This package contains the firmware required by the iwl5000 driver
@@ -164,7 +164,7 @@ contained inside the provided LICENSE file. Please read it carefully.
 Summary:	Firmware for Intel® PRO/Wireless 5150 A/G/N network adaptors
 License:	Redistributable, no modification permitted
 Version:	8.24.2.2
-Release:	%{firmware_release}%{?dist}.1
+Release:	%{firmware_release}%{?dist}.2
 Obsoletes:	iwl5150-firmware < 8.24.2.2-4
 %description -n iwl5150-firmware
 This package contains the firmware required by the iwl5150 driver
@@ -175,7 +175,7 @@ contained inside the provided LICENSE file. Please read it carefully.
 Summary:	Firmware for Intel(R) Wireless WiFi Link 6000 AGN Adapter
 License:	Redistributable, no modification permitted
 Version:	9.221.4.1
-Release:	%{firmware_release}%{?dist}.1
+Release:	%{firmware_release}%{?dist}.2
 Obsoletes:	iwl6000-firmware < 9.221.4.1-4
 %description -n iwl6000-firmware
 This package contains the firmware required by the iwlagn driver
@@ -186,7 +186,7 @@ contained inside the provided LICENSE file. Please read it carefully.
 Summary:	Firmware for Intel(R) Wireless WiFi Link 6005 Series Adapters
 License:	Redistributable, no modification permitted
 Version:	17.168.5.3
-Release:	%{firmware_release}%{?dist}.1
+Release:	%{firmware_release}%{?dist}.2
 Obsoletes:	iwl6000g2a-firmware < 17.168.5.3-3
 %description -n iwl6000g2a-firmware
 This package contains the firmware required by the iwlagn driver
@@ -197,7 +197,7 @@ contained inside the provided LICENSE file. Please read it carefully.
 Summary:	Firmware for Intel(R) Wireless WiFi Link 6030 Series Adapters
 License:	Redistributable, no modification permitted
 Version:	17.168.5.2
-Release:	%{firmware_release}%{?dist}.1
+Release:	%{firmware_release}%{?dist}.2
 Obsoletes:	iwl6000g2b-firmware < 17.168.5.2-3
 %description -n iwl6000g2b-firmware
 This package contains the firmware required by the iwlagn driver
@@ -208,7 +208,7 @@ contained inside the provided LICENSE file. Please read it carefully.
 Summary:	Firmware for Intel(R) Wireless WiFi Link 6050 Series Adapters
 License:	Redistributable, no modification permitted
 Version:	41.28.5.1
-Release:	%{firmware_release}%{?dist}.1
+Release:	%{firmware_release}%{?dist}.2
 Obsoletes:	iwl6050-firmware < 41.28.5.1-5
 %description -n iwl6050-firmware
 This package contains the firmware required by the iwlagn driver
@@ -219,7 +219,7 @@ contained inside the provided LICENSE file. Please read it carefully.
 Summary:	Firmware for Intel(R) Dual Band Wireless-AC 7260 Series Adapters
 License:	Redistributable, no modification permitted
 Version:	22.0.7.0
-Release:	%{firmware_release}%{?dist}.1
+Release:	%{firmware_release}%{?dist}.2
 %description -n iwl7260-firmware
 This package contains the firmware required by the iwlagn driver
 for Linux.  Usage of the firmware is subject to the terms and conditions
@@ -229,7 +229,7 @@ contained inside the provided LICENSE file. Please read it carefully.
 Summary:	Firmware for Intel(R) Dual Band Wireless-AC 7265 Series Adapters
 License:	Redistributable, no modification permitted
 Version:	22.0.7.0
-Release:	%{firmware_release}%{?dist}.1
+Release:	%{firmware_release}%{?dist}.2
 %description -n iwl7265-firmware
 This package contains the firmware required by the iwlagn driver
 for Linux.  Usage of the firmware is subject to the terms and conditions
@@ -392,6 +392,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc linux-firmware/WHENCE linux-firmware/LICENCE.* linux-firmware/LICENSE.*
 
 %changelog
+* Tue Aug 30 2016 Mauro S. M. Rodrigues <maurosr@linux.vnet.ibm.com> - 20150904-44.git70a3c2a.2
+- Build August, 24th, 2016
+
 * Tue Aug 23 2016 Mauro S. M. Rodrigues <maurosr@linux.vnet.ibm.com> - 20150904-44.git70a3c2a
 - Update to the latest linux-firmware upstream firmwares available (related to github issue #25)
 - Add conflicts with ivtv-firmware.

@@ -382,11 +382,11 @@ Version: 1.3.4
 #define ibm_release %{?repo}.1
 # This release structure is so the daily scratch builds and the weekly official builds
 #   will always yum install correctly over each other
-%define release_week 31
+%define release_week 32
 %define release_day 0
 %define release_spin 0
 %define pkvm_release .pkvm3_1_1.%{?release_week}0%{?release_day}.%{?release_spin}
-Release: 1%{?dist}%{?ibm_release}%{?pkvm_release}
+Release: 2%{?dist}%{?ibm_release}%{?pkvm_release}
 ExclusiveArch: ppc64 ppc64le x86_64 s390x
 Source0: libvirt-%{?release_week}0%{?release_day}.%{?release_spin}.tar.gz
 License: LGPLv2+
@@ -2429,6 +2429,9 @@ exit 0
 #doc examples/systemtap
 
 %changelog
+* Tue Aug 30 2016 Mauro S. M. Rodrigues <maurosr@linux.vnet.ibm.com> - 1.3.4-2.pkvm3_1_1.3100.0
+- Build August, 24th, 2016
+
 * Wed Jun 15 2016 <baseuser@ibm.com>
   Log from git:
 - 232c054965d4a5d97fae4b859e3c854f13412747 Enable seccomp sandbox by default in qemu.conf
