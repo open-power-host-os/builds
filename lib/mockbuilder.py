@@ -26,6 +26,7 @@ from lib import utils
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 MOCK_CHROOT_BUILD_DIR = "/builddir/build/SOURCES"
+MOCK_BIN = "/usr/bin/mock"
 
 
 class Mock(build_system.PackageBuilder):
@@ -41,8 +42,9 @@ class Mock(build_system.PackageBuilder):
         self._prepare(package)
         self._build_srpm(package)
         self._install_external_dependencies(package)
-        cmd = "mock -r %s --rebuild %s --no-clean --resultdir=%s" % (
-            self.mock_config, self.build_dir + "/*.rpm", self.build_dir)
+        cmd = "%s -r %s --rebuild %s --no-clean --resultdir=%s" % (
+            MOCK_BIN, self.mock_config, self.build_dir + "/*.rpm",
+            self.build_dir)
 
         if package.rpmmacro:
             cmd = cmd + " --macro-file=%s" % package.rpmmacro
@@ -67,8 +69,9 @@ class Mock(build_system.PackageBuilder):
 
     def _build_srpm(self, package):
         print("%s: Building SRPM" % package.name)
-        cmd = ("mock -r %s --buildsrpm --no-clean --spec %s --source %s "
-               "--resultdir=%s" % (self.mock_config,
+        cmd = ("%s -r %s --buildsrpm --no-clean --spec %s --source %s "
+               "--resultdir=%s" % (MOCK_BIN,
+                                   self.mock_config,
                                    package.specfile,
                                    self.archive,
                                    self.build_dir))
@@ -90,7 +93,7 @@ class Mock(build_system.PackageBuilder):
             self.archive = package._download_source(self.build_dir)
 
     def _prepare_chroot(self, package):
-        cmd = "mock --init -r %s " % self.mock_config
+        cmd = "%s --init -r %s " % (MOCK_BIN, self.mock_config)
 
         if package.build_files:
             files = []
@@ -102,10 +105,10 @@ class Mock(build_system.PackageBuilder):
         utils.run_command(cmd)
 
     def clean(self):
-        utils.run_command("mock --clean")
+        utils.run_command("%s --clean" % MOCK_BIN)
 
     def _install_external_dependencies(self, package):
-        cmd = "mock -r %s " % self.mock_config
+        cmd = "%s -r %s " % (MOCK_BIN, self.mock_config)
         if package.build_dependencies or package.dependencies:
             install = " --install"
             for dep in package.build_dependencies:
