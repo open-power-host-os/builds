@@ -1,0 +1,28 @@
+From 05dcfa56c9d7c996e48a1c89737d8768dd0edad5 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 2 Jun 2015 13:51:47 +0100
+Subject: [PATCH] p2v: Set status to "Conversion cancelled by user" when user
+ cancels (RHBZ#1226794).
+
+Thanks: Tingting Zheng.
+(cherry picked from commit 3e9a0fac148f7ce48db2bac2ba6f99e81fd603c7)
+---
+ p2v/conversion.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/p2v/conversion.c b/p2v/conversion.c
+index 4ebdfc4..6c03ab9 100644
+--- a/p2v/conversion.c
++++ b/p2v/conversion.c
+@@ -306,6 +306,8 @@ start_conversion (struct config *config,
+ 
+   if (stop) {
+     set_conversion_error ("cancelled by user");
++    if (notify_ui)
++      notify_ui (NOTIFY_STATUS, _("Conversion cancelled by user."));
+     goto out;
+   }
+ 
+-- 
+1.8.3.1
+

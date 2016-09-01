@@ -1,0 +1,29 @@
+From 0d350c9a950043b95860d95c3aecab41b515feea Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Wed, 15 Apr 2015 14:28:05 +0200
+Subject: [PATCH] v2v: tests: add port='-1' to test-v2v-i-ova.xml reference
+
+Followup of commit 1db249a0cc21c65e0d3192567b6016745cea7e58, as it
+outputs a new port attribute.
+
+(cherry picked from commit 11450a2d36fd05bd0dc9baff97c2afd08b4c9b07)
+---
+ v2v/test-v2v-i-ova.xml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/v2v/test-v2v-i-ova.xml b/v2v/test-v2v-i-ova.xml
+index 2d611f9..f3ecdc6 100644
+--- a/v2v/test-v2v-i-ova.xml
++++ b/v2v/test-v2v-i-ova.xml
+@@ -33,7 +33,7 @@
+       <model type='virtio'/>
+     </interface>
+     <video type='qxl' ram='65536' heads='1'/>
+-    <graphics type='vnc' autoport='yes'/>
++    <graphics type='vnc' autoport='yes' port='-1'/>
+     <input type='tablet' bus='usb'/>
+     <input type='mouse' bus='ps2'/>
+     <console type='pty'/>
+-- 
+1.8.3.1
+

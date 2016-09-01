@@ -1,0 +1,561 @@
+From cf3b6c9450c252fd16774e606b03c1730c216a18 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 25 Jun 2015 18:00:02 +0100
+Subject: [PATCH] v2v: Free XML objects in the correct order.
+
+If you free an xmlDocPtr before any xmlXPathObjectPtrs that reference
+the doc, you'll get valgrind errors like this:
+
+  ==7390== Invalid read of size 4
+  ==7390==    at 0x4EB8BC6: xmlXPathFreeNodeSet (xpath.c:4185)
+  ==7390==    by 0x4EB8CC5: xmlXPathFreeObject (xpath.c:5492)
+  ==7390==    by 0x400A56: main (in /tmp/test)
+  ==7390==  Address 0x60c0928 is 8 bytes inside a block of size 120 free'd
+  ==7390==    at 0x4C29D2A: free (in /usr/lib64/valgrind/vgpreload_memcheck-amd64-linux.so)
+  ==7390==    by 0x4E8784F: xmlFreeNodeList (tree.c:3683)
+  ==7390==    by 0x4E87605: xmlFreeDoc (tree.c:1242)
+  ==7390==    by 0x400A4A: main (in /tmp/test)
+
+The following simple test program demonstrates the problem:
+
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <assert.h>
+  #include <libxml/xpath.h>
+
+  int
+  main (int argc, char *argv[])
+  {
+    xmlDocPtr doc;
+    xmlXPathContextPtr xpathctx;
+    xmlXPathObjectPtr xpathobj;
+
+    doc = xmlReadMemory ("<test/>", 7, NULL, NULL, XML_PARSE_NONET);
+    assert (doc);
+    xpathctx = xmlXPathNewContext (doc);
+    assert (xpathctx);
+    xpathobj = xmlXPathEvalExpression (BAD_CAST "/test", xpathctx);
+    assert (xpathobj);
+    xmlFreeDoc (doc);
+    xmlXPathFreeObject (xpathobj);
+    xmlXPathFreeContext (xpathctx);
+    exit (EXIT_SUCCESS);
+  }
+
+In virt-v2v we were not freeing up objects in the correct order,
+because we didn't express the dependency between objects at the C
+level into the OCaml, where the OCaml garbage collector could see
+those dependencies.  For example code like:
+
+  let doc = ... in
+  let xpathctx = xpath_new_context doc in
+  let xpathobj = xpath_eval_expression xpathctx "/foo" in
+
+might end up freeing the 'doc' (xmlDocPtr) if, say, there were no
+further references to it in the code, even though the 'xpathobj'
+(xmlXPathObjectPtr) remains live.
+
+To avoid this, we change the OCaml-level representation of objects
+like xpathobj so they contain a reference back to the higher-level
+objects (xpathctx & doc).  Therefore holding an xpathobj means that
+the doc cannot be freed.
+
+However that alone is not quite sufficient.  There is a further
+problem when the program calls Gc.full_major, Gc.compact etc., or even
+just when xpathctx & doc happen to be freed at the same time.  The GC
+won't necessarily free them in the right order as it knows both need
+to be freed but doesn't know that one must be freed before the other.
+
+To solve this we have to move the finalisers into OCaml code, since
+the OCaml Gc.finalise function comes with an explicit ordering
+guarantee (that finalisers are always called in reverse order that
+they were created), which the C-level finaliser does not.
+
+(cherry picked from commit 3888582da89c757d0740d11c3a62433d748c85aa)
+---
+ v2v/input_libvirtxml.ml |  18 ++++-----
+ v2v/input_ova.ml        |  10 ++---
+ v2v/output_libvirt.ml   |   6 +--
+ v2v/xml-c.c             | 103 +++++++++++++++++++++++++-----------------------
+ v2v/xml.ml              |  77 ++++++++++++++++++++++++------------
+ v2v/xml.mli             |   2 +-
+ 6 files changed, 123 insertions(+), 93 deletions(-)
+
+diff --git a/v2v/input_libvirtxml.ml b/v2v/input_libvirtxml.ml
+index 0f21bb3..16c34a6 100644
+--- a/v2v/input_libvirtxml.ml
++++ b/v2v/input_libvirtxml.ml
+@@ -44,14 +44,14 @@ let parse_libvirt_xml ?conn ~verbose xml =
+     let obj = Xml.xpath_eval_expression xpathctx expr in
+     if Xml.xpathobj_nr_nodes obj < 1 then default
+     else (
+-      let node = Xml.xpathobj_node doc obj 0 in
++      let node = Xml.xpathobj_node obj 0 in
+       Xml.node_as_string node
+     )
+   and xpath_to_int expr default =
+     let obj = Xml.xpath_eval_expression xpathctx expr in
+     if Xml.xpathobj_nr_nodes obj < 1 then default
+     else (
+-      let node = Xml.xpathobj_node doc obj 0 in
++      let node = Xml.xpathobj_node obj 0 in
+       let str = Xml.node_as_string node in
+       try int_of_string str
+       with Failure "int_of_string" ->
+@@ -76,7 +76,7 @@ let parse_libvirt_xml ?conn ~verbose xml =
+     let obj = Xml.xpath_eval_expression xpathctx "/domain/features/*" in
+     let nr_nodes = Xml.xpathobj_nr_nodes obj in
+     for i = 0 to nr_nodes-1 do
+-      let node = Xml.xpathobj_node doc obj i in
++      let node = Xml.xpathobj_node obj i in
+       features := Xml.node_name node :: !features
+     done;
+     !features in
+@@ -87,7 +87,7 @@ let parse_libvirt_xml ?conn ~verbose xml =
+     if nr_nodes < 1 then None
+     else (
+       (* Ignore everything except the first <graphics> device. *)
+-      let node = Xml.xpathobj_node doc obj 0 in
++      let node = Xml.xpathobj_node obj 0 in
+       Xml.xpathctx_set_current_context xpathctx node;
+       let keymap =
+         match xpath_to_string "@keymap" "" with "" -> None | k -> Some k in
+@@ -148,7 +148,7 @@ let parse_libvirt_xml ?conn ~verbose xml =
+     if nr_nodes < 1 then None
+     else (
+       (* Ignore everything except the first <sound> device. *)
+-      let node = Xml.xpathobj_node doc obj 0 in
++      let node = Xml.xpathobj_node obj 0 in
+ 
+       Xml.xpathctx_set_current_context xpathctx node;
+       match xpath_to_string "@model" "" with
+@@ -187,7 +187,7 @@ let parse_libvirt_xml ?conn ~verbose xml =
+     if nr_nodes < 1 then
+       error (f_"this guest has no non-removable disks");
+     for i = 0 to nr_nodes-1 do
+-      let node = Xml.xpathobj_node doc obj i in
++      let node = Xml.xpathobj_node obj i in
+       Xml.xpathctx_set_current_context xpathctx node;
+ 
+       let controller =
+@@ -250,7 +250,7 @@ let parse_libvirt_xml ?conn ~verbose xml =
+             let obj = Xml.xpath_eval_expression xpathctx expr in
+             if Xml.xpathobj_nr_nodes obj < 1 then default
+             else (
+-              let node = Xml.xpathobj_node doc obj 0 in
++              let node = Xml.xpathobj_node obj 0 in
+               Xml.node_as_string node
+             ) in
+ 
+@@ -281,7 +281,7 @@ let parse_libvirt_xml ?conn ~verbose xml =
+     let nr_nodes = Xml.xpathobj_nr_nodes obj in
+     let disks = ref [] in
+     for i = 0 to nr_nodes-1 do
+-      let node = Xml.xpathobj_node doc obj i in
++      let node = Xml.xpathobj_node obj i in
+       Xml.xpathctx_set_current_context xpathctx node;
+ 
+       let controller =
+@@ -311,7 +311,7 @@ let parse_libvirt_xml ?conn ~verbose xml =
+     let nr_nodes = Xml.xpathobj_nr_nodes obj in
+     let nics = ref [] in
+     for i = 0 to nr_nodes-1 do
+-      let node = Xml.xpathobj_node doc obj i in
++      let node = Xml.xpathobj_node obj i in
+       Xml.xpathctx_set_current_context xpathctx node;
+ 
+       let mac = xpath_to_string "mac/@address" "" in
+diff --git a/v2v/input_ova.ml b/v2v/input_ova.ml
+index 8deedda..ab8c27b 100644
+--- a/v2v/input_ova.ml
++++ b/v2v/input_ova.ml
+@@ -184,14 +184,14 @@ object
+       let obj = Xml.xpath_eval_expression xpathctx expr in
+       if Xml.xpathobj_nr_nodes obj < 1 then default
+       else (
+-        let node = Xml.xpathobj_node doc obj 0 in
++        let node = Xml.xpathobj_node obj 0 in
+         Xml.node_as_string node
+       )
+     and xpath_to_int expr default =
+       let obj = Xml.xpath_eval_expression xpathctx expr in
+       if Xml.xpathobj_nr_nodes obj < 1 then default
+       else (
+-        let node = Xml.xpathobj_node doc obj 0 in
++        let node = Xml.xpathobj_node obj 0 in
+         let str = Xml.node_as_string node in
+         try int_of_string str
+         with Failure "int_of_string" ->
+@@ -247,7 +247,7 @@ object
+       let obj = Xml.xpath_eval_expression xpathctx expr in
+       let nr_nodes = Xml.xpathobj_nr_nodes obj in
+       for i = 0 to nr_nodes-1 do
+-        let n = Xml.xpathobj_node doc obj i in
++        let n = Xml.xpathobj_node obj i in
+         Xml.xpathctx_set_current_context xpathctx n;
+ 
+         (* XXX We assume the OVF lists these in order.
+@@ -316,7 +316,7 @@ object
+       let obj = Xml.xpath_eval_expression xpathctx expr in
+       let nr_nodes = Xml.xpathobj_nr_nodes obj in
+       for i = 0 to nr_nodes-1 do
+-        let n = Xml.xpathobj_node doc obj i in
++        let n = Xml.xpathobj_node obj i in
+         Xml.xpathctx_set_current_context xpathctx n;
+         let id = xpath_to_int "rasd:ResourceType/text()" 0 in
+         assert (id = 14 || id = 15 || id = 16);
+@@ -350,7 +350,7 @@ object
+     let obj = Xml.xpath_eval_expression xpathctx "/ovf:Envelope/ovf:VirtualSystem/ovf:VirtualHardwareSection/ovf:Item[rasd:ResourceType/text()=10]"  in
+     let nr_nodes = Xml.xpathobj_nr_nodes obj in
+     for i = 0 to nr_nodes-1 do
+-      let n = Xml.xpathobj_node doc obj i in
++      let n = Xml.xpathobj_node obj i in
+       Xml.xpathctx_set_current_context xpathctx n;
+       let vnet = xpath_to_string "rasd:ElementName/text()" (sprintf"eth%d" i) in
+       let nic = {
+diff --git a/v2v/output_libvirt.ml b/v2v/output_libvirt.ml
+index 23e881a..6188aa6 100644
+--- a/v2v/output_libvirt.ml
++++ b/v2v/output_libvirt.ml
+@@ -52,7 +52,7 @@ let target_features_of_capabilities_doc doc arch =
+     warning ~prog (f_"the target hypervisor does not support a %s KVM guest") arch;
+     []
+   ) else (
+-    let node (* first matching <guest> *) = Xml.xpathobj_node doc obj 0 in
++    let node (* first matching <guest> *) = Xml.xpathobj_node obj 0 in
+     Xml.xpathctx_set_current_context xpathctx node;
+ 
+     (* Get guest/features/* nodes. *)
+@@ -60,7 +60,7 @@ let target_features_of_capabilities_doc doc arch =
+ 
+     let features = ref [] in
+     for i = 0 to Xml.xpathobj_nr_nodes obj - 1 do
+-      let feature_node = Xml.xpathobj_node doc obj i in
++      let feature_node = Xml.xpathobj_node obj i in
+       let feature_name = Xml.node_name feature_node in
+       features := feature_name :: !features
+     done;
+@@ -355,7 +355,7 @@ class output_libvirt verbose oc output_pool = object
+       let obj = Xml.xpath_eval_expression xpathctx expr in
+       if Xml.xpathobj_nr_nodes obj < 1 then default
+       else (
+-        let node = Xml.xpathobj_node doc obj 0 in
++        let node = Xml.xpathobj_node obj 0 in
+         Xml.node_as_string node
+       )
+     in
+diff --git a/v2v/xml-c.c b/v2v/xml-c.c
+index 0b619e5..c71ab24 100644
+--- a/v2v/xml-c.c
++++ b/v2v/xml-c.c
+@@ -42,60 +42,53 @@
+ /* xmlDocPtr type */
+ #define Doc_val(v) (*((xmlDocPtr *)Data_custom_val(v)))
+ 
+-static void
+-doc_finalize (value docv)
+-{
+-  xmlDocPtr doc = Doc_val (docv);
+-
+-  if (doc)
+-    xmlFreeDoc (doc);
+-}
+-
+ static struct custom_operations doc_custom_operations = {
+   (char *) "doc_custom_operations",
+-  doc_finalize,
++  custom_finalize_default,
+   custom_compare_default,
+   custom_hash_default,
+   custom_serialize_default,
+   custom_deserialize_default
+ };
+ 
++value
++v2v_xml_free_doc_ptr (value docv)
++{
++  CAMLparam1 (docv);
++  xmlDocPtr doc = Doc_val (docv);
++
++  xmlFreeDoc (doc);
++  CAMLreturn (Val_unit);
++}
++
+ /* xmlXPathContextPtr type */
+-#define Xpathctx_val(v) (*((xmlXPathContextPtr *)Data_custom_val(v)))
++#define Xpathctx_ptr_val(v) (*((xmlXPathContextPtr *)Data_custom_val(v)))
+ 
+-static void
+-xpathctx_finalize (value xpathctxv)
+-{
+-  xmlXPathContextPtr xpathctx = Xpathctx_val (xpathctxv);
+-
+-  if (xpathctx)
+-    xmlXPathFreeContext (xpathctx);
+-}
+-
+-static struct custom_operations xpathctx_custom_operations = {
+-  (char *) "xpathctx_custom_operations",
+-  xpathctx_finalize,
++static struct custom_operations xpathctx_ptr_custom_operations = {
++  (char *) "xpathctx_ptr_custom_operations",
++  custom_finalize_default,
+   custom_compare_default,
+   custom_hash_default,
+   custom_serialize_default,
+   custom_deserialize_default
+ };
+ 
++value
++v2v_xml_free_xpathctx_ptr (value xpathctxv)
++{
++  CAMLparam1 (xpathctxv);
++  xmlXPathContextPtr xpathctx = Xpathctx_ptr_val (xpathctxv);
++
++  xmlXPathFreeContext (xpathctx);
++  CAMLreturn (Val_unit);
++}
++
+ /* xmlXPathObjectPtr type */
+-#define Xpathobj_val(v) (*((xmlXPathObjectPtr *)Data_custom_val(v)))
++#define Xpathobj_ptr_val(v) (*((xmlXPathObjectPtr *)Data_custom_val(v)))
+ 
+-static void
+-xpathobj_finalize (value xpathobjv)
+-{
+-  xmlXPathObjectPtr xpathobj = Xpathobj_val (xpathobjv);
+-
+-  if (xpathobj)
+-    xmlXPathFreeObject (xpathobj);
+-}
+-
+-static struct custom_operations xpathobj_custom_operations = {
+-  (char *) "xpathobj_custom_operations",
+-  xpathobj_finalize,
++static struct custom_operations xpathobj_ptr_custom_operations = {
++  (char *) "xpathobj_ptr_custom_operations",
++  custom_finalize_default,
+   custom_compare_default,
+   custom_hash_default,
+   custom_serialize_default,
+@@ -103,6 +96,16 @@ static struct custom_operations xpathobj_custom_operations = {
+ };
+ 
+ value
++v2v_xml_free_xpathobj_ptr (value xpathobjv)
++{
++  CAMLparam1 (xpathobjv);
++  xmlXPathObjectPtr xpathobj = Xpathobj_ptr_val (xpathobjv);
++
++  xmlXPathFreeObject (xpathobj);
++  CAMLreturn (Val_unit);
++}
++
++value
+ v2v_xml_parse_memory (value xmlv)
+ {
+   CAMLparam1 (xmlv);
+@@ -124,7 +127,7 @@ v2v_xml_parse_memory (value xmlv)
+ }
+ 
+ value
+-v2v_xml_xpath_new_context (value docv)
++v2v_xml_xpath_new_context_ptr (value docv)
+ {
+   CAMLparam1 (docv);
+   CAMLlocal1 (xpathctxv);
+@@ -136,21 +139,21 @@ v2v_xml_xpath_new_context (value docv)
+   if (xpathctx == NULL)
+     caml_invalid_argument ("xpath_new_context: unable to create xmlXPathNewContext");
+ 
+-  xpathctxv = caml_alloc_custom (&xpathctx_custom_operations,
++  xpathctxv = caml_alloc_custom (&xpathctx_ptr_custom_operations,
+                                  sizeof (xmlXPathContextPtr), 0, 1);
+-  Xpathctx_val (xpathctxv) = xpathctx;
++  Xpathctx_ptr_val (xpathctxv) = xpathctx;
+ 
+   CAMLreturn (xpathctxv);
+ }
+ 
+ value
+-v2v_xml_xpath_register_ns (value xpathctxv, value prefix, value uri)
++v2v_xml_xpathctx_ptr_register_ns (value xpathctxv, value prefix, value uri)
+ {
+   CAMLparam3 (xpathctxv, prefix, uri);
+   xmlXPathContextPtr xpathctx;
+   int r;
+ 
+-  xpathctx = Xpathctx_val (xpathctxv);
++  xpathctx = Xpathctx_ptr_val (xpathctxv);
+   r = xmlXPathRegisterNs (xpathctx, BAD_CAST String_val (prefix), BAD_CAST String_val (uri));
+   if (r == -1)
+       caml_invalid_argument ("xpath_register_ns: unable to register namespace");
+@@ -159,30 +162,30 @@ v2v_xml_xpath_register_ns (value xpathctxv, value prefix, value uri)
+ }
+ 
+ value
+-v2v_xml_xpath_eval_expression (value xpathctxv, value exprv)
++v2v_xml_xpathctx_ptr_eval_expression (value xpathctxv, value exprv)
+ {
+   CAMLparam2 (xpathctxv, exprv);
+   CAMLlocal1 (xpathobjv);
+   xmlXPathContextPtr xpathctx;
+   xmlXPathObjectPtr xpathobj;
+ 
+-  xpathctx = Xpathctx_val (xpathctxv);
++  xpathctx = Xpathctx_ptr_val (xpathctxv);
+   xpathobj = xmlXPathEvalExpression (BAD_CAST String_val (exprv), xpathctx);
+   if (xpathobj == NULL)
+     caml_invalid_argument ("xpath_eval_expression: unable to evaluate XPath expression");
+ 
+-  xpathobjv = caml_alloc_custom (&xpathobj_custom_operations,
++  xpathobjv = caml_alloc_custom (&xpathobj_ptr_custom_operations,
+                                  sizeof (xmlXPathObjectPtr), 0, 1);
+-  Xpathobj_val (xpathobjv) = xpathobj;
++  Xpathobj_ptr_val (xpathobjv) = xpathobj;
+ 
+   CAMLreturn (xpathobjv);
+ }
+ 
+ value
+-v2v_xml_xpathobj_nr_nodes (value xpathobjv)
++v2v_xml_xpathobj_ptr_nr_nodes (value xpathobjv)
+ {
+   CAMLparam1 (xpathobjv);
+-  xmlXPathObjectPtr xpathobj = Xpathobj_val (xpathobjv);
++  xmlXPathObjectPtr xpathobj = Xpathobj_ptr_val (xpathobjv);
+ 
+   if (xpathobj->nodesetval == NULL)
+     CAMLreturn (Val_int (0));
+@@ -191,10 +194,10 @@ v2v_xml_xpathobj_nr_nodes (value xpathobjv)
+ }
+ 
+ value
+-v2v_xml_xpathobj_get_node_ptr (value xpathobjv, value iv)
++v2v_xml_xpathobj_ptr_get_node_ptr (value xpathobjv, value iv)
+ {
+   CAMLparam2 (xpathobjv, iv);
+-  xmlXPathObjectPtr xpathobj = Xpathobj_val (xpathobjv);
++  xmlXPathObjectPtr xpathobj = Xpathobj_ptr_val (xpathobjv);
+   int i = Int_val (iv);
+ 
+   if (i < 0 || i >= xpathobj->nodesetval->nodeNr)
+@@ -215,7 +218,7 @@ value
+ v2v_xml_xpathctx_set_node_ptr (value xpathctxv, value nodev)
+ {
+   CAMLparam2 (xpathctxv, nodev);
+-  xmlXPathContextPtr xpathctx = Xpathctx_val (xpathctxv);
++  xmlXPathContextPtr xpathctx = Xpathctx_ptr_val (xpathctxv);
+   xmlNodePtr node = (xmlNodePtr) nodev;
+ 
+   xpathctx->node = node;
+diff --git a/v2v/xml.ml b/v2v/xml.ml
+index fea8784..16f3f70 100644
+--- a/v2v/xml.ml
++++ b/v2v/xml.ml
+@@ -18,37 +18,64 @@
+ 
+ (* Mini interface to libxml2. *)
+ 
+-type doc
++type doc = doc_ptr
++and doc_ptr
+ type node_ptr
+-type xpathctx
+-type xpathobj
++type xpathctx_ptr
++type xpathobj_ptr
+ 
+-(* Since node is owned by doc, we have to make that explicit to the
+- * garbage collector.
++(* At the C level, various objects "own" other objects.  We have to
++ * make that ownership explicit to the garbage collector, else we could
++ * end up freeing an object before all the C references to it are
++ * freed.
+  *)
+-type node = doc * node_ptr
+-
+-external parse_memory : string -> doc = "v2v_xml_parse_memory"
+-external xpath_new_context : doc -> xpathctx = "v2v_xml_xpath_new_context"
+-external xpath_eval_expression : xpathctx -> string -> xpathobj = "v2v_xml_xpath_eval_expression"
+-external xpath_register_ns : xpathctx -> string -> string -> unit = "v2v_xml_xpath_register_ns"
+-
+-external xpathobj_nr_nodes : xpathobj -> int = "v2v_xml_xpathobj_nr_nodes"
+-external xpathobj_get_node_ptr : xpathobj -> int -> node_ptr = "v2v_xml_xpathobj_get_node_ptr"
+-let xpathobj_node doc xpathobj i =
+-  let n = xpathobj_get_node_ptr xpathobj i in
+-  (doc, n)
+-
+-external xpathctx_set_node_ptr : xpathctx -> node_ptr -> unit = "v2v_xml_xpathctx_set_node_ptr"
+-let xpathctx_set_current_context xpathctx (_, node) =
+-  xpathctx_set_node_ptr xpathctx node
++type xpathctx = doc_ptr * xpathctx_ptr
++type xpathobj = xpathctx * xpathobj_ptr
++type node = doc_ptr * node_ptr
++
++external free_doc_ptr : doc_ptr -> unit = "v2v_xml_free_doc_ptr"
++external free_xpathctx_ptr : xpathctx_ptr -> unit = "v2v_xml_free_xpathctx_ptr"
++external free_xpathobj_ptr : xpathobj_ptr -> unit = "v2v_xml_free_xpathobj_ptr"
++
++external _parse_memory : string -> doc_ptr = "v2v_xml_parse_memory"
++let parse_memory xml =
++  let doc_ptr = _parse_memory xml in
++  Gc.finalise free_doc_ptr doc_ptr;
++  doc_ptr
++
++external xpath_new_context_ptr : doc_ptr -> xpathctx_ptr = "v2v_xml_xpath_new_context_ptr"
++let xpath_new_context doc_ptr =
++  let xpathctx_ptr = xpath_new_context_ptr doc_ptr in
++  Gc.finalise free_xpathctx_ptr xpathctx_ptr;
++  doc_ptr, xpathctx_ptr
++
++external xpathctx_ptr_register_ns : xpathctx_ptr -> string -> string -> unit = "v2v_xml_xpathctx_ptr_register_ns"
++let xpath_register_ns (_, xpathctx_ptr) prefix uri =
++  xpathctx_ptr_register_ns xpathctx_ptr prefix uri
++
++external xpathctx_ptr_eval_expression : xpathctx_ptr -> string -> xpathobj_ptr = "v2v_xml_xpathctx_ptr_eval_expression"
++let xpath_eval_expression ((_, xpathctx_ptr) as xpathctx) expr =
++  let xpathobj_ptr = xpathctx_ptr_eval_expression xpathctx_ptr expr in
++  Gc.finalise free_xpathobj_ptr xpathobj_ptr;
++  xpathctx, xpathobj_ptr
++
++external xpathobj_ptr_nr_nodes : xpathobj_ptr -> int = "v2v_xml_xpathobj_ptr_nr_nodes"
++let xpathobj_nr_nodes (_, xpathobj_ptr) =
++  xpathobj_ptr_nr_nodes xpathobj_ptr
++
++external xpathobj_ptr_get_node_ptr : xpathobj_ptr -> int -> node_ptr = "v2v_xml_xpathobj_ptr_get_node_ptr"
++let xpathobj_node ((doc_ptr, _), xpathobj_ptr) i =
++  doc_ptr, xpathobj_ptr_get_node_ptr xpathobj_ptr i
++
++external xpathctx_ptr_set_node_ptr : xpathctx_ptr -> node_ptr -> unit = "v2v_xml_xpathctx_set_node_ptr"
++let xpathctx_set_current_context (_, xpathctx_ptr) (_, node_ptr) =
++  xpathctx_ptr_set_node_ptr xpathctx_ptr node_ptr
+ 
+ external node_ptr_name : node_ptr -> string = "v2v_xml_node_ptr_name"
+-let node_name (_, node) = node_ptr_name node
++let node_name (_, node_ptr) = node_ptr_name node_ptr
+ 
+-external node_ptr_as_string : doc -> node_ptr -> string = "v2v_xml_node_ptr_as_string"
+-let node_as_string (doc, node) =
+-  node_ptr_as_string doc node
++external node_ptr_as_string : doc_ptr -> node_ptr -> string = "v2v_xml_node_ptr_as_string"
++let node_as_string (doc_ptr, node_ptr) = node_ptr_as_string doc_ptr node_ptr
+ 
+ type uri = {
+   uri_scheme : string option;
+diff --git a/v2v/xml.mli b/v2v/xml.mli
+index 890fa4e..46c7d3e 100644
+--- a/v2v/xml.mli
++++ b/v2v/xml.mli
+@@ -34,7 +34,7 @@ val xpath_register_ns : xpathctx -> string -> string -> unit
+ 
+ val xpathobj_nr_nodes : xpathobj -> int
+ (** Get the number of nodes in the nodeset of the xmlXPathObjectPtr. *)
+-val xpathobj_node : doc -> xpathobj -> int -> node
++val xpathobj_node : xpathobj -> int -> node
+ (** Get the i'th node in the nodeset of the xmlXPathObjectPtr. *)
+ 
+ val xpathctx_set_current_context : xpathctx -> node -> unit
+-- 
+1.8.3.1
+

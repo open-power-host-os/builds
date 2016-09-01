@@ -1,0 +1,31 @@
+From b02f8c5d74ad869855561a2f1db9db5d79fa1e7b Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 10 Jun 2015 14:04:49 +0100
+Subject: [PATCH] p2v: Make sure command is printed before running it.
+
+This updates commit b45f6a04359b4b64256b7b21a04416fa772c9423.
+
+(cherry picked from commit a716adac3589a339a3064bcf5e5cf33390309a14)
+---
+ p2v/kernel.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/p2v/kernel.c b/p2v/kernel.c
+index d9fe50d..397d19d 100644
+--- a/p2v/kernel.c
++++ b/p2v/kernel.c
+@@ -249,8 +249,10 @@ run_command (int verbose, const char *stage, const char *command)
+   if (STREQ (command, ""))
+     return;
+ 
+-  if (verbose)
++  if (verbose) {
+     printf ("%s\n", command);
++    fflush (stdout);
++  }
+ 
+   r = system (command);
+   if (r == -1) {
+-- 
+1.8.3.1
+

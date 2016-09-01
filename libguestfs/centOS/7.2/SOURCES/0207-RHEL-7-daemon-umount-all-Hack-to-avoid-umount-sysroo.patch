@@ -1,0 +1,40 @@
+From 3d414204d539762234acbb124460a1af68ae1859 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 23 Jul 2015 18:15:36 -0400
+Subject: [PATCH] RHEL 7: daemon: umount-all: Hack to avoid umount: /sysroot:
+ target is busy (RHBZ#1246032).
+
+This bug is not properly understood (although readily reproducible).
+However this hack makes it go away for now.
+
+https://bugzilla.redhat.com/show_bug.cgi?id=1246032
+---
+ daemon/mount.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/daemon/mount.c b/daemon/mount.c
+index c5b7d89..74a40de 100644
+--- a/daemon/mount.c
++++ b/daemon/mount.c
+@@ -26,6 +26,8 @@
+ #include <sys/types.h>
+ #include <mntent.h>
+ 
++#include "ignore-value.h"
++
+ #include "daemon.h"
+ #include "actions.h"
+ 
+@@ -417,6 +419,9 @@ do_umount_all (void)
+   if (mounts.size > 0)
+     qsort (mounts.argv, mounts.size, sizeof (char *), compare_longest_first);
+ 
++  /* Hack to work around RHBZ#1246032. */
++  ignore_value (system ("lsof /sysroot"));
++
+   /* Unmount them. */
+   for (i = 0; i < mounts.size; ++i) {
+     CLEANUP_FREE char *err = NULL;
+-- 
+1.8.3.1
+

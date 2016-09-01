@@ -1,0 +1,48 @@
+From c4e4abe7b3e36a260685d258258122610eb9193e Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Fri, 24 Oct 2014 09:13:25 +0100
+Subject: [PATCH] bash-completion: Install symbolic links instead of copies of
+ files (RHBZ#1156298).
+
+(cherry picked from commit a5a0c2f3b047ebb064d54d5029b1d1e475375668)
+---
+ bash/Makefile.am | 15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/bash/Makefile.am b/bash/Makefile.am
+index e8c33d4..10f0861 100644
+--- a/bash/Makefile.am
++++ b/bash/Makefile.am
+@@ -35,9 +35,14 @@ scripts = \
+ 	virt-sparsify \
+ 	virt-sysprep
+ 
++# Note: Don't distribute the symbolic links, only the real files.
+ EXTRA_DIST = \
+ 	README \
+-	$(scripts)
++	guestfish \
++	guestmount \
++	virt-alignment-scan \
++	virt-rescue \
++	virt-resize
+ 
+ # Some of the scripts are simply symbolic links.
+ virt-cat:
+@@ -80,6 +85,12 @@ if HAVE_BASH_COMPLETION
+ # Bash completion script.
+ 
+ bashcompletiondir = $(BASH_COMPLETIONS_DIR)
+-bashcompletion_DATA = $(scripts)
++#bashcompletion_DATA = $(scripts)
++
++all-local: $(scripts)
++
++install-data-local: $(scripts)
++	$(mkdir_p) $(DESTDIR)$(bashcompletiondir)
++	cp -d $(scripts) $(DESTDIR)$(bashcompletiondir)
+ 
+ endif
+-- 
+1.8.3.1
+

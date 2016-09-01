@@ -1,0 +1,40 @@
+From 7d87f9e4a5e9e8a77a4750cec9c5fa7618e3aca1 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 17 Nov 2014 10:07:28 +0000
+Subject: [PATCH] Fix description of 'set_append' and 'get_append' APIs
+ (RHBZ#1164732).
+
+These should refer to the libguestfs appliance kernel command
+line, not the guest kernel command line.
+
+Thanks: Lingfei Kong
+(cherry picked from commit 6dd371f913332a840b34ad00d52e9fa52711fb0e)
+---
+ generator/actions.ml | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/generator/actions.ml b/generator/actions.ml
+index 4cfba0d..593e51b 100644
+--- a/generator/actions.ml
++++ b/generator/actions.ml
+@@ -398,7 +398,7 @@ return the default path." };
+     shortdesc = "add options to kernel command line";
+     longdesc = "\
+ This function is used to add additional options to the
+-guest kernel command line.
++libguestfs appliance kernel command line.
+ 
+ The default is C<NULL> unless overridden by setting
+ C<LIBGUESTFS_APPEND> environment variable.
+@@ -417,7 +417,7 @@ are passed (libguestfs always adds a few of its own)." };
+     shortdesc = "get the additional kernel options";
+     longdesc = "\
+ Return the additional kernel options which are added to the
+-guest kernel command line.
++libguestfs appliance kernel command line.
+ 
+ If C<NULL> then no options are added." };
+ 
+-- 
+1.8.3.1
+

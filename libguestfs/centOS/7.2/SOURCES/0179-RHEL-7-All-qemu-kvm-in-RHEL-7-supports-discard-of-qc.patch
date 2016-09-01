@@ -1,0 +1,46 @@
+From 2a9848fa03b3c5ecefdb3f09b6c458f83c4d233d Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 27 May 2015 10:03:00 -0400
+Subject: [PATCH] RHEL 7: All qemu-kvm in RHEL 7 supports discard of qcow2
+ (RHBZ#1225467).
+
+For rationale behind this, see:
+
+  https://bugzilla.redhat.com/show_bug.cgi?id=1225467#c2
+---
+ src/launch-direct.c | 12 ++----------
+ 1 file changed, 2 insertions(+), 10 deletions(-)
+
+diff --git a/src/launch-direct.c b/src/launch-direct.c
+index fa3bb7a..4dde5df 100644
+--- a/src/launch-direct.c
++++ b/src/launch-direct.c
+@@ -1431,10 +1431,6 @@ guestfs_int_discard_possible (guestfs_h *g, struct drive *drv,
+    * discard option on -drive at all.
+    */
+   bool qemu15 = qemu_version >= 1005000;
+-  /* qemu >= 1.6.  This was the first version that supported unmap on
+-   * qcow2 backing files.
+-   */
+-  bool qemu16 = qemu_version >= 1006000;
+ 
+   if (!qemu15)
+     NOT_SUPPORTED (g, false,
+@@ -1459,12 +1455,8 @@ guestfs_int_discard_possible (guestfs_h *g, struct drive *drv,
+   }
+   else if (STREQ (drv->src.format, "raw"))
+     /* OK */ ;
+-  else if (STREQ (drv->src.format, "qcow2")) {
+-    if (!qemu16)
+-      NOT_SUPPORTED (g, false,
+-                     _("discard cannot be enabled on this drive: "
+-                       "qemu < 1.6 cannot do discard on qcow2 files"));
+-  }
++  else if (STREQ (drv->src.format, "qcow2"))
++    /* OK */ ;
+   else {
+     /* It's possible in future other formats will support discard, but
+      * currently (qemu 1.7) none of them do.
+-- 
+1.8.3.1
+

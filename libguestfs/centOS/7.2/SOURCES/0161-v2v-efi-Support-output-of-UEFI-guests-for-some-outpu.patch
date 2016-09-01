@@ -1,0 +1,489 @@
+From 5eda67359f6fa49b3cc1500f0b2dd88811865a69 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 30 Apr 2015 15:24:15 +0100
+Subject: [PATCH] v2v: efi: Support output of UEFI guests, for some output
+ drivers (RHBZ#1184690).
+
+Add the Types.target_firmware type, which stores our final decision
+for whether the guest requires BIOS or UEFI on the target.
+
+Not all output modes support UEFI.  In order to fail as early as
+possible if conversion isn't going to be possible, there is an
+output#supported_firmware method which returns the list of supported
+target_firmware.
+
+Add the target_firmware parameter to output#create_metadata so it can
+select the correct firmware in the final metadata.
+
+(cherry picked from commit 40558450dd87190c9dc2649cadbf284ae0a21606)
+---
+ v2v/output_glance.ml   |  7 ++++++-
+ v2v/output_libvirt.ml  | 30 ++++++++++++++++++++++++------
+ v2v/output_libvirt.mli |  2 +-
+ v2v/output_local.ml    |  6 ++++--
+ v2v/output_null.ml     |  4 +++-
+ v2v/output_qemu.ml     | 28 +++++++++++++++++++++++++++-
+ v2v/output_rhev.ml     |  7 ++++++-
+ v2v/output_vdsm.ml     |  7 ++++++-
+ v2v/types.ml           |  9 ++++++++-
+ v2v/types.mli          |  9 ++++++++-
+ v2v/utils.ml           | 29 +++++++++++++++++++++++++++++
+ v2v/v2v.ml             | 20 +++++++++++++++++++-
+ v2v/virt-v2v.pod       | 31 +++++++++++++++++++++++++++++++
+ 13 files changed, 172 insertions(+), 17 deletions(-)
+
+diff --git a/v2v/output_glance.ml b/v2v/output_glance.ml
+index c2fb553..f120cfa 100644
+--- a/v2v/output_glance.ml
++++ b/v2v/output_glance.ml
+@@ -40,6 +40,8 @@ object
+ 
+   method as_options = "-o glance"
+ 
++  method supported_firmware = [ TargetBIOS ]
++
+   method prepare_targets source targets =
+     (* This does nothing useful except to check that the user has
+      * supplied all the correct auth environment variables to make
+@@ -60,7 +62,10 @@ object
+         { t with target_file = target_file }
+     ) targets
+ 
+-  method create_metadata source targets guestcaps inspect =
++  method create_metadata source targets guestcaps inspect target_firmware =
++    (* See #supported_firmware above. *)
++    assert (target_firmware = TargetBIOS);
++
+     (* Upload the disk image (there should only be one - see above). *)
+     let { target_file = target_file; target_format = target_format } =
+       List.hd targets in
+diff --git a/v2v/output_libvirt.ml b/v2v/output_libvirt.ml
+index 368f235..48d39e2 100644
+--- a/v2v/output_libvirt.ml
++++ b/v2v/output_libvirt.ml
+@@ -75,7 +75,8 @@ let append_attr attr = function
+   | PCData _ | Comment _ -> assert false
+   | Element e -> e.e_attrs <- e.e_attrs @ [attr]
+ 
+-let create_libvirt_xml ?pool source targets guestcaps target_features =
++let create_libvirt_xml ?pool source targets guestcaps
++                       target_features target_firmware =
+   let memory_k = source.s_memory /^ 1024L in
+ 
+   (* We have the machine features of the guest when it was on the
+@@ -113,6 +114,23 @@ let create_libvirt_xml ?pool source targets guestcaps target_features =
+ 
+   let features = List.sort compare (StringSet.elements features) in
+ 
++  (* The <os> section subelements. *)
++  let os_section =
++    let loader =
++      match target_firmware with
++      | TargetBIOS -> []
++      | TargetUEFI ->
++         (* danpb is proposing that libvirt supports <loader type="efi"/>,
++          * (https://bugzilla.redhat.com/show_bug.cgi?id=1217444#c6) but
++          * until that day we have to use a bunch of heuristics. XXX
++          *)
++         let code, vars_template = find_uefi_firmware guestcaps.gcaps_arch in
++         [ e "loader" ["type", "pflash"] [ PCData code ];
++           e "nvram" ["template", vars_template] [] ] in
++
++    (e "type" ["arch", guestcaps.gcaps_arch] [PCData "hvm"]) :: loader in
++
++  (* Disks. *)
+   let disks =
+     let block_prefix =
+       match guestcaps.gcaps_block_bus with
+@@ -281,9 +299,7 @@ let create_libvirt_xml ?pool source targets guestcaps target_features =
+       e "memory" ["unit", "KiB"] [PCData (Int64.to_string memory_k)];
+       e "currentMemory" ["unit", "KiB"] [PCData (Int64.to_string memory_k)];
+       e "vcpu" [] [PCData (string_of_int source.s_vcpu)];
+-      e "os" [] [
+-        e "type" ["arch", guestcaps.gcaps_arch] [PCData "hvm"];
+-      ];
++      e "os" [] os_section;
+       e "features" [] (List.map (fun s -> e s [] []) features);
+ 
+       e "on_poweroff" [] [PCData "destroy"];
+@@ -305,6 +321,8 @@ class output_libvirt verbose oc output_pool = object
+     | None -> sprintf "-o libvirt -os %s" output_pool
+     | Some uri -> sprintf "-o libvirt -oc %s -os %s" uri output_pool
+ 
++  method supported_firmware = [ TargetBIOS; TargetUEFI ]
++
+   method prepare_targets source targets =
+     (* Get the capabilities from libvirt. *)
+     let cmd =
+@@ -360,7 +378,7 @@ class output_libvirt verbose oc output_pool = object
+         { t with target_file = target_file }
+     ) targets
+ 
+-  method create_metadata source targets guestcaps _ =
++  method create_metadata source targets guestcaps _ target_firmware =
+     (* We copied directly into the final pool directory.  However we
+      * have to tell libvirt.
+      *)
+@@ -385,7 +403,7 @@ class output_libvirt verbose oc output_pool = object
+     (* Create the metadata. *)
+     let doc =
+       create_libvirt_xml ~pool:output_pool source targets
+-        guestcaps target_features in
++        guestcaps target_features target_firmware in
+ 
+     let tmpfile, chan = Filename.open_temp_file "v2vlibvirt" ".xml" in
+     DOM.doc_to_chan chan doc;
+diff --git a/v2v/output_libvirt.mli b/v2v/output_libvirt.mli
+index da41956..def1b05 100644
+--- a/v2v/output_libvirt.mli
++++ b/v2v/output_libvirt.mli
+@@ -23,5 +23,5 @@ val output_libvirt : bool -> string option -> string -> Types.output
+     {!Types.output} object specialized for writing output to
+     libvirt. *)
+ 
+-val create_libvirt_xml : ?pool:string -> Types.source -> Types.target list -> Types.guestcaps -> string list -> DOM.doc
++val create_libvirt_xml : ?pool:string -> Types.source -> Types.target list -> Types.guestcaps -> string list -> Types.target_firmware -> DOM.doc
+ (** This is called from {!Output_local} to generate the libvirt XML. *)
+diff --git a/v2v/output_local.ml b/v2v/output_local.ml
+index ffcfad0..3df0769 100644
+--- a/v2v/output_local.ml
++++ b/v2v/output_local.ml
+@@ -29,6 +29,8 @@ class output_local verbose dir = object
+ 
+   method as_options = sprintf "-o local -os %s" dir
+ 
++  method supported_firmware = [ TargetBIOS; TargetUEFI ]
++
+   method prepare_targets source targets =
+     List.map (
+       fun t ->
+@@ -36,7 +38,7 @@ class output_local verbose dir = object
+         { t with target_file = target_file }
+     ) targets
+ 
+-  method create_metadata source targets guestcaps _ =
++  method create_metadata source targets guestcaps _ target_firmware =
+     (* We don't know what target features the hypervisor supports, but
+      * assume a common set that libvirt supports.
+      *)
+@@ -48,7 +50,7 @@ class output_local verbose dir = object
+ 
+     let doc =
+       Output_libvirt.create_libvirt_xml source targets
+-        guestcaps target_features in
++        guestcaps target_features target_firmware in
+ 
+     let name = source.s_name in
+     let file = dir // name ^ ".xml" in
+diff --git a/v2v/output_null.ml b/v2v/output_null.ml
+index 97495e6..81aaf5f 100644
+--- a/v2v/output_null.ml
++++ b/v2v/output_null.ml
+@@ -39,6 +39,8 @@ object
+ 
+   method as_options = "-o null"
+ 
++  method supported_firmware = [ TargetBIOS; TargetUEFI ]
++
+   method prepare_targets source targets =
+     List.map (
+       fun t ->
+@@ -46,7 +48,7 @@ object
+         { t with target_file = target_file }
+     ) targets
+ 
+-  method create_metadata _ _ _ _ = ()
++  method create_metadata _ _ _ _ _ = ()
+ end
+ 
+ let output_null = new output_null
+diff --git a/v2v/output_qemu.ml b/v2v/output_qemu.ml
+index 77152a4..c593030 100644
+--- a/v2v/output_qemu.ml
++++ b/v2v/output_qemu.ml
+@@ -31,6 +31,8 @@ object
+   method as_options =
+     sprintf "-o qemu -os %s%s" dir (if qemu_boot then " --qemu-boot" else "")
+ 
++  method supported_firmware = [ TargetBIOS; TargetUEFI ]
++
+   method prepare_targets source targets =
+     List.map (
+       fun t ->
+@@ -38,20 +40,44 @@ object
+         { t with target_file = target_file }
+     ) targets
+ 
+-  method create_metadata source targets guestcaps inspect =
++  method create_metadata source targets guestcaps inspect target_firmware =
+     let name = source.s_name in
+     let file = dir // name ^ ".sh" in
+ 
++    let uefi_firmware =
++      match target_firmware with
++      | TargetBIOS -> None
++      | TargetUEFI ->
++         Some (find_uefi_firmware guestcaps.gcaps_arch) in
++
+     let chan = open_out file in
+ 
+     let fpf fs = fprintf chan fs in
+     let nl = " \\\n\t" in
+     fpf "#!/bin/sh -\n";
+     fpf "\n";
++
++    (match uefi_firmware with
++     | None -> ()
++     | Some (_, vars_template) ->
++        fpf "# Make a copy of the UEFI variables template\n";
++        fpf "uefi_vars=\"$(mktemp)\"\n";
++        fpf "cp %s \"$uefi_vars\"\n" (quote vars_template);
++        fpf "\n"
++    );
++
+     fpf "/usr/libexec/qemu-kvm";
+     fpf "%s-no-user-config -nodefaults" nl;
+     fpf "%s-name %s" nl (quote source.s_name);
+     fpf "%s-machine accel=kvm:tcg" nl;
++
++    (match uefi_firmware with
++     | None -> ()
++     | Some (code, _) ->
++        fpf "%s-drive if=pflash,format=raw,file=%s,readonly" nl (quote code);
++        fpf "%s-drive if=pflash,format=raw,file=\"$uefi_vars\"" nl
++    );
++
+     fpf "%s-m %Ld" nl (source.s_memory /^ 1024L /^ 1024L);
+     if source.s_vcpu > 1 then
+       fpf "%s-smp %d" nl source.s_vcpu;
+diff --git a/v2v/output_rhev.ml b/v2v/output_rhev.ml
+index 0671e14..826bb5f 100644
+--- a/v2v/output_rhev.ml
++++ b/v2v/output_rhev.ml
+@@ -122,6 +122,8 @@ object
+       | Some `Server -> " --vmtype server"
+       | Some `Desktop -> " --vmtype desktop")
+ 
++  method supported_firmware = [ TargetBIOS ]
++
+   (* RHEV doesn't support serial consoles.  This causes the conversion
+    * step to remove it.
+    *)
+@@ -276,7 +278,10 @@ object
+     )
+ 
+   (* This is called after conversion to write the OVF metadata. *)
+-  method create_metadata source targets guestcaps inspect =
++  method create_metadata source targets guestcaps inspect target_firmware =
++    (* See #supported_firmware above. *)
++    assert (target_firmware = TargetBIOS);
++
+     (* Create the metadata. *)
+     let ovf = OVF.create_ovf verbose source targets guestcaps inspect
+       output_alloc vmtype esd_uuid image_uuids vol_uuids vm_uuid in
+diff --git a/v2v/output_vdsm.ml b/v2v/output_vdsm.ml
+index c7a243e..35edeb5 100644
+--- a/v2v/output_vdsm.ml
++++ b/v2v/output_vdsm.ml
+@@ -50,6 +50,8 @@ object
+       | Some `Server -> " --vmtype server"
+       | Some `Desktop -> " --vmtype desktop")
+ 
++  method supported_firmware = [ TargetBIOS ]
++
+   (* RHEV doesn't support serial consoles.  This causes the conversion
+    * step to remove it.
+    *)
+@@ -163,7 +165,10 @@ object
+       ?clustersize path format size
+ 
+   (* This is called after conversion to write the OVF metadata. *)
+-  method create_metadata source targets guestcaps inspect =
++  method create_metadata source targets guestcaps inspect target_firmware =
++    (* See #supported_firmware above. *)
++    assert (target_firmware = TargetBIOS);
++
+     (* Create the metadata. *)
+     let ovf = OVF.create_ovf verbose source targets guestcaps inspect
+       output_alloc vmtype dd_uuid
+diff --git a/v2v/types.ml b/v2v/types.ml
+index 01c65a3..41d2686 100644
+--- a/v2v/types.ml
++++ b/v2v/types.ml
+@@ -216,6 +216,12 @@ target_overlay.ov_source = %s
+     t.target_overlay.ov_overlay_file
+     t.target_overlay.ov_source.s_qemu_uri
+ 
++type target_firmware = TargetBIOS | TargetUEFI
++
++let string_of_target_firmware = function
++  | TargetBIOS -> "bios"
++  | TargetUEFI -> "uefi"
++
+ type inspect = {
+   i_root : string;
+   i_type : string;
+@@ -305,8 +311,9 @@ end
+ class virtual output verbose = object
+   method virtual as_options : string
+   method virtual prepare_targets : source -> target list -> target list
++  method virtual supported_firmware : target_firmware list
+   method check_target_free_space (_ : source) (_ : target list) = ()
+   method disk_create = (new Guestfs.guestfs ())#disk_create
+-  method virtual create_metadata : source -> target list -> guestcaps -> inspect -> unit
++  method virtual create_metadata : source -> target list -> guestcaps -> inspect -> target_firmware -> unit
+   method keep_serial_console = true
+ end
+diff --git a/v2v/types.mli b/v2v/types.mli
+index 9fc9e29..da398d3 100644
+--- a/v2v/types.mli
++++ b/v2v/types.mli
+@@ -133,6 +133,10 @@ type target = {
+ 
+ val string_of_target : target -> string
+ 
++type target_firmware = TargetBIOS | TargetUEFI
++
++val string_of_target_firmware : target_firmware -> string
++
+ type inspect = {
+   i_root : string;                      (** Root device. *)
+   i_type : string;                      (** Usual inspection fields. *)
+@@ -195,10 +199,13 @@ class virtual output : bool -> object
+       This is just used for pretty-printing log messages. *)
+   method virtual prepare_targets : source -> target list -> target list
+   (** Called before conversion to prepare the output. *)
++  method virtual supported_firmware : target_firmware list
++  (** Does this output method support UEFI?  Allows us to abort early if
++      conversion is impossible. *)
+   method check_target_free_space : source -> target list -> unit
+   (** Called before conversion.  Can be used to check there is enough space
+       on the target, using the [target.target_estimated_size] field. *)
+-  method virtual create_metadata : source -> target list -> guestcaps -> inspect -> unit
++  method virtual create_metadata : source -> target list -> guestcaps -> inspect -> target_firmware -> unit
+   (** Called after conversion to finish off and create metadata. *)
+   method disk_create : ?backingfile:string -> ?backingformat:string -> ?preallocation:string -> ?compat:string -> ?clustersize:int -> string -> string -> int64 -> unit
+   (** Called in order to create disks on the target.  The method has the
+diff --git a/v2v/utils.ml b/v2v/utils.ml
+index 477033d..e9d3262 100644
+--- a/v2v/utils.ml
++++ b/v2v/utils.ml
+@@ -84,6 +84,35 @@ let qemu_supports_sound_card = function
+   | USBAudio
+     -> false
+ 
++(* Find the UEFI firmware. *)
++let find_uefi_firmware guest_arch =
++  let files =
++    match guest_arch with
++    | "i386" | "i486" | "i586" | "i686" ->
++       [ "/usr/share/edk2.git/ovmf-ia32/OVMF_CODE-pure-efi.fd",
++         "/usr/share/edk2.git/ovmf-ia32/OVMF_VARS-pure-efi.fd" ]
++    | "x86_64" ->
++       [ "/usr/share/OVMF/OVMF_CODE.fd",
++         "/usr/share/OVMF/OVMF_VARS.fd";
++         "/usr/share/edk2.git/ovmf-x64/OVMF_CODE-pure-efi.fd",
++         "/usr/share/edk2.git/ovmf-x64/OVMF_VARS-pure-efi.fd" ]
++    | "aarch64" ->
++       [ "/usr/share/AAVMF/AAVMF_CODE.fd",
++         "/usr/share/AAVMF/AAVMF_VARS.fd";
++         "/usr/share/edk2.git/aarch64/QEMU_EFI-pflash.raw",
++         "/usr/share/edk2.git/aarch64/vars-template-pflash.raw" ]
++    | arch ->
++       error (f_"don't know how to convert UEFI guests for architecture %s")
++             guest_arch in
++  let rec loop = function
++    | [] ->
++       error (f_"cannot find firmware for UEFI guests.\n\nYou probably need to install OVMF, or Gerd's firmware repo (https://www.kraxel.org/repos/), or AAVMF (if using aarch64)")
++    | ((code, vars_template) as ret) :: rest ->
++       if Sys.file_exists code && Sys.file_exists vars_template then ret
++       else loop rest
++  in
++  loop files
++
+ let compare_app2_versions app1 app2 =
+   let i = compare app1.Guestfs.app2_epoch app2.Guestfs.app2_epoch in
+   if i <> 0 then i
+diff --git a/v2v/v2v.ml b/v2v/v2v.ml
+index eb1c66e..859b92a 100644
+--- a/v2v/v2v.ml
++++ b/v2v/v2v.ml
+@@ -217,6 +217,24 @@ let rec main () =
+   msg (f_"Inspecting the overlay");
+   let inspect = inspect_source ~verbose g root_choice in
+ 
++  (* Does the guest require UEFI on the target? *)
++  let target_firmware =
++    match source.s_firmware with
++    | BIOS -> TargetBIOS
++    | UEFI -> TargetUEFI
++    | UnknownFirmware ->
++       if inspect.i_uefi then TargetUEFI else TargetBIOS in
++  let supported_firmware = output#supported_firmware in
++  if not (List.mem target_firmware supported_firmware) then
++    error (f_"this guest cannot run on the target, because the target does not support %s firmware (supported firmware on target: %s)")
++          (string_of_target_firmware target_firmware)
++          (String.concat " "
++            (List.map string_of_target_firmware supported_firmware));
++  (match target_firmware with
++   | TargetBIOS -> ()
++   | TargetUEFI ->
++       info ~prog (f_"This guest requires UEFI on the target to boot."));
++
+   (* The guest free disk space check and the target free space
+    * estimation both require statvfs information from mountpoints, so
+    * get that information first.
+@@ -409,7 +427,7 @@ let rec main () =
+ 
+   (* Create output metadata. *)
+   msg (f_"Creating output metadata");
+-  output#create_metadata source targets guestcaps inspect;
++  output#create_metadata source targets guestcaps inspect target_firmware;
+ 
+   (* Save overlays if --debug-overlays option was used. *)
+   if debug_overlays then (
+diff --git a/v2v/virt-v2v.pod b/v2v/virt-v2v.pod
+index 5ee3bd8..7d24ceb 100644
+--- a/v2v/virt-v2v.pod
++++ b/v2v/virt-v2v.pod
+@@ -699,6 +699,37 @@ loaded.
+ 
+ =back
+ 
++=head1 UEFI
++
++VMware allows you to present UEFI firmware to guests (instead of the
++ordinary PC BIOS).  Virt-v2v can convert these guests, but requires
++that UEFI is supported by the target hypervisor.
++
++Currently KVM supports OVMF, a partially open source UEFI firmware,
++and can run these guests.
++
++Since OVMF support was only recently added to KVM (in 2014/2015), not
++all target environments support UEFI guests yet:
++
++=over 4
++
++=item UEFI on libvirt, qemu
++
++Supported.  Virt-v2v will generate the correct libvirt XML (metadata)
++automatically, but note that the same version of OVMF must be
++installed on the conversion host as is installed on the target
++hypervisor, else you will have to adjust paths in the metadata.
++
++=item UEFI on OpenStack
++
++Not supported.
++
++=item UEFI on RHEV
++
++Not supported.
++
++=back
++
+ =head1 NETWORKS AND BRIDGES
+ 
+ Guests are usually connected to one or more networks, and when
+-- 
+1.8.3.1
+

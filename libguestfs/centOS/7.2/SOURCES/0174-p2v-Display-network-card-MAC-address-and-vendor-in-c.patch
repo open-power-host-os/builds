@@ -1,0 +1,322 @@
+From 41880930360b38de1390b9ff5b36a459ff153c27 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 14 May 2015 13:57:41 +0100
+Subject: [PATCH] p2v: Display network card MAC address and vendor in
+ conversion dialog (RHBZ#855059).
+
+This displays the MAC address and vendor next to each network
+interface, aiding users in determining which network cards they want
+to transfer to the virtualized machine.
+
+(cherry picked from commit 0833c192b68e87bb10fecf8352a355474c3915bf)
+---
+ p2v/Makefile.am           |   3 +-
+ p2v/gui.c                 |  27 ++++++++-
+ p2v/p2v.h                 |   4 ++
+ p2v/p2v.ks.in             |   1 +
+ p2v/utils.c               | 136 ++++++++++++++++++++++++++++++++++++++++++++++
+ p2v/virt-p2v-make-disk.in |   8 +--
+ po/POTFILES               |   1 +
+ 7 files changed, 172 insertions(+), 8 deletions(-)
+ create mode 100644 p2v/utils.c
+
+diff --git a/p2v/Makefile.am b/p2v/Makefile.am
+index cafad0b..c9d6b6f 100644
+--- a/p2v/Makefile.am
++++ b/p2v/Makefile.am
+@@ -53,7 +53,8 @@ virt_p2v_SOURCES = \
+ 	miniexpect.c \
+ 	miniexpect.h \
+ 	p2v.h \
+-	ssh.c
++	ssh.c \
++	utils.c
+ 
+ virt_p2v_CPPFLAGS = \
+ 	-DLOCALEBASEDIR=\""$(datadir)/locale"\" \
+diff --git a/p2v/gui.c b/p2v/gui.c
+index 43d6165..c0079aa 100644
+--- a/p2v/gui.c
++++ b/p2v/gui.c
+@@ -436,7 +436,7 @@ create_conversion_dialog (struct config *config)
+   /* XXX It would be nice not to have to set this explicitly, but
+    * if we don't then Gtk chooses a very small window.
+    */
+-  gtk_widget_set_size_request (conv_dlg, 800, 560);
++  gtk_widget_set_size_request (conv_dlg, 900, 560);
+ 
+   /* The main dialog area. */
+   hbox = gtk_hbox_new (TRUE, 1);
+@@ -891,6 +891,24 @@ populate_interfaces (GtkTreeView *interfaces_list)
+                                          G_TYPE_STRING);
+   if (all_interfaces) {
+     for (i = 0; all_interfaces[i] != NULL; ++i) {
++      const char *if_name = all_interfaces[i];
++      CLEANUP_FREE char *device_descr = NULL;
++      CLEANUP_FREE char *if_addr = get_if_addr (if_name);
++      CLEANUP_FREE char *if_vendor = get_if_vendor (if_name, 40);
++
++      if (asprintf (&device_descr,
++                    "<b>%s</b>\n"
++                    "<small>"
++                    "%s\n"
++                    "%s"
++                    "</small>",
++                    if_name,
++                    if_addr ? : _("Unknown"),
++                    if_vendor ? : _("Unknown")) == -1) {
++        perror ("asprintf");
++        exit (EXIT_FAILURE);
++      }
++
+       gtk_list_store_append (interfaces_store, &iter);
+       gtk_list_store_set (interfaces_store, &iter,
+                           /* Only convert the first interface.  As
+@@ -898,7 +916,7 @@ populate_interfaces (GtkTreeView *interfaces_list)
+                            * physical interface.
+                            */
+                           INTERFACES_COL_CONVERT, i == 0,
+-                          INTERFACES_COL_DEVICE, all_interfaces[i],
++                          INTERFACES_COL_DEVICE, device_descr,
+                           INTERFACES_COL_NETWORK, "default",
+                           -1);
+     }
+@@ -913,13 +931,15 @@ populate_interfaces (GtkTreeView *interfaces_list)
+                                                interfaces_col_convert,
+                                                "active", INTERFACES_COL_CONVERT,
+                                                NULL);
++  gtk_cell_renderer_set_alignment (interfaces_col_convert, 0.5, 0.0);
+   interfaces_col_device = gtk_cell_renderer_text_new ();
+   gtk_tree_view_insert_column_with_attributes (interfaces_list,
+                                                -1,
+                                                _("Device"),
+                                                interfaces_col_device,
+-                                               "text", INTERFACES_COL_DEVICE,
++                                               "markup", INTERFACES_COL_DEVICE,
+                                                NULL);
++  gtk_cell_renderer_set_alignment (interfaces_col_device, 0.5, 0.0);
+   interfaces_col_network = gtk_cell_renderer_text_new ();
+   gtk_tree_view_insert_column_with_attributes (interfaces_list,
+                                                -1,
+@@ -927,6 +947,7 @@ populate_interfaces (GtkTreeView *interfaces_list)
+                                                interfaces_col_network,
+                                                "text", INTERFACES_COL_NETWORK,
+                                                NULL);
++  gtk_cell_renderer_set_alignment (interfaces_col_network, 0.5, 0.0);
+ 
+   g_signal_connect (interfaces_col_convert, "toggled",
+                     G_CALLBACK (toggled), interfaces_store);
+diff --git a/p2v/p2v.h b/p2v/p2v.h
+index c3ca0f6..c5427a7 100644
+--- a/p2v/p2v.h
++++ b/p2v/p2v.h
+@@ -105,6 +105,10 @@ extern mexp_h *open_data_connection (struct config *, int *local_port, int *remo
+ extern mexp_h *start_remote_connection (struct config *, const char *remote_dir, const char *libvirt_xml);
+ extern const char *get_ssh_error (void);
+ 
++/* utils.c */
++extern char *get_if_addr (const char *if_name);
++extern char *get_if_vendor (const char *if_name, int truncate);
++
+ /* virt-v2v version and features (read from remote). */
+ extern int v2v_major;
+ extern int v2v_minor;
+diff --git a/p2v/p2v.ks.in b/p2v/p2v.ks.in
+index 3ff6784..2319781 100644
+--- a/p2v/p2v.ks.in
++++ b/p2v/p2v.ks.in
+@@ -72,6 +72,7 @@ libxml2
+ gtk2
+ network-manager-applet
+ dbus-x11
++hwdata
+ @hardware-support --optional
+ 
+ %end
+diff --git a/p2v/utils.c b/p2v/utils.c
+new file mode 100644
+index 0000000..0b30be3
+--- /dev/null
++++ b/p2v/utils.c
+@@ -0,0 +1,136 @@
++/* virt-p2v
++ * Copyright (C) 2015 Red Hat Inc.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++ */
++
++#include <config.h>
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <ctype.h>
++#include <unistd.h>
++#include <locale.h>
++#include <libintl.h>
++
++#include "p2v.h"
++
++#define CHOMP(line,len)                         \
++  do {                                          \
++    if ((len) > 0 && (line)[(len)-1] == '\n') { \
++      (line)[(len)-1] = '\0';                   \
++      len--;                                    \
++    }                                           \
++  } while (0)
++
++/* Return contents of /sys/class/net/<if_name>/address (if found). */
++char *
++get_if_addr (const char *if_name)
++{
++  CLEANUP_FCLOSE FILE *fp = NULL;
++  CLEANUP_FREE char *path = NULL;
++  char *content = NULL;
++  size_t len = 0;
++  ssize_t n;
++
++  if (asprintf (&path, "/sys/class/net/%s/address", if_name) == -1) {
++    perror ("asprintf");
++    exit (EXIT_FAILURE);
++  }
++  fp = fopen (path, "r");
++  if (fp == NULL)
++    return NULL;
++  if ((n = getline (&content, &len, fp)) == -1) {
++    perror (path);
++    free (content);
++    return NULL;
++  }
++  CHOMP (content, n);
++  return content;
++}
++
++/* Return contents of /sys/class/net/<if_name>/device/vendor (if found),
++ * mapped to the PCI vendor.  See:
++ * http://pjwelsh.blogspot.co.uk/2011/11/howto-get-network-card-vendor-device-or.html
++ */
++char *
++get_if_vendor (const char *if_name, int truncate)
++{
++  CLEANUP_FCLOSE FILE *fp = NULL;
++  CLEANUP_FREE char *path = NULL;
++  char *line = NULL;
++  size_t len = 0;
++  ssize_t n;
++  char vendor[5];
++
++  if (asprintf (&path, "/sys/class/net/%s/device/vendor", if_name) == -1) {
++    perror ("asprintf");
++    exit (EXIT_FAILURE);
++  }
++  fp = fopen (path, "r");
++  if (fp == NULL) {
++    perror (path);
++    return NULL;
++  }
++  if ((n = getline (&line, &len, fp)) == -1) {
++    perror (path);
++    free (line);
++    return NULL;
++  }
++
++  /* Vendor is (always?) a 16 bit quantity (as defined by PCI),
++   * something like "0x8086" (for Intel Corp).
++   */
++  CHOMP (line, n);
++  if (line[0] != '0' || line[1] != 'x' || strlen (&line[2]) != 4) {
++    free (line);
++    return NULL;
++  }
++
++  strcpy (vendor, &line[2]);
++
++  fclose (fp);
++  fp = fopen ("/usr/share/hwdata/pci.ids", "r");
++  if (fp == NULL) {
++    perror ("/usr/share/hwdata/pci.ids");
++    free (line);
++    return NULL;
++  }
++  while ((n = getline (&line, &len, fp)) != -1) {
++    CHOMP (line, n);
++    if (STRPREFIX (line, vendor)) {
++      /* Find the start of the name after the vendor ID and whitespace. */
++      size_t i = 4;
++      n -= 4;
++
++      while (n > 0 && isspace (line[i])) {
++        i++;
++        n--;
++      }
++
++      memmove (&line[0], &line[i], n+1 /* copy trailing \0 */);
++
++      /* Truncate? */
++      if (truncate > 0 && n > truncate)
++        line[n] = '\0';
++
++      return line;
++    }
++  }
++
++  free (line);
++  return NULL;
++}
+diff --git a/p2v/virt-p2v-make-disk.in b/p2v/virt-p2v-make-disk.in
+index e2ea7f5..6d7dcb2 100644
+--- a/p2v/virt-p2v-make-disk.in
++++ b/p2v/virt-p2v-make-disk.in
+@@ -102,7 +102,7 @@ trap cleanup INT QUIT TERM EXIT ERR
+ # Note that libguestfs is NOT a dependency.
+ case "$osversion" in
+     centos-*|fedora-*|rhel-*|scientificlinux-*)
+-        deps=pcre,libxml2,gtk2,/usr/bin/xinit,/usr/bin/ssh,/usr/bin/qemu-nbd,/usr/bin/Xorg,xorg-x11-drivers,xorg-x11-fonts-Type1,metacity,NetworkManager,network-manager-applet,dbus-x11,@hardware-support
++        deps=pcre,libxml2,gtk2,/usr/bin/xinit,/usr/bin/ssh,/usr/bin/qemu-nbd,/usr/bin/Xorg,xorg-x11-drivers,xorg-x11-fonts-Type1,metacity,NetworkManager,network-manager-applet,dbus-x11,hwdata,@hardware-support
+         cat > $tmpdir/p2v.conf <<'EOF'
+ add_drivers+=" usb-storage "
+ EOF
+@@ -120,13 +120,13 @@ EOF
+         "
+         ;;
+     debian-*|ubuntu-*)
+-        deps=libpcre3,libxml2,libgtk2.0-0,openssh-client,qemu-utils,xorg,xserver-xorg-video-all,metacity,network-manager,network-manager-applet,dbus-x11
++        deps=libpcre3,libxml2,libgtk2.0-0,openssh-client,qemu-utils,xorg,xserver-xorg-video-all,metacity,network-manager,network-manager-applet,dbus-x11,hwdata
+         ;;
+     archlinux-*)
+-        deps=pcre,libxml2,gtk2,openssh,qemu,xorg-xinit,xorg-server,xf86-video-*,metacity,NetworkManager,network-manager-applet,dbus-x11
++        deps=pcre,libxml2,gtk2,openssh,qemu,xorg-xinit,xorg-server,xf86-video-*,metacity,NetworkManager,network-manager-applet,dbus-x11,hwdata
+         ;;
+     opensuse-*|suse-*)
+-        deps=pcre,libxml2,gtk2,/usr/bin/ssh,/usr/bin/qemu-nbd,/usr/bin/xinit,/usr/bin/Xorg,xf86-video-*,metacity,NetworkManager,network-manager-applet,dbus-x11
++        deps=pcre,libxml2,gtk2,/usr/bin/ssh,/usr/bin/qemu-nbd,/usr/bin/xinit,/usr/bin/Xorg,xf86-video-*,metacity,NetworkManager,network-manager-applet,dbus-x11,hwdata
+         ;;
+     *)
+         echo "$program: internal error: could not work out the Linux distro from '$osversion'"
+diff --git a/po/POTFILES b/po/POTFILES
+index 7f3365c..c64afda 100644
+--- a/po/POTFILES
++++ b/po/POTFILES
+@@ -263,6 +263,7 @@ p2v/kernel.c
+ p2v/main.c
+ p2v/miniexpect.c
+ p2v/ssh.c
++p2v/utils.c
+ perl/Guestfs.c
+ perl/bindtests.pl
+ perl/lib/Sys/Guestfs.pm
+-- 
+1.8.3.1
+

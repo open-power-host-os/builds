@@ -1,0 +1,48 @@
+From 5225ada5e7af57acb6ad1ddac7274b276c86d99e Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 6 Nov 2014 09:52:32 +0000
+Subject: [PATCH] v2v: Document minimum free filesystem space requirements.
+
+(cherry picked from commit 5de06a3571d20d0fd483d26099cc49bc0f08ecf0)
+---
+ v2v/virt-v2v.pod | 24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
+
+diff --git a/v2v/virt-v2v.pod b/v2v/virt-v2v.pod
+index bebe105..edfa5a0 100644
+--- a/v2v/virt-v2v.pod
++++ b/v2v/virt-v2v.pod
+@@ -1085,6 +1085,30 @@ same as the initial installation procedure.  It is not necessary to
+ remove the recovery console first.  Following re-installation, the
+ recovery console will work as intended.
+ 
++=head1 FREE SPACE FOR CONVERSION
++
++Virt-v2v checks there is sufficient free space in the guest filesystem
++to perform the conversion.  Currently it checks:
++
++=over 4
++
++=item Root filesystem or C<C:\>
++
++Minimum free space: 20 MB
++
++=item C</boot>
++
++Minimum free space: 50 MB
++
++This is because we need to build a new initramfs for some Enterprise
++Linux conversions.
++
++=item Any other mountable filesystem
++
++Minimum free space: 10 MB
++
++=back
++
+ =head1 RUNNING VIRT-V2V AS ROOT OR NON-ROOT
+ 
+ Nothing in virt-v2v inherently needs root access, and it will run just
+-- 
+1.8.3.1
+

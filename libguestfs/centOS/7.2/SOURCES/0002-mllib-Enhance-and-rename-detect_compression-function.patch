@@ -1,0 +1,93 @@
+From c07dde3ade4465dc6de99fd0761cb2707fe65ac2 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Sat, 18 Oct 2014 18:41:01 +0100
+Subject: [PATCH] mllib: Enhance and rename 'detect_compression' function so it
+ can detect a few more file types.
+
+(cherry picked from commit d8e26d0e4dc3de649cf81584e8c060becd2e4531)
+---
+ builder/builder.ml     |  6 +++++-
+ mllib/common_utils.ml  | 29 ++++++++++++++++++++---------
+ mllib/common_utils.mli |  6 ++----
+ 3 files changed, 27 insertions(+), 14 deletions(-)
+
+diff --git a/builder/builder.ml b/builder/builder.ml
+index 5195cfd..121c5fb 100644
+--- a/builder/builder.ml
++++ b/builder/builder.ml
+@@ -315,8 +315,12 @@ let main () =
+       | None -> []
+       | Some format -> [`Format, format] in
+     let compression_tag =
+-      match detect_compression template with
++      match detect_file_type template with
+       | `XZ -> [ `XZ, "" ]
++      | `GZip | `Tar | `Zip ->
++        eprintf (f_"%s: input file (%s) has an unsupported type\n")
++          prog template;
++        exit 1
+       | `Unknown -> [] in
+     [ `Template, ""; `Filename, template; `Size, Int64.to_string size ] @
+       format_tag @ compression_tag in
+diff --git a/mllib/common_utils.ml b/mllib/common_utils.ml
+index adfad3f..295981c 100644
+--- a/mllib/common_utils.ml
++++ b/mllib/common_utils.ml
+@@ -547,17 +547,28 @@ let rm_rf_only_files (g : Guestfs.guestfs) dir =
+     List.iter g#rm files
+   )
+ 
+-(* Detect compression of a file.
+- *
+- * Only detects the formats we need in virt-builder so far.
+- *)
+-let detect_compression filename =
++(* Detect type of a file. *)
++let detect_file_type filename =
+   let chan = open_in filename in
+-  let buf = String.create 6 in
+-  really_input chan buf 0 6;
++  let get start size =
++    try
++      seek_in chan start;
++      let buf = String.create size in
++      really_input chan buf 0 size;
++      Some buf
++    with End_of_file | Invalid_argument _ -> None
++  in
++  let ret =
++    if get 0 6 = Some "\2537zXZ\000" then `XZ
++    else if get 0 4 = Some "PK\003\004" then `Zip
++    else if get 0 4 = Some "PK\005\006" then `Zip
++    else if get 0 4 = Some "PK\007\008" then `Zip
++    else if get 257 6 = Some "ustar\000" then `Tar
++    else if get 257 8 = Some "ustar\x20\x20\000" then `Tar
++    else if get 0 2 = Some "\x1f\x8b" then `GZip
++    else `Unknown in
+   close_in chan;
+-  if buf = "\2537zXZ\000" then `XZ
+-  else `Unknown
++  ret
+ 
+ let is_block_device file =
+   try (Unix.stat file).Unix.st_kind = Unix.S_BLK
+diff --git a/mllib/common_utils.mli b/mllib/common_utils.mli
+index d78fd70..112648a 100644
+--- a/mllib/common_utils.mli
++++ b/mllib/common_utils.mli
+@@ -118,10 +118,8 @@ val rm_rf_only_files : Guestfs.guestfs -> string -> unit
+ 
+     XXX Could be faster with a specific API for doing this. *)
+ 
+-val detect_compression : string -> [`Unknown | `XZ]
+-(** Detect compression of a file.
+-
+-    XXX Only detects the formats we need in virt-builder so far. *)
++val detect_file_type : string -> [`GZip | `Tar | `XZ | `Zip | `Unknown]
++(** Detect type of a file. *)
+ 
+ val is_block_device : string -> bool
+ val is_char_device : string -> bool
+-- 
+1.8.3.1
+

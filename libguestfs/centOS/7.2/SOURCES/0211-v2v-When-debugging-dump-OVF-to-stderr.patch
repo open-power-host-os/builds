@@ -1,0 +1,31 @@
+From eefc781b0accad81f1a9064210f8cc6cf913a3de Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 23 Apr 2015 10:52:08 +0100
+Subject: [PATCH] v2v: When debugging, dump OVF to stderr.
+
+Useful for debugging problems like RHBZ#1213701.
+
+(cherry picked from commit 4f021006e9e85b0cc284d8c1cd3dcee416d75d51)
+---
+ v2v/OVF.ml | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/v2v/OVF.ml b/v2v/OVF.ml
+index 2f0c469..b8a9a38 100644
+--- a/v2v/OVF.ml
++++ b/v2v/OVF.ml
+@@ -332,6 +332,11 @@ let rec create_ovf verbose source targets guestcaps inspect
+     warning ~prog (f_"This guest required a password for connection to its display, but this is not supported by RHEV.  Therefore the converted guest's display will not require a separate password to connect.");
+     | _ -> ());
+ 
++  if verbose then (
++    eprintf "OVF:\n";
++    doc_to_chan Pervasives.stderr ovf
++  );
++
+   (* Return the OVF document. *)
+   ovf
+ 
+-- 
+1.8.3.1
+

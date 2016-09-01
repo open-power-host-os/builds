@@ -1,0 +1,124 @@
+From c6215f789896e06540a0da1db8d6b7d250cbef08 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 24 Aug 2015 14:56:30 +0100
+Subject: [PATCH] p2v: Wait for network to come online before testing
+ connection (RHBZ#1256222).
+
+When using the virt-p2v ISO in command line mode, we did not wait for
+the network to come online before starting virt-p2v.  Therefore
+virt-p2v could exit with an error when testing the ssh connection (or
+on the other hand, it might work randomly).  If the user logs in and
+runs 'launch-virt-p2v' by hand, then it would usually work because the
+network had been brought online in the meantime.
+
+Fix this by waiting for NetworkManager to bring the connection online
+before calling test_connection().  Note that the obvious way to fix
+this (changing the systemd service to wait for network-online.target)
+does *not* work - I added a comment to the service about this.
+
+Thanks: Tingting Zheng
+(cherry picked from commit 4c34d240a1f152ec257a75f148a8e4a1d91a67c5)
+---
+ p2v/gui.c       |  3 +++
+ p2v/kernel.c    |  1 +
+ p2v/p2v.h       |  1 +
+ p2v/p2v.service |  5 +++++
+ p2v/utils.c     | 22 ++++++++++++++++++++++
+ 5 files changed, 32 insertions(+)
+
+diff --git a/p2v/gui.c b/p2v/gui.c
+index c0079aa..2e9c9e2 100644
+--- a/p2v/gui.c
++++ b/p2v/gui.c
+@@ -316,8 +316,11 @@ test_connection_thread (void *data)
+                       _("Testing the connection to the conversion server ..."));
+   gtk_spinner_start (GTK_SPINNER (spinner));
+   gdk_threads_leave ();
++
++  wait_network_online (copy);
+   r = test_connection (copy);
+   free_config (copy);
++
+   gdk_threads_enter ();
+   gtk_spinner_stop (GTK_SPINNER (spinner));
+ 
+diff --git a/p2v/kernel.c b/p2v/kernel.c
+index fd67921..950bb79 100644
+--- a/p2v/kernel.c
++++ b/p2v/kernel.c
+@@ -81,6 +81,7 @@ kernel_configuration (struct config *config, char **cmdline, int cmdline_source)
+    */
+   p = get_cmdline_key (cmdline, "p2v.skip_test_connection");
+   if (!p) {
++    wait_network_online (config);
+     if (test_connection (config) == -1) {
+       const char *err = get_ssh_error ();
+ 
+diff --git a/p2v/p2v.h b/p2v/p2v.h
+index a588893..2827fb3 100644
+--- a/p2v/p2v.h
++++ b/p2v/p2v.h
+@@ -119,6 +119,7 @@ extern const char *get_ssh_error (void);
+ /* utils.c */
+ extern char *get_if_addr (const char *if_name);
+ extern char *get_if_vendor (const char *if_name, int truncate);
++extern void wait_network_online (const struct config *);
+ 
+ /* virt-v2v version and features (read from remote). */
+ extern int v2v_major;
+diff --git a/p2v/p2v.service b/p2v/p2v.service
+index 4ff055c..0b04bae 100644
+--- a/p2v/p2v.service
++++ b/p2v/p2v.service
+@@ -20,6 +20,11 @@
+ 
+ [Unit]
+ Description=p2v service
++# For the GUI, we cannot necessarily wait for the network to come
++# online, since that may require the "Configure Network" dialog.  For
++# the command line, we would like the network to be online, but we
++# test that within virt-p2v itself.  Therefore use network.target
++# here, not network-online.target.
+ After=network.target
+ 
+ [Service]
+diff --git a/p2v/utils.c b/p2v/utils.c
+index 0b30be3..3781a8d 100644
+--- a/p2v/utils.c
++++ b/p2v/utils.c
+@@ -26,6 +26,8 @@
+ #include <locale.h>
+ #include <libintl.h>
+ 
++#include "ignore-value.h"
++
+ #include "p2v.h"
+ 
+ #define CHOMP(line,len)                         \
+@@ -134,3 +136,23 @@ get_if_vendor (const char *if_name, int truncate)
+   free (line);
+   return NULL;
+ }
++
++/* Wait for the network to come online, but don't error out if that
++ * fails.  The caller will call test_connection immediately after this
++ * which will fail if the network didn't come online.
++ */
++
++/* XXX We could make this configurable. */
++#define NETWORK_ONLINE_COMMAND "nm-online -t 30"
++
++void
++wait_network_online (const struct config *config)
++{
++  if (config->verbose) {
++    printf ("waiting for the network to come online ...\n");
++    printf ("%s\n", NETWORK_ONLINE_COMMAND);
++    fflush (stdout);
++  }
++
++  ignore_value (system (NETWORK_ONLINE_COMMAND));
++}
+-- 
+1.8.3.1
+

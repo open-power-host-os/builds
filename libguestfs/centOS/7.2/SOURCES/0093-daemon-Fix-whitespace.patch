@@ -1,0 +1,26 @@
+From db9bfb914f0510baadea3752b3b0faee6d1ce46a Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 5 Feb 2015 08:01:48 +0000
+Subject: [PATCH] daemon: Fix whitespace.
+
+(cherry picked from commit b3e3750b13a96fb6d1b79f7c0dabb4eeb37de5ef)
+---
+ daemon/parted.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/daemon/parted.c b/daemon/parted.c
+index a730477..76c0ce9 100644
+--- a/daemon/parted.c
++++ b/daemon/parted.c
+@@ -759,7 +759,7 @@ optgroup_gdisk_available (void)
+ }
+ 
+ int
+-do_part_set_gpt_type(const char *device, int partnum, const char *guid)
++do_part_set_gpt_type (const char *device, int partnum, const char *guid)
+ {
+   if (partnum <= 0) {
+     reply_with_error ("partition number must be >= 1");
+-- 
+1.8.3.1
+

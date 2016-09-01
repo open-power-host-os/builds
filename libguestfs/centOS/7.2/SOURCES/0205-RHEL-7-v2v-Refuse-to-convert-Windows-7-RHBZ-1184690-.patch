@@ -1,0 +1,30 @@
+From 9b03c249b8ee825bd40b9562ca3932e9a1a26229 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 7 Jul 2015 05:16:29 -0400
+Subject: [PATCH] RHEL 7: v2v: Refuse to convert Windows > 7 (RHBZ#1184690,
+ RHBZ#1190669).
+
+---
+ v2v/convert_windows.ml | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/v2v/convert_windows.ml b/v2v/convert_windows.ml
+index dc67040..a89c908 100644
+--- a/v2v/convert_windows.ml
++++ b/v2v/convert_windows.ml
+@@ -502,7 +502,11 @@ echo uninstalling Xen PV driver
+ 
+ let () =
+   let matching = function
+-    | { i_type = "windows" } -> true
++    | { i_type = "windows";
++        i_major_version = major; i_minor_version = minor }
++      when (major == 6 && minor < 2) || major < 6 -> true
++    | { i_type = "windows" } ->
++      error "virt-v2v cannot be used to convert Windows > 7 / 2008R2 (see https://bugzilla.redhat.com/1190669)"
+     | _ -> false
+   in
+   Modules_list.register_convert_module matching "windows" convert
+-- 
+1.8.3.1
+

@@ -1,0 +1,73 @@
+From 9849e04550f0b5a5c96972bfbe0933c5d57ebbc6 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 6 Nov 2014 09:47:21 +0000
+Subject: [PATCH] v2v: Ignore small filesystems when checking for sufficient
+ free space.
+
+(cherry picked from commit 918dd3705d3d34f28eb3cf30cd79d16358d525e3)
+---
+ v2v/v2v.ml | 48 +++++++++++++++++++++++++++---------------------
+ 1 file changed, 27 insertions(+), 21 deletions(-)
+
+diff --git a/v2v/v2v.ml b/v2v/v2v.ml
+index 48fb8c6..8639482 100644
+--- a/v2v/v2v.ml
++++ b/v2v/v2v.ml
+@@ -542,27 +542,33 @@ and inspect_source g root_choice =
+  *)
+ and check_free_space mpstats =
+   List.iter (
+-    fun { mp_path = mp; mp_statvfs = { G.bfree = bfree; bsize = bsize } } ->
+-      (* bfree = free blocks for root user *)
+-      let free_bytes = bfree *^ bsize in
+-      let needed_bytes =
+-        match mp with
+-        | "/" ->
+-          (* We may install some packages, and they would usually go
+-           * on the root filesystem.
+-           *)
+-          20_000_000L
+-        | "/boot" ->
+-          (* We usually regenerate the initramfs, which has a typical size
+-           * of 20-30MB.  Hence:
+-           *)
+-          50_000_000L
+-        | _ ->
+-          (* For everything else, just make sure there is some free space. *)
+-          10_000_000L in
+-      if free_bytes < needed_bytes then
+-        error (f_"not enough free space for conversion on filesystem '%s'.  %Ld bytes free < %Ld bytes needed")
+-          mp free_bytes needed_bytes
++    fun { mp_path = mp;
++          mp_statvfs = { G.bfree = bfree; blocks = blocks; bsize = bsize } } ->
++      (* Ignore small filesystems. *)
++      let total_size = blocks *^ bsize in
++      if total_size > 100_000_000L then (
++        (* bfree = free blocks for root user *)
++        let free_bytes = bfree *^ bsize in
++        let needed_bytes =
++          match mp with
++          | "/" ->
++            (* We may install some packages, and they would usually go
++             * on the root filesystem.
++             *)
++            20_000_000L
++          | "/boot" ->
++            (* We usually regenerate the initramfs, which has a
++             * typical size of 20-30MB.  Hence:
++             *)
++            50_000_000L
++          | _ ->
++            (* For everything else, just make sure there is some free space. *)
++            10_000_000L in
++
++        if free_bytes < needed_bytes then
++          error (f_"not enough free space for conversion on filesystem '%s'.  %Ld bytes free < %Ld bytes needed")
++            mp free_bytes needed_bytes
++      )
+   ) mpstats
+ 
+ (* Perform the fstrim.  The trimming bit is easy.  Dealing with the
+-- 
+1.8.3.1
+

@@ -1,0 +1,37 @@
+From 8163c1b8918f5bc4cbb2b3ccba2af1a4ea6dde9b Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Fri, 7 Nov 2014 11:25:06 +0000
+Subject: [PATCH] v2v: -o glance: Fix metadata for disk type and NIC
+ (RHBZ#1161575).
+
+The labels 'hw_disk_bus' and 'hw_vif_model' were swapped.  This
+happened to work for virtio guests.  For non-virtio guests you ended
+up with absurdities like requiring an rtl8139 driver for the disk.
+
+Thanks: Junquin Zhou
+(cherry picked from commit 7407c0ae14c382e11e93afe94c0fc37d16df6ae9)
+---
+ v2v/output_glance.ml | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/v2v/output_glance.ml b/v2v/output_glance.ml
+index c2b1a32..c2fb553 100644
+--- a/v2v/output_glance.ml
++++ b/v2v/output_glance.ml
+@@ -74,11 +74,11 @@ object
+     (* Set the properties (ie. metadata). *)
+     let min_ram = source.s_memory /^ 1024L /^ 1024L in
+     let properties = [
+-      "hw_vif_model",
++      "hw_disk_bus",
+       (match guestcaps.gcaps_block_bus with
+       | Virtio_blk -> "virtio"
+       | IDE -> "ide");
+-      "hw_disk_bus",
++      "hw_vif_model",
+       (match guestcaps.gcaps_net_bus with
+       | Virtio_net -> "virtio"
+       | E1000 -> "e1000"
+-- 
+1.8.3.1
+

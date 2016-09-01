@@ -1,0 +1,36 @@
+From d977ec8b1df84f390c5932f35feeb249baa7050b Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 22 Oct 2014 12:35:53 +0100
+Subject: [PATCH] v2v: Add some assertions to check the source was created
+ correctly.
+
+(cherry picked from commit dbe35729a3fbb7150275584dd0c5aa7d86c8e03e)
+---
+ v2v/v2v.ml | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/v2v/v2v.ml b/v2v/v2v.ml
+index 6f98a8c..48fb8c6 100644
+--- a/v2v/v2v.ml
++++ b/v2v/v2v.ml
+@@ -73,6 +73,17 @@ let rec main () =
+ 
+   if verbose then printf "%s%!" (string_of_source source);
+ 
++  assert (source.s_dom_type <> "");
++  assert (source.s_name <> "");
++  assert (source.s_memory > 0L);
++  assert (source.s_vcpu >= 1);
++  if source.s_disks = [] then
++    error (f_"source has no hard disks!");
++  List.iter (
++    fun disk ->
++      assert (disk.s_qemu_uri <> "");
++  ) source.s_disks;
++
+   (* Map source name. *)
+   let source =
+     match output_name with
+-- 
+1.8.3.1
+

@@ -1,0 +1,84 @@
+From 08eea12254c7c6d072028638965101e1a1c9448b Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Tue, 14 Apr 2015 16:37:55 +0200
+Subject: [PATCH] v2v: pass libvirt connection URI to parse_libvirt_xml
+
+This makes it possible to connect to the right libvirt.
+
+(cherry picked from commit f7529522ab74d824c550d62953f0b8ecf1e61466)
+---
+ v2v/input_libvirt_other.ml         | 2 +-
+ v2v/input_libvirt_vcenter_https.ml | 2 +-
+ v2v/input_libvirt_xen_ssh.ml       | 2 +-
+ v2v/input_libvirtxml.ml            | 2 +-
+ v2v/input_libvirtxml.mli           | 2 +-
+ 5 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/v2v/input_libvirt_other.ml b/v2v/input_libvirt_other.ml
+index c704af6..e675427 100644
+--- a/v2v/input_libvirt_other.ml
++++ b/v2v/input_libvirt_other.ml
+@@ -70,7 +70,7 @@ object
+      *)
+     let xml = Domainxml.dumpxml ?password ?conn:libvirt_uri guest in
+ 
+-    let source, disks = Input_libvirtxml.parse_libvirt_xml ~verbose xml in
++    let source, disks = Input_libvirtxml.parse_libvirt_xml ?conn:libvirt_uri ~verbose xml in
+     let disks =
+       List.map (fun { Input_libvirtxml.p_source_disk = disk } -> disk) disks in
+     { source with s_disks = disks }
+diff --git a/v2v/input_libvirt_vcenter_https.ml b/v2v/input_libvirt_vcenter_https.ml
+index 783b630..d0d860e 100644
+--- a/v2v/input_libvirt_vcenter_https.ml
++++ b/v2v/input_libvirt_vcenter_https.ml
+@@ -298,7 +298,7 @@ object
+      * that the domain is not running.  (RHBZ#1138586)
+      *)
+     let xml = Domainxml.dumpxml ?password ?conn:libvirt_uri guest in
+-    let source, disks = parse_libvirt_xml ~verbose xml in
++    let source, disks = parse_libvirt_xml ?conn:libvirt_uri ~verbose xml in
+ 
+     (* Save the original source paths, so that we can remap them again
+      * in [#adjust_overlay_parameters].
+diff --git a/v2v/input_libvirt_xen_ssh.ml b/v2v/input_libvirt_xen_ssh.ml
+index cf5f1ae..ccb8bd0 100644
+--- a/v2v/input_libvirt_xen_ssh.ml
++++ b/v2v/input_libvirt_xen_ssh.ml
+@@ -46,7 +46,7 @@ object
+      * that the domain is not running.  (RHBZ#1138586)
+      *)
+     let xml = Domainxml.dumpxml ?password ?conn:libvirt_uri guest in
+-    let source, disks = parse_libvirt_xml ~verbose xml in
++    let source, disks = parse_libvirt_xml ?conn:libvirt_uri ~verbose xml in
+ 
+     (* Map the <source/> filename (which is relative to the remote
+      * Xen server) to an ssh URI.  This is a JSON URI looking something
+diff --git a/v2v/input_libvirtxml.ml b/v2v/input_libvirtxml.ml
+index 34f1bd1..357c46f 100644
+--- a/v2v/input_libvirtxml.ml
++++ b/v2v/input_libvirtxml.ml
+@@ -33,7 +33,7 @@ and parsed_source =
+ | P_source_file of string
+ | P_dont_rewrite
+ 
+-let parse_libvirt_xml ~verbose xml =
++let parse_libvirt_xml ?conn ~verbose xml =
+   if verbose then
+     printf "libvirt xml is:\n%s\n" xml;
+ 
+diff --git a/v2v/input_libvirtxml.mli b/v2v/input_libvirtxml.mli
+index e450899..934c9c5 100644
+--- a/v2v/input_libvirtxml.mli
++++ b/v2v/input_libvirtxml.mli
+@@ -27,7 +27,7 @@ and parsed_source =
+ | P_source_file of string            (** <source file> *)
+ | P_dont_rewrite                     (** s_qemu_uri is already set. *)
+ 
+-val parse_libvirt_xml : verbose:bool -> string -> Types.source * parsed_disk list
++val parse_libvirt_xml : ?conn:string -> verbose:bool -> string -> Types.source * parsed_disk list
+ (** Take libvirt XML and parse it into a {!Types.source} structure and a
+     list of source disks.
+ 
+-- 
+1.8.3.1
+

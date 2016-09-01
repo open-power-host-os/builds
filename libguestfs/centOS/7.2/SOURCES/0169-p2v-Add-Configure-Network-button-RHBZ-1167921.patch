@@ -1,0 +1,148 @@
+From 4e28a0b054a80fe6f4ad09b584eac253b2b10c8b Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 6 May 2015 10:50:21 +0100
+Subject: [PATCH] p2v: Add Configure Network button (RHBZ#1167921).
+
+The old version of virt-p2v had a whole custom-written dialog which
+interacted with NetworkManager over dbus.  After trying that approach,
+it's really complex to get right.
+
+Instead this button simply opens NetworkManager's connection editor.
+
+This also adds nm-applet to the disk and starts it.  However nm-applet
+does not display any visible indication -- probably because we are
+lacking a system tray.
+
+(cherry picked from commit e464774a79ff9eeedcdb3fd53efd5a7898ca036e)
+---
+ p2v/gui.c                 | 14 +++++++++++++-
+ p2v/launch-virt-p2v.in    |  1 +
+ p2v/p2v.ks.in             |  2 ++
+ p2v/virt-p2v-make-disk.in | 11 +++++++----
+ 4 files changed, 23 insertions(+), 5 deletions(-)
+
+diff --git a/p2v/gui.c b/p2v/gui.c
+index bba0c1c..43d6165 100644
+--- a/p2v/gui.c
++++ b/p2v/gui.c
+@@ -94,6 +94,7 @@ gui_application (struct config *config)
+ 
+ static void test_connection_clicked (GtkWidget *w, gpointer data);
+ static void *test_connection_thread (void *data);
++static void configure_network_button_clicked (GtkWidget *w, gpointer data);
+ static void about_button_clicked (GtkWidget *w, gpointer data);
+ static void connection_next_clicked (GtkWidget *w, gpointer data);
+ static void repopulate_output_combo (struct config *config);
+@@ -108,6 +109,7 @@ create_connection_dialog (struct config *config)
+   GtkWidget *password_label;
+   GtkWidget *test_hbox, *test;
+   GtkWidget *about;
++  GtkWidget *configure_network;
+   char port_str[64];
+ 
+   conn_dlg = gtk_dialog_new ();
+@@ -198,7 +200,7 @@ create_connection_dialog (struct config *config)
+ 
+   /* Buttons. */
+   gtk_dialog_add_buttons (GTK_DIALOG (conn_dlg),
+-                          /* _("Configure network ..."), 1, */
++                          _("Configure network ..."), 1,
+                           _("About virt-p2v " PACKAGE_VERSION " ..."), 2,
+                           _("Next"), 3,
+                           NULL);
+@@ -206,6 +208,8 @@ create_connection_dialog (struct config *config)
+   next_button = gtk_dialog_get_widget_for_response (GTK_DIALOG (conn_dlg), 3);
+   gtk_widget_set_sensitive (next_button, FALSE);
+ 
++  configure_network =
++    gtk_dialog_get_widget_for_response (GTK_DIALOG (conn_dlg), 1);
+   about = gtk_dialog_get_widget_for_response (GTK_DIALOG (conn_dlg), 2);
+ 
+   /* Signals. */
+@@ -213,6 +217,8 @@ create_connection_dialog (struct config *config)
+                             G_CALLBACK (gtk_main_quit), NULL);
+   g_signal_connect (G_OBJECT (test), "clicked",
+                     G_CALLBACK (test_connection_clicked), config);
++  g_signal_connect (G_OBJECT (configure_network), "clicked",
++                    G_CALLBACK (configure_network_button_clicked), NULL);
+   g_signal_connect (G_OBJECT (about), "clicked",
+                     G_CALLBACK (about_button_clicked), NULL);
+   g_signal_connect (G_OBJECT (next_button), "clicked",
+@@ -342,6 +348,12 @@ test_connection_thread (void *data)
+ }
+ 
+ static void
++configure_network_button_clicked (GtkWidget *w, gpointer data)
++{
++  ignore_value (system ("nm-connection-editor &"));
++}
++
++static void
+ about_button_clicked (GtkWidget *w, gpointer data)
+ {
+   gtk_show_about_dialog (GTK_WINDOW (conn_dlg),
+diff --git a/p2v/launch-virt-p2v.in b/p2v/launch-virt-p2v.in
+index d2bafe3..e4a5a80 100755
+--- a/p2v/launch-virt-p2v.in
++++ b/p2v/launch-virt-p2v.in
+@@ -23,6 +23,7 @@
+ if [ "$1" = "run" ]; then
+     cd /
+     metacity &
++    nm-applet &
+     exec @libexecdir@/virt-p2v
+ else
+     xinit "$0" run
+diff --git a/p2v/p2v.ks.in b/p2v/p2v.ks.in
+index 6a3b24b..66ca025 100644
+--- a/p2v/p2v.ks.in
++++ b/p2v/p2v.ks.in
+@@ -69,6 +69,8 @@ metacity
+ pcre
+ libxml2
+ gtk2
++network-manager-applet
++dbus-x11
+ @hardware-support --optional
+ 
+ %end
+diff --git a/p2v/virt-p2v-make-disk.in b/p2v/virt-p2v-make-disk.in
+index 2bb364b..e2ea7f5 100644
+--- a/p2v/virt-p2v-make-disk.in
++++ b/p2v/virt-p2v-make-disk.in
+@@ -95,11 +95,14 @@ trap cleanup INT QUIT TERM EXIT ERR
+ #   - some fonts
+ #   - hardware support (firmware etc, RHBZ#1157679)
+ #   - metacity (window manager, another could be used)
++#   - NetworkManager
++#   - nm-applet
++#   - dbus-x11 (required by nm-applet, but not specified as a dep in Fedora)
+ #
+ # Note that libguestfs is NOT a dependency.
+ case "$osversion" in
+     centos-*|fedora-*|rhel-*|scientificlinux-*)
+-        deps=pcre,libxml2,gtk2,/usr/bin/xinit,/usr/bin/ssh,/usr/bin/qemu-nbd,/usr/bin/Xorg,xorg-x11-drivers,xorg-x11-fonts-Type1,metacity,@hardware-support
++        deps=pcre,libxml2,gtk2,/usr/bin/xinit,/usr/bin/ssh,/usr/bin/qemu-nbd,/usr/bin/Xorg,xorg-x11-drivers,xorg-x11-fonts-Type1,metacity,NetworkManager,network-manager-applet,dbus-x11,@hardware-support
+         cat > $tmpdir/p2v.conf <<'EOF'
+ add_drivers+=" usb-storage "
+ EOF
+@@ -117,13 +120,13 @@ EOF
+         "
+         ;;
+     debian-*|ubuntu-*)
+-        deps=libpcre3,libxml2,libgtk2.0-0,openssh-client,qemu-utils,xorg,xserver-xorg-video-all,metacity
++        deps=libpcre3,libxml2,libgtk2.0-0,openssh-client,qemu-utils,xorg,xserver-xorg-video-all,metacity,network-manager,network-manager-applet,dbus-x11
+         ;;
+     archlinux-*)
+-        deps=pcre,libxml2,gtk2,openssh,qemu,xorg-xinit,xorg-server,xf86-video-*,metacity
++        deps=pcre,libxml2,gtk2,openssh,qemu,xorg-xinit,xorg-server,xf86-video-*,metacity,NetworkManager,network-manager-applet,dbus-x11
+         ;;
+     opensuse-*|suse-*)
+-        deps=pcre,libxml2,gtk2,/usr/bin/ssh,/usr/bin/qemu-nbd,/usr/bin/xinit,/usr/bin/Xorg,xf86-video-*,metacity
++        deps=pcre,libxml2,gtk2,/usr/bin/ssh,/usr/bin/qemu-nbd,/usr/bin/xinit,/usr/bin/Xorg,xf86-video-*,metacity,NetworkManager,network-manager-applet,dbus-x11
+         ;;
+     *)
+         echo "$program: internal error: could not work out the Linux distro from '$osversion'"
+-- 
+1.8.3.1
+

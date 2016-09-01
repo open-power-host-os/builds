@@ -1,0 +1,43 @@
+From 1b03fad9aa7e51bb30911af192f0d4eaa859dcc2 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 18 Nov 2014 13:37:21 +0000
+Subject: [PATCH] v2v: Don't change Augeas device entries unless the value has
+ changed.
+
+When remapping block devices, don't change an entry unless its value
+has changed.  This avoids unnecessary Augeas writes.
+
+(cherry picked from commit 4c7026fb7a7514838a01771abb4c7e62a4e4485f)
+---
+ v2v/convert_linux.ml | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/v2v/convert_linux.ml b/v2v/convert_linux.ml
+index 48f351c..44b6c7f 100644
+--- a/v2v/convert_linux.ml
++++ b/v2v/convert_linux.ml
+@@ -1332,7 +1332,7 @@ let rec convert ~verbose ~keep_serial_console (g : G.guestfs) inspect source =
+       fun path ->
+         let value = g#aug_get path in
+ 
+-        let value =
++        let new_value =
+           (* Handle grub2 resume=<dev> specially. *)
+           if string_find path "GRUB_CMDLINE" >= 0 then (
+             if Str.string_match rex_resume value 0 then (
+@@ -1346,8 +1346,10 @@ let rec convert ~verbose ~keep_serial_console (g : G.guestfs) inspect source =
+           )
+           else replace_if_device path value in
+ 
+-        g#aug_set path value;
+-        changed := true
++        if value <> new_value then (
++          g#aug_set path new_value;
++          changed := true
++        )
+     ) paths;
+ 
+     if !changed then (
+-- 
+1.8.3.1
+

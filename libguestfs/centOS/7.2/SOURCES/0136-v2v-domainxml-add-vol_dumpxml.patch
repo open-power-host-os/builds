@@ -1,0 +1,117 @@
+From 124edcf9a0900dc8e721180217b550b846b7c8f9 Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Tue, 14 Apr 2015 16:35:51 +0200
+Subject: [PATCH] v2v: domainxml: add vol_dumpxml
+
+Add a new vol_dumpxml to get the XML dump of a pool's volume.
+
+(cherry picked from commit 5da2ed95c11af6be6bee27f5b3dce8a6f3a29d74)
+---
+ v2v/domainxml-c.c | 61 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ v2v/domainxml.ml  |  1 +
+ v2v/domainxml.mli |  6 ++++++
+ 3 files changed, 68 insertions(+)
+
+diff --git a/v2v/domainxml-c.c b/v2v/domainxml-c.c
+index ba2a5bc..60157e1 100644
+--- a/v2v/domainxml-c.c
++++ b/v2v/domainxml-c.c
+@@ -305,6 +305,61 @@ v2v_pool_dumpxml (value connv, value poolnamev)
+   CAMLreturn (retv);
+ }
+ 
++value
++v2v_vol_dumpxml (value connv, value poolnamev, value volnamev)
++{
++  CAMLparam3 (connv, poolnamev, volnamev);
++  CAMLlocal1 (retv);
++  const char *volname;
++  /* We have to assemble the error on the stack because a dynamic
++   * string couldn't be freed.
++   */
++  char errmsg[256];
++  virErrorPtr err;
++  virConnectPtr conn;
++  virStoragePoolPtr pool;
++  virStorageVolPtr vol;
++  char *xml;
++
++  /* Look up the pool. */
++  pool = connect_and_load_pool (connv, poolnamev);
++  conn = virStoragePoolGetConnect (pool);
++
++  /* Look up the volume. */
++  volname = String_val (volnamev);
++
++  vol = virStorageVolLookupByName (pool, volname);
++
++  if (!vol) {
++    err = virGetLastError ();
++    snprintf (errmsg, sizeof errmsg,
++              _("cannot find libvirt volume '%s': %s"), volname, err->message);
++    virStoragePoolFree (pool);
++    virConnectClose (conn);
++    caml_invalid_argument (errmsg);
++  }
++
++  xml = virStorageVolGetXMLDesc (vol, 0);
++  if (xml == NULL) {
++    err = virGetLastError ();
++    snprintf (errmsg, sizeof errmsg,
++              _("cannot fetch XML description of volume '%s': %s"),
++              volname, err->message);
++    virStorageVolFree (vol);
++    virStoragePoolFree (pool);
++    virConnectClose (conn);
++    caml_invalid_argument (errmsg);
++  }
++  virStorageVolFree (vol);
++  virStoragePoolFree (pool);
++  virConnectClose (conn);
++
++  retv = caml_copy_string (xml);
++  free (xml);
++
++  CAMLreturn (retv);
++}
++
+ #else /* !HAVE_LIBVIRT */
+ 
+ value
+@@ -319,4 +374,10 @@ v2v_pool_dumpxml (value connv, value poolv)
+   caml_invalid_argument ("virt-v2v was compiled without libvirt support");
+ }
+ 
++value
++v2v_vol_dumpxml (value connv, value poolnamev, value volnamev)
++{
++  caml_invalid_argument ("virt-v2v was compiled without libvirt support");
++}
++
+ #endif /* !HAVE_LIBVIRT */
+diff --git a/v2v/domainxml.ml b/v2v/domainxml.ml
+index 61ed5e0..d8b9ed4 100644
+--- a/v2v/domainxml.ml
++++ b/v2v/domainxml.ml
+@@ -20,3 +20,4 @@
+ 
+ external dumpxml : ?password:string -> ?conn:string -> string -> string = "v2v_dumpxml"
+ external pool_dumpxml : ?conn:string -> string -> string = "v2v_pool_dumpxml"
++external vol_dumpxml : ?conn:string -> string -> string -> string = "v2v_vol_dumpxml"
+diff --git a/v2v/domainxml.mli b/v2v/domainxml.mli
+index ffb1c46..98690fe 100644
+--- a/v2v/domainxml.mli
++++ b/v2v/domainxml.mli
+@@ -32,3 +32,9 @@ val pool_dumpxml : ?conn:string -> string -> string
+ (** [pool_dumpxml ?conn pool] returns the libvirt XML of pool [pool].
+     The optional [?conn] parameter is the libvirt connection URI.
+     [pool] may be a pool name or UUID. *)
++
++val vol_dumpxml : ?conn:string -> string -> string -> string
++(** [vol_dumpxml ?conn pool vol] returns the libvirt XML of volume [vol],
++    which is part of the pool [pool].
++    The optional [?conn] parameter is the libvirt connection URI.
++    [pool] may be a pool name or UUID. *)
+-- 
+1.8.3.1
+

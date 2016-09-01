@@ -1,0 +1,25 @@
+From c9bd51c944dc9e8136861ba0a8c8ba1c32d84d5e Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Mon, 24 Aug 2015 18:11:18 +0200
+Subject: [PATCH] ocaml: Add handling for errno ENOENT.
+
+(cherry picked from commit baa4ec6e4536be971d482af76f7dca89e74573a7)
+---
+ generator/ocaml.ml | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/generator/ocaml.ml b/generator/ocaml.ml
+index f58cab3..ae2fb2e 100644
+--- a/generator/ocaml.ml
++++ b/generator/ocaml.ml
+@@ -36,6 +36,7 @@ let ocaml_errnos = [
+   "ENOTSUP";
+   "EPERM";
+   "ESRCH";
++  "ENOENT";
+ ]
+ 
+ (* Generate the OCaml bindings interface. *)
+-- 
+1.8.3.1
+

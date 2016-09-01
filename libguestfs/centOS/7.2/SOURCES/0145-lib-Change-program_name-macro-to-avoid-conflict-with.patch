@@ -1,0 +1,2267 @@
+From e8b0be5d7dfbb8805c3c63e58f76e8e89b7c04b8 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Sat, 7 Feb 2015 16:27:03 +0000
+Subject: [PATCH] lib: Change 'program_name' macro to avoid conflict with
+ gnulib.
+
+The gnulib 'error' module uses 'program_name'.  On some platforms --
+but not Linux / glibc -- it references it as:
+
+  extern char *program_name;
+
+This means when you compile libguestfs on non-glibc (eg. Mac OS X)
+gnulib requires 'program_name' as an external string reference, which
+we don't provide.
+
+This change doesn't define this string reference for gnulib, but it
+does change the name of the macro we use to avoid conflicts if we
+eventually need to export 'program_name' as a string.
+
+Thanks: Margaret Lewicka
+(cherry picked from commit 5cafedaa45d5993c54bf1827426171d9e23d77ae)
+---
+ align/scan.c                                  | 14 +++----
+ builder/index-validate.c                      | 18 ++++-----
+ cat/cat.c                                     |  8 ++--
+ cat/filesystems.c                             | 10 ++---
+ cat/log.c                                     | 18 ++++-----
+ cat/ls.c                                      | 12 +++---
+ cat/visit.c                                   |  4 +-
+ df/domains.c                                  | 10 ++---
+ df/main.c                                     | 14 +++----
+ df/parallel.c                                 |  2 +-
+ diff/diff.c                                   | 16 ++++----
+ edit/edit.c                                   | 12 +++---
+ fish/config.c                                 |  6 +--
+ fish/fish.c                                   | 54 +++++++++++++--------------
+ fish/inspect.c                                |  8 ++--
+ fish/options.c                                | 10 ++---
+ fish/options.h                                |  6 +--
+ fish/uri.c                                    |  8 ++--
+ fish/windows.c                                |  4 +-
+ format/format.c                               | 14 +++----
+ fuse/guestmount.c                             | 22 +++++------
+ fuse/guestunmount.c                           | 16 ++++----
+ fuse/test-guestmount-fd.c                     | 10 ++---
+ fuse/test-guestunmount-fd.c                   |  4 +-
+ generator/fish.ml                             |  4 +-
+ inspector/inspector.c                         | 32 ++++++++--------
+ make-fs/make-fs.c                             | 28 +++++++-------
+ p2v/conversion.c                              |  4 +-
+ p2v/gui.c                                     | 10 ++---
+ p2v/kernel.c                                  | 18 ++++-----
+ p2v/main.c                                    | 12 +++---
+ p2v/ssh.c                                     |  4 +-
+ rescue/rescue.c                               | 20 +++++-----
+ src/guestfs-internal-frontend.h               |  6 +--
+ tests/charsets/test-charset-fidelity.c        |  2 +-
+ tests/mount-local/test-parallel-mount-local.c |  4 +-
+ tests/parallel/test-parallel.c                |  2 +-
+ tests/qemu/qemu-boot.c                        | 20 +++++-----
+ tests/qemu/qemu-speed-test.c                  | 18 ++++-----
+ tests/regressions/rhbz790721.c                |  2 +-
+ tests/regressions/rhbz914931.c                |  2 +-
+ 41 files changed, 244 insertions(+), 244 deletions(-)
+
+diff --git a/align/scan.c b/align/scan.c
+index e803d8e..4740581 100644
+--- a/align/scan.c
++++ b/align/scan.c
+@@ -71,7 +71,7 @@ usage (int status)
+ {
+   if (status != EXIT_SUCCESS)
+     fprintf (stderr, _("Try `%s --help' for more information.\n"),
+-             program_name);
++             guestfs___program_name);
+   else {
+     fprintf (stdout,
+            _("%s: check alignment of virtual machine partitions\n"
+@@ -91,8 +91,8 @@ usage (int status)
+              "  -V|--version         Display version and exit\n"
+              "  -x                   Trace libguestfs API calls\n"
+              "For more information, see the manpage %s(1).\n"),
+-             program_name, program_name, program_name,
+-             program_name);
++             guestfs___program_name, guestfs___program_name, guestfs___program_name,
++             guestfs___program_name);
+   }
+   exit (status);
+ }
+@@ -149,7 +149,7 @@ main (int argc, char *argv[])
+         uuid = 1;
+       } else {
+         fprintf (stderr, _("%s: unknown long option: %s (%d)\n"),
+-                 program_name, long_options[option_index].name, option_index);
++                 guestfs___program_name, long_options[option_index].name, option_index);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -168,7 +168,7 @@ main (int argc, char *argv[])
+ 
+     case 'P':
+       if (sscanf (optarg, "%zu", &max_threads) != 1) {
+-        fprintf (stderr, _("%s: -P option is not numeric\n"), program_name);
++        fprintf (stderr, _("%s: -P option is not numeric\n"), guestfs___program_name);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -226,13 +226,13 @@ main (int argc, char *argv[])
+       exit (EXIT_FAILURE);
+ #else
+     fprintf (stderr, _("%s: compiled without support for libvirt.\n"),
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+ #endif
+   } else {                      /* Single guest. */
+     if (uuid) {
+       fprintf (stderr, _("%s: --uuid option cannot be used with -a or -d\n"),
+-               program_name);
++               guestfs___program_name);
+       exit (EXIT_FAILURE);
+     }
+ 
+diff --git a/builder/index-validate.c b/builder/index-validate.c
+index 782718d..0628a6f 100644
+--- a/builder/index-validate.c
++++ b/builder/index-validate.c
+@@ -39,7 +39,7 @@ extern int do_parse (struct parse_context *context, FILE *in);
+ static void
+ usage (int exit_status)
+ {
+-  printf ("%s index\n", program_name);
++  printf ("%s index\n", guestfs___program_name);
+   exit (exit_status);
+ }
+ 
+@@ -83,7 +83,7 @@ main (int argc, char *argv[])
+         compat_1_24_1 = 1;
+       else {
+         fprintf (stderr, _("%s: unknown long option: %s (%d)\n"),
+-                 program_name, long_options[option_index].name, option_index);
++                 guestfs___program_name, long_options[option_index].name, option_index);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -115,20 +115,20 @@ main (int argc, char *argv[])
+ 
+   if (fclose (in) == EOF) {
+     fprintf (stderr, _("%s: %s: error closing input file: %m (ignored)\n"),
+-             program_name, input);
++             guestfs___program_name, input);
+   }
+ 
+   if (ret != 0) {
+     parse_context_free (&context);
+     fprintf (stderr, _("%s: '%s' could not be validated, see errors above\n"),
+-             program_name, input);
++             guestfs___program_name, input);
+     exit (EXIT_FAILURE);
+   }
+ 
+   if (compat_1_24_1 && context.seen_comments) {
+     parse_context_free (&context);
+     fprintf (stderr, _("%s: %s contains comments which will not work with virt-builder 1.24.1\n"),
+-             program_name, input);
++             guestfs___program_name, input);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -141,7 +141,7 @@ main (int argc, char *argv[])
+       if (strchr (sections->name, '_')) {
+         parse_context_free (&context);
+         fprintf (stderr, _("%s: %s: section [%s] has invalid characters which will not work with virt-builder 1.24.0\n"),
+-                 program_name, input, sections->name);
++                 guestfs___program_name, input, sections->name);
+         exit (EXIT_FAILURE);
+       }
+     }
+@@ -152,7 +152,7 @@ main (int argc, char *argv[])
+             strchr (fields->key, ']')) {
+           parse_context_free (&context);
+           fprintf (stderr, _("%s: %s: section [%s], field '%s' has invalid characters which will not work with virt-builder 1.24.0\n"),
+-                   program_name, input, sections->name, fields->key);
++                   guestfs___program_name, input, sections->name, fields->key);
+           exit (EXIT_FAILURE);
+         }
+       }
+@@ -161,7 +161,7 @@ main (int argc, char *argv[])
+             strchr (fields->key, ',')) {
+           parse_context_free (&context);
+           fprintf (stderr, _("%s: %s: section [%s], field '%s' has invalid characters which will not work with virt-builder 1.24.1\n"),
+-                   program_name, input, sections->name, fields->key);
++                   guestfs___program_name, input, sections->name, fields->key);
+           exit (EXIT_FAILURE);
+         }
+       }
+@@ -172,7 +172,7 @@ main (int argc, char *argv[])
+     if (compat_1_24_0 && !seen_sig) {
+       parse_context_free (&context);
+       fprintf (stderr, _("%s: %s: section [%s] is missing a 'sig' field which will not work with virt-builder 1.24.0\n"),
+-               program_name, input, sections->name);
++               guestfs___program_name, input, sections->name);
+       exit (EXIT_FAILURE);
+     }
+   }
+diff --git a/cat/cat.c b/cat/cat.c
+index ec9c81f..a9de790 100644
+--- a/cat/cat.c
++++ b/cat/cat.c
+@@ -51,7 +51,7 @@ usage (int status)
+ {
+   if (status != EXIT_SUCCESS)
+     fprintf (stderr, _("Try `%s --help' for more information.\n"),
+-             program_name);
++             guestfs___program_name);
+   else {
+     fprintf (stdout,
+            _("%s: display files in a virtual machine\n"
+@@ -73,8 +73,8 @@ usage (int status)
+              "  -V|--version         Display version and exit\n"
+              "  -x                   Trace libguestfs API calls\n"
+              "For more information, see the manpage %s(1).\n"),
+-             program_name, program_name, program_name,
+-             program_name);
++             guestfs___program_name, guestfs___program_name, guestfs___program_name,
++             guestfs___program_name);
+   }
+   exit (status);
+ }
+@@ -136,7 +136,7 @@ main (int argc, char *argv[])
+         OPTION_format;
+       } else {
+         fprintf (stderr, _("%s: unknown long option: %s (%d)\n"),
+-                 program_name, long_options[option_index].name, option_index);
++                 guestfs___program_name, long_options[option_index].name, option_index);
+         exit (EXIT_FAILURE);
+       }
+       break;
+diff --git a/cat/filesystems.c b/cat/filesystems.c
+index f9f887a..19b494e 100644
+--- a/cat/filesystems.c
++++ b/cat/filesystems.c
+@@ -85,7 +85,7 @@ usage (int status)
+ {
+   if (status != EXIT_SUCCESS)
+     fprintf (stderr, _("Try `%s --help' for more information.\n"),
+-             program_name);
++             guestfs___program_name);
+   else {
+     fprintf (stdout,
+            _("%s: list filesystems, partitions, block devices, LVM in a VM\n"
+@@ -122,8 +122,8 @@ usage (int status)
+              "                       Display LVM volume groups\n"
+              "  -x                   Trace libguestfs API calls\n"
+              "For more information, see the manpage %s(1).\n"),
+-             program_name, program_name, program_name,
+-             program_name);
++             guestfs___program_name, guestfs___program_name, guestfs___program_name,
++             guestfs___program_name);
+   }
+   exit (status);
+ }
+@@ -237,7 +237,7 @@ main (int argc, char *argv[])
+         output |= OUTPUT_VGS;
+       } else {
+         fprintf (stderr, _("%s: unknown long option: %s (%d)\n"),
+-                 program_name, long_options[option_index].name, option_index);
++                 guestfs___program_name, long_options[option_index].name, option_index);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -301,7 +301,7 @@ main (int argc, char *argv[])
+    */
+   if (human && csv) {
+     fprintf (stderr, _("%s: you cannot use -h and --csv options together.\n"),
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+diff --git a/cat/log.c b/cat/log.c
+index 0d8dab0..7c2595b 100644
+--- a/cat/log.c
++++ b/cat/log.c
+@@ -60,7 +60,7 @@ usage (int status)
+ {
+   if (status != EXIT_SUCCESS)
+     fprintf (stderr, _("Try `%s --help' for more information.\n"),
+-             program_name);
++             guestfs___program_name);
+   else {
+     fprintf (stdout,
+            _("%s: display log files in a virtual machine\n"
+@@ -80,8 +80,8 @@ usage (int status)
+              "  -V|--version         Display version and exit\n"
+              "  -x                   Trace libguestfs API calls\n"
+              "For more information, see the manpage %s(1).\n"),
+-             program_name, program_name, program_name,
+-             program_name);
++             guestfs___program_name, guestfs___program_name, guestfs___program_name,
++             guestfs___program_name);
+   }
+   exit (status);
+ }
+@@ -138,7 +138,7 @@ main (int argc, char *argv[])
+         OPTION_format;
+       } else {
+         fprintf (stderr, _("%s: unknown long option: %s (%d)\n"),
+-                 program_name, long_options[option_index].name, option_index);
++                 guestfs___program_name, long_options[option_index].name, option_index);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -241,7 +241,7 @@ do_log (void)
+ 
+     fprintf (stderr,
+              _("%s: Windows Event Log for pre-Vista guests is not supported.\n"),
+-             program_name);
++             guestfs___program_name);
+     return -1;
+   }
+ 
+@@ -349,7 +349,7 @@ do_log_journal (void)
+       if (strftime (buf, sizeof buf, "%b %d %H:%M:%S",
+                     localtime_r (&t, &tm)) <= 0) {
+         fprintf (stderr, _("%s: could not format journal entry timestamp\n"),
+-                 program_name);
++                 guestfs___program_name);
+         errors++;
+         continue;
+       }
+@@ -418,7 +418,7 @@ do_log_windows_evtx (void)
+                        "in order to parse Windows Event Logs.  If you cannot install this, then\n"
+                        "use virt-copy-out(1) to copy the contents of /Windows/System32/winevt/Logs\n"
+                        "from this guest, and examine in a binary file viewer.\n"),
+-             program_name);
++             guestfs___program_name);
+     return -1;
+   }
+ 
+@@ -434,7 +434,7 @@ do_log_windows_evtx (void)
+                             GUESTFS_IS_FILE_OPTS_FOLLOWSYMLINKS, 1,
+                             -1) <= 0) {
+     fprintf (stderr, _("%s: Windows Event Log file (%s) not found\n"),
+-             program_name, filename);
++             guestfs___program_name, filename);
+     return -1;
+   }
+ 
+@@ -466,7 +466,7 @@ do_log_windows_evtx (void)
+   if (status) {
+     char buf[256];
+     fprintf (stderr, "%s: %s\n",
+-             program_name,
++             guestfs___program_name,
+              guestfs___exit_status_to_string (status, "evtxdump.py",
+                                               buf, sizeof buf));
+     return -1;
+diff --git a/cat/ls.c b/cat/ls.c
+index 2cb4e74..8d7dfc9 100644
+--- a/cat/ls.c
++++ b/cat/ls.c
+@@ -81,7 +81,7 @@ usage (int status)
+ {
+   if (status != EXIT_SUCCESS)
+     fprintf (stderr, _("Try `%s --help' for more information.\n"),
+-             program_name);
++             guestfs___program_name);
+   else {
+     fprintf (stdout,
+            _("%s: list files in a virtual machine\n"
+@@ -114,8 +114,8 @@ usage (int status)
+              "  -V|--version         Display version and exit\n"
+              "  -x                   Trace libguestfs API calls\n"
+              "For more information, see the manpage %s(1).\n"),
+-             program_name, program_name, program_name,
+-             program_name);
++             guestfs___program_name, guestfs___program_name, guestfs___program_name,
++             guestfs___program_name);
+   }
+   exit (status);
+ }
+@@ -226,7 +226,7 @@ main (int argc, char *argv[])
+         enable_uids = 1;
+       } else {
+         fprintf (stderr, _("%s: unknown long option: %s (%d)\n"),
+-                 program_name, long_options[option_index].name, option_index);
++                 guestfs___program_name, long_options[option_index].name, option_index);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -332,7 +332,7 @@ main (int argc, char *argv[])
+       (csv || human || enable_uids || enable_times || enable_extra_stats ||
+        checksum)) {
+     fprintf (stderr, _("%s: used a flag which can only be combined with -lR mode\nFor more information, read the virt-ls(1) man page.\n"),
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -341,7 +341,7 @@ main (int argc, char *argv[])
+    */
+   if (human && csv) {
+     fprintf (stderr, _("%s: you cannot use -h and --csv options together.\n"),
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+diff --git a/cat/visit.c b/cat/visit.c
+index 49b779e..8588f31 100644
+--- a/cat/visit.c
++++ b/cat/visit.c
+@@ -100,7 +100,7 @@ _visit (guestfs_h *g, int depth, const char *dir,
+ 
+     if (xattrs->val[xattrp].attrval_len == 0) {
+       fprintf (stderr, _("%s: error getting extended attrs for %s %s\n"),
+-               program_name, dir, names[i]);
++               guestfs___program_name, dir, names[i]);
+       return -1;
+     }
+     /* attrval is not \0-terminated. */
+@@ -110,7 +110,7 @@ _visit (guestfs_h *g, int depth, const char *dir,
+     attrval[xattrs->val[xattrp].attrval_len] = '\0';
+     if (sscanf (attrval, "%zu", &nr_xattrs) != 1) {
+       fprintf (stderr, _("%s: error: cannot parse xattr count for %s %s\n"),
+-               program_name, dir, names[i]);
++               guestfs___program_name, dir, names[i]);
+       return -1;
+     }
+ 
+diff --git a/df/domains.c b/df/domains.c
+index b2d9537..8943ebc 100644
+--- a/df/domains.c
++++ b/df/domains.c
+@@ -82,7 +82,7 @@ get_all_libvirt_domains (const char *libvirt_uri)
+     err = virGetLastError ();
+     fprintf (stderr,
+              _("%s: could not connect to libvirt (code %d, domain %d): %s\n"),
+-             program_name, err->code, err->domain, err->message);
++             guestfs___program_name, err->code, err->domain, err->message);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -91,7 +91,7 @@ get_all_libvirt_domains (const char *libvirt_uri)
+     err = virGetLastError ();
+     fprintf (stderr,
+              _("%s: could not get number of running domains (code %d, domain %d): %s\n"),
+-             program_name, err->code, err->domain, err->message);
++             guestfs___program_name, err->code, err->domain, err->message);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -101,7 +101,7 @@ get_all_libvirt_domains (const char *libvirt_uri)
+     err = virGetLastError ();
+     fprintf (stderr,
+              _("%s: could not list running domains (code %d, domain %d): %s\n"),
+-             program_name, err->code, err->domain, err->message);
++             guestfs___program_name, err->code, err->domain, err->message);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -112,7 +112,7 @@ get_all_libvirt_domains (const char *libvirt_uri)
+     err = virGetLastError ();
+     fprintf (stderr,
+              _("%s: could not get number of inactive domains (code %d, domain %d): %s\n"),
+-             program_name, err->code, err->domain, err->message);
++             guestfs___program_name, err->code, err->domain, err->message);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -122,7 +122,7 @@ get_all_libvirt_domains (const char *libvirt_uri)
+     err = virGetLastError ();
+     fprintf (stderr,
+              _("%s: could not list inactive domains (code %d, domain %d): %s\n"),
+-             program_name, err->code, err->domain, err->message);
++             guestfs___program_name, err->code, err->domain, err->message);
+     exit (EXIT_FAILURE);
+   }
+ 
+diff --git a/df/main.c b/df/main.c
+index bddf2a9..fef1006 100644
+--- a/df/main.c
++++ b/df/main.c
+@@ -64,7 +64,7 @@ usage (int status)
+ {
+   if (status != EXIT_SUCCESS)
+     fprintf (stderr, _("Try `%s --help' for more information.\n"),
+-             program_name);
++             guestfs___program_name);
+   else {
+     fprintf (stdout,
+            _("%s: display free space on virtual filesystems\n"
+@@ -88,8 +88,8 @@ usage (int status)
+              "  -V|--version         Display version and exit\n"
+              "  -x                   Trace libguestfs API calls\n"
+              "For more information, see the manpage %s(1).\n"),
+-             program_name, program_name, program_name,
+-             program_name);
++             guestfs___program_name, guestfs___program_name, guestfs___program_name,
++             guestfs___program_name);
+   }
+   exit (status);
+ }
+@@ -153,7 +153,7 @@ main (int argc, char *argv[])
+         uuid = 1;
+       } else {
+         fprintf (stderr, _("%s: unknown long option: %s (%d)\n"),
+-                 program_name, long_options[option_index].name, option_index);
++                 guestfs___program_name, long_options[option_index].name, option_index);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -180,7 +180,7 @@ main (int argc, char *argv[])
+ 
+     case 'P':
+       if (sscanf (optarg, "%zu", &max_threads) != 1) {
+-        fprintf (stderr, _("%s: -P option is not numeric\n"), program_name);
++        fprintf (stderr, _("%s: -P option is not numeric\n"), guestfs___program_name);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -260,7 +260,7 @@ main (int argc, char *argv[])
+    */
+   if (human && csv) {
+     fprintf (stderr, _("%s: you cannot use -h and --csv options together.\n"),
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -277,7 +277,7 @@ main (int argc, char *argv[])
+     free_domains ();
+ #else
+     fprintf (stderr, _("%s: compiled without support for libvirt.\n"),
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+ #endif
+   }
+diff --git a/df/parallel.c b/df/parallel.c
+index 6d2e1cf..f7a628b 100644
+--- a/df/parallel.c
++++ b/df/parallel.c
+@@ -259,7 +259,7 @@ worker_thread (void *thread_data_vp)
+ static void
+ thread_failure (const char *fn, int err)
+ {
+-  fprintf (stderr, "%s: %s: %s\n", program_name, fn, strerror (err));
++  fprintf (stderr, "%s: %s: %s\n", guestfs___program_name, fn, strerror (err));
+ }
+ 
+ #endif /* HAVE_LIBVIRT */
+diff --git a/diff/diff.c b/diff/diff.c
+index ad371b0..304ce84 100644
+--- a/diff/diff.c
++++ b/diff/diff.c
+@@ -89,7 +89,7 @@ usage (int status)
+ {
+   if (status != EXIT_SUCCESS)
+     fprintf (stderr, _("Try `%s --help' for more information.\n"),
+-             program_name);
++             guestfs___program_name);
+   else {
+     fprintf (stdout,
+            _("%s: list differences between virtual machines\n"
+@@ -125,8 +125,8 @@ usage (int status)
+              "  -x                   Trace libguestfs API calls\n"
+              "  --xattrs             Display extended attributes\n"
+              "For more information, see the manpage %s(1).\n"),
+-             program_name, program_name, program_name,
+-             program_name);
++             guestfs___program_name, guestfs___program_name, guestfs___program_name,
++             guestfs___program_name);
+   }
+   exit (status);
+ }
+@@ -258,7 +258,7 @@ main (int argc, char *argv[])
+         enable_xattrs = 1;
+       } else {
+         fprintf (stderr, _("%s: unknown long option: %s (%d)\n"),
+-                 program_name, long_options[option_index].name, option_index);
++                 guestfs___program_name, long_options[option_index].name, option_index);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -315,7 +315,7 @@ main (int argc, char *argv[])
+   if (drvs == NULL || drvs2 == NULL) {
+     fprintf (stderr,
+              _("%s: you must specify some -a|-A|-d|-D options, see %s(1)\n"),
+-             program_name, program_name);
++             guestfs___program_name, guestfs___program_name);
+     usage (EXIT_FAILURE);
+   }
+ 
+@@ -324,13 +324,13 @@ main (int argc, char *argv[])
+    */
+   if (human && csv) {
+     fprintf (stderr, _("%s: you cannot use -h and --csv options together.\n"),
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+   if (optind != argc) {
+     fprintf (stderr, _("%s: extra arguments on the command line\n"),
+-             program_name);
++             guestfs___program_name);
+     usage (EXIT_FAILURE);
+   }
+ 
+@@ -737,7 +737,7 @@ diff (struct file *file1, guestfs_h *g1, struct file *file2, guestfs_h *g2)
+     fprintf (stderr, "%s\n", cmd);
+   r = system (cmd);
+   if (!WIFEXITED (r) || WEXITSTATUS (r) != 0) {
+-    fprintf (stderr, _("%s: external diff command failed\n"), program_name);
++    fprintf (stderr, _("%s: external diff command failed\n"), guestfs___program_name);
+     goto out;
+   }
+ 
+diff --git a/edit/edit.c b/edit/edit.c
+index 20b2963..cc88eb1 100644
+--- a/edit/edit.c
++++ b/edit/edit.c
+@@ -61,7 +61,7 @@ usage (int status)
+ {
+   if (status != EXIT_SUCCESS)
+     fprintf (stderr, _("Try `%s --help' for more information.\n"),
+-             program_name);
++             guestfs___program_name);
+   else {
+     fprintf (stdout,
+            _("%s: Edit a file in a virtual machine\n"
+@@ -85,8 +85,8 @@ usage (int status)
+              "  -V|--version         Display version and exit\n"
+              "  -x                   Trace libguestfs API calls\n"
+              "For more information, see the manpage %s(1).\n"),
+-             program_name, program_name, program_name,
+-             program_name);
++             guestfs___program_name, guestfs___program_name, guestfs___program_name,
++             guestfs___program_name);
+   }
+   exit (status);
+ }
+@@ -153,7 +153,7 @@ main (int argc, char *argv[])
+         OPTION_format;
+       } else {
+         fprintf (stderr, _("%s: unknown long option: %s (%d)\n"),
+-                 program_name, long_options[option_index].name, option_index);
++                 guestfs___program_name, long_options[option_index].name, option_index);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -165,7 +165,7 @@ main (int argc, char *argv[])
+     case 'b':
+       if (backup_extension) {
+         fprintf (stderr, _("%s: -b option given multiple times\n"),
+-                 program_name);
++                 guestfs___program_name);
+         exit (EXIT_FAILURE);
+       }
+       backup_extension = optarg;
+@@ -182,7 +182,7 @@ main (int argc, char *argv[])
+     case 'e':
+       if (perl_expr) {
+         fprintf (stderr, _("%s: -e option given multiple times\n"),
+-                 program_name);
++                 guestfs___program_name);
+         exit (EXIT_FAILURE);
+       }
+       perl_expr = optarg;
+diff --git a/fish/config.c b/fish/config.c
+index 7d319ad..cec0ae3 100644
+--- a/fish/config.c
++++ b/fish/config.c
+@@ -57,13 +57,13 @@ read_config_from_file (const char *filename)
+     /*
+     if (verbose)
+       fprintf (stderr, "%s: reading configuration from %s\n",
+-               program_name, filename);
++               guestfs___program_name, filename);
+     */
+ 
+     if (config_read (&conf, fp) == CONFIG_FALSE) {
+       fprintf (stderr,
+                _("%s: %s: line %d: error parsing configuration file: %s\n"),
+-               program_name, filename, config_error_line (&conf),
++               guestfs___program_name, filename, config_error_line (&conf),
+                config_error_text (&conf));
+       exit (EXIT_FAILURE);
+     }
+@@ -165,7 +165,7 @@ parse_config (void)
+   if (verbose)
+     fprintf (stderr,
+              _("%s: compiled without libconfig, guestfish configuration file ignored\n"),
+-             program_name);
++             guestfs___program_name);
+   */
+ }
+ 
+diff --git a/fish/fish.c b/fish/fish.c
+index 6d07f36..db68804 100644
+--- a/fish/fish.c
++++ b/fish/fish.c
+@@ -103,7 +103,7 @@ usage (int status)
+ {
+   if (status != EXIT_SUCCESS)
+     fprintf (stderr, _("Try `%s --help' for more information.\n"),
+-             program_name);
++             guestfs___program_name);
+   else {
+     fprintf (stdout,
+            _("%s: guest filesystem shell\n"
+@@ -152,9 +152,9 @@ usage (int status)
+              "run again without -i and use 'run' + 'list-filesystems' + 'mount' cmds.\n"
+              "\n"
+              "For more information, see the manpage %s(1).\n"),
+-             program_name, program_name, program_name,
+-             program_name, program_name, program_name,
+-             program_name);
++             guestfs___program_name, guestfs___program_name, guestfs___program_name,
++             guestfs___program_name, guestfs___program_name, guestfs___program_name,
++             guestfs___program_name);
+   }
+   exit (status);
+ }
+@@ -251,7 +251,7 @@ main (int argc, char *argv[])
+         if (optarg) {
+           if (sscanf (optarg, "%d", &remote_control) != 1) {
+             fprintf (stderr, _("%s: --listen=PID: PID was not a number: %s\n"),
+-                     program_name, optarg);
++                     guestfs___program_name, optarg);
+             exit (EXIT_FAILURE);
+           }
+         } else {
+@@ -259,7 +259,7 @@ main (int argc, char *argv[])
+           if (!p || sscanf (p, "%d", &remote_control) != 1) {
+             fprintf (stderr, _("%s: remote: $GUESTFISH_PID must be set"
+                                " to the PID of the remote process\n"),
+-                     program_name);
++                     guestfs___program_name);
+             exit (EXIT_FAILURE);
+           }
+         }
+@@ -289,7 +289,7 @@ main (int argc, char *argv[])
+         complete_dest_paths = 0;
+       } else {
+         fprintf (stderr, _("%s: unknown long option: %s (%d)\n"),
+-                 program_name, long_options[option_index].name, option_index);
++                 guestfs___program_name, long_options[option_index].name, option_index);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -308,14 +308,14 @@ main (int argc, char *argv[])
+ 
+     case 'D':
+       fprintf (stderr, _("%s: warning: -D option is deprecated, use --no-dest-paths instead\n"),
+-               program_name);
++               guestfs___program_name);
+       complete_dest_paths = 0;
+       break;
+ 
+     case 'f':
+       if (file) {
+         fprintf (stderr, _("%s: only one -f parameter can be given\n"),
+-                 program_name);
++                 guestfs___program_name);
+         exit (EXIT_FAILURE);
+       }
+       file = optarg;
+@@ -512,7 +512,7 @@ main (int argc, char *argv[])
+   if (remote_control_listen && remote_control) {
+     fprintf (stderr,
+              _("%s: cannot use --listen and --remote options at the same time\n"),
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -520,13 +520,13 @@ main (int argc, char *argv[])
+     if (optind < argc) {
+       fprintf (stderr,
+                _("%s: extra parameters on the command line with --listen flag\n"),
+-               program_name);
++               guestfs___program_name);
+       exit (EXIT_FAILURE);
+     }
+     if (file) {
+       fprintf (stderr,
+                _("%s: cannot use --listen and --file options at the same time\n"),
+-               program_name);
++               guestfs___program_name);
+       exit (EXIT_FAILURE);
+     }
+     rc_listen ();
+@@ -859,7 +859,7 @@ parse_command_line (char *buf, int *exit_on_error_rtn)
+       if (p[len+1] && (p[len+1] != ' ' && p[len+1] != '\t')) {
+         fprintf (stderr,
+                  _("%s: command arguments not separated by whitespace\n"),
+-                 program_name);
++                 guestfs___program_name);
+         pcmd.status = -1;
+         return pcmd;
+       }
+@@ -868,14 +868,14 @@ parse_command_line (char *buf, int *exit_on_error_rtn)
+       p++;
+       len = strcspn (p, "'");
+       if (p[len] == '\0') {
+-        fprintf (stderr, _("%s: unterminated single quote\n"), program_name);
++        fprintf (stderr, _("%s: unterminated single quote\n"), guestfs___program_name);
+         pcmd.status = -1;
+         return pcmd;
+       }
+       if (p[len+1] && (p[len+1] != ' ' && p[len+1] != '\t')) {
+         fprintf (stderr,
+                  _("%s: command arguments not separated by whitespace\n"),
+-                 program_name);
++                 guestfs___program_name);
+         pcmd.status = -1;
+         return pcmd;
+       }
+@@ -899,7 +899,7 @@ parse_command_line (char *buf, int *exit_on_error_rtn)
+         pend = &p[len];
+     } else {
+       fprintf (stderr, _("%s: internal error parsing string at '%s'\n"),
+-               program_name, p);
++               guestfs___program_name, p);
+       abort ();
+     }
+ 
+@@ -915,7 +915,7 @@ parse_command_line (char *buf, int *exit_on_error_rtn)
+   }
+ 
+   if (i == argv_len) {
+-    fprintf (stderr, _("%s: too many arguments\n"), program_name);
++    fprintf (stderr, _("%s: too many arguments\n"), guestfs___program_name);
+     pcmd.status = -1;
+     return pcmd;
+   }
+@@ -991,7 +991,7 @@ parse_quoted_string (char *p)
+       default:
+       error:
+         fprintf (stderr, _("%s: invalid escape sequence in string (starting at offset %d)\n"),
+-                 program_name, (int) (p - start));
++                 guestfs___program_name, (int) (p - start));
+         return -1;
+       }
+       memmove (p+1, p+1+m, strlen (p+1+m) + 1);
+@@ -999,7 +999,7 @@ parse_quoted_string (char *p)
+   }
+ 
+   if (!*p) {
+-    fprintf (stderr, _("%s: unterminated double quote\n"), program_name);
++    fprintf (stderr, _("%s: unterminated double quote\n"), guestfs___program_name);
+     return -1;
+   }
+ 
+@@ -1062,7 +1062,7 @@ cmdline (char *argv[], size_t optind, size_t argc)
+ 
+   cmd = argv[optind++];
+   if (STREQ (cmd, ":")) {
+-    fprintf (stderr, _("%s: empty command on command line\n"), program_name);
++    fprintf (stderr, _("%s: empty command on command line\n"), guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -1191,7 +1191,7 @@ issue_command (const char *cmd, char *argv[], const char *pipecmd,
+   }
+   if (ferror (stdout)) {
+     if (!pipecmd || pipe_error) {
+-      fprintf (stderr, "%s: write error%s\n", program_name,
++      fprintf (stderr, "%s: write error%s\n", guestfs___program_name,
+                pipecmd ? " on pipe" : "");
+       r = -1;
+     }
+@@ -1734,13 +1734,13 @@ win_prefix_drive_letter (char drive_letter, const char *path)
+     return NULL;
+   if (roots[0] == NULL) {
+     fprintf (stderr, _("%s: to use Windows drive letters, you must inspect the guest (\"-i\" option or run \"inspect-os\" command)\n"),
+-             program_name);
++             guestfs___program_name);
+     return NULL;
+   }
+   drives = guestfs_inspect_get_drive_mappings (g, roots[0]);
+   if (drives == NULL || drives[0] == NULL) {
+     fprintf (stderr, _("%s: to use Windows drive letters, this must be a Windows guest\n"),
+-             program_name);
++             guestfs___program_name);
+     return NULL;
+   }
+ 
+@@ -1754,7 +1754,7 @@ win_prefix_drive_letter (char drive_letter, const char *path)
+ 
+   if (device == NULL) {
+     fprintf (stderr, _("%s: drive '%c:' not found.  To list available drives do:\n  inspect-get-drive-mappings %s\n"),
+-             program_name, drive_letter, roots[0]);
++             guestfs___program_name, drive_letter, roots[0]);
+     return NULL;
+   }
+ 
+@@ -1773,7 +1773,7 @@ win_prefix_drive_letter (char drive_letter, const char *path)
+ 
+   if (mountpoint == NULL) {
+     fprintf (stderr, _("%s: to access '%c:', mount %s first.  One way to do this is:\n  umount-all\n  mount %s /\n"),
+-             program_name, drive_letter, device, device);
++             guestfs___program_name, drive_letter, device, device);
+     return NULL;
+   }
+ 
+@@ -1810,7 +1810,7 @@ file_in (const char *arg)
+     const char *endmarker = &arg[3];
+     if (*endmarker == '\0') {
+       fprintf (stderr, "%s: missing end marker in -<< expression\n",
+-               program_name);
++               guestfs___program_name);
+       return NULL;
+     }
+     ret = file_in_heredoc (endmarker);
+@@ -1875,7 +1875,7 @@ file_in_heredoc (const char *endmarker)
+    * is likely to be an error.
+    */
+   fprintf (stderr, "%s: end of input reached without finding '%s'\n",
+-           program_name, endmarker);
++           guestfs___program_name, endmarker);
+   goto error2;
+ 
+  found_end:
+diff --git a/fish/inspect.c b/fish/inspect.c
+index 841f1da..bd12b91 100644
+--- a/fish/inspect.c
++++ b/fish/inspect.c
+@@ -60,7 +60,7 @@ inspect_mount_handle (guestfs_h *g)
+ {
+   if (live) {
+     fprintf (stderr, _("%s: don't use --live and -i options together\n"),
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -86,7 +86,7 @@ inspect_mount_handle (guestfs_h *g)
+         "If using other virt tools, this disk image won't work\n"
+         "with these tools.  Use the guestfish equivalent commands\n"
+         "(see the virt tool manual page).\n"),
+-             program_name);
++             guestfs___program_name);
+     guestfs___free_string_list (roots);
+     exit (EXIT_FAILURE);
+   }
+@@ -107,7 +107,7 @@ inspect_mount_handle (guestfs_h *g)
+         "If using other virt tools, multi-boot operating systems won't work\n"
+         "with these tools.  Use the guestfish equivalent commands\n"
+         "(see the virt tool manual page).\n"),
+-             program_name);
++             guestfs___program_name);
+     guestfs___free_string_list (roots);
+     exit (EXIT_FAILURE);
+   }
+@@ -156,7 +156,7 @@ inspect_mount_root (guestfs_h *g, const char *root)
+ 
+   if (mount_errors)
+     fprintf (stderr, _("%s: some filesystems could not be mounted (ignored)\n"),
+-             program_name);
++             guestfs___program_name);
+ }
+ 
+ /* This function is called only if the above function was called,
+diff --git a/fish/options.c b/fish/options.c
+index f7870a4..8b12fd6 100644
+--- a/fish/options.c
++++ b/fish/options.c
+@@ -105,7 +105,7 @@ add_drives_handle (guestfs_h *g, struct drv *drv, char next_drive)
+   if (next_drive > 'z') {
+     fprintf (stderr,
+              _("%s: too many drives added on the command line\n"),
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -269,19 +269,19 @@ display_mountpoints_on_failure (const char *mp_device,
+     return;
+ 
+   fprintf (stderr, _("%s: '%s' could not be mounted.\n"),
+-           program_name, mp_device);
++           guestfs___program_name, mp_device);
+ 
+   if (user_supplied_options)
+     fprintf (stderr, _("%s: Check mount(8) man page to ensure options '%s'\n"
+                        "%s: are supported by the filesystem that is being mounted.\n"),
+-             program_name, user_supplied_options, program_name);
++             guestfs___program_name, user_supplied_options, guestfs___program_name);
+ 
+   fprintf (stderr, _("%s: Did you mean to mount one of these filesystems?\n"),
+-           program_name);
++           guestfs___program_name);
+ 
+   for (i = 0; fses[i] != NULL; i += 2) {
+     CLEANUP_FREE char *p = guestfs_canonical_device_name (g, fses[i]);
+-    fprintf (stderr, "%s: \t%s (%s)\n", program_name,
++    fprintf (stderr, "%s: \t%s (%s)\n", guestfs___program_name,
+              p ? p : fses[i], fses[i+1]);
+   }
+ }
+diff --git a/fish/options.h b/fish/options.h
+index 2c568e6..93fb560 100644
+--- a/fish/options.h
++++ b/fish/options.h
+@@ -218,7 +218,7 @@ extern void display_long_options (const struct option *) __attribute__((noreturn
+   {                                                                     \
+     struct guestfs_version *v = guestfs_version (g);                    \
+     printf ("%s %"PRIi64".%"PRIi64".%"PRIi64"%s\n",                     \
+-            program_name,                                               \
++            guestfs___program_name,                                               \
+             v->major, v->minor, v->release, v->extra);                  \
+     exit (EXIT_SUCCESS);                                                \
+   }
+@@ -226,7 +226,7 @@ extern void display_long_options (const struct option *) __attribute__((noreturn
+ #define OPTION_w                                                        \
+   if (read_only) {                                                      \
+     fprintf (stderr, _("%s: cannot mix --ro and --rw options\n"),       \
+-             program_name);                                             \
++             guestfs___program_name);                                             \
+     exit (EXIT_FAILURE);                                                \
+   }
+ 
+@@ -238,7 +238,7 @@ extern void display_long_options (const struct option *) __attribute__((noreturn
+     if (!format_consumed) {                                             \
+       fprintf (stderr,                                                  \
+                _("%s: --format parameter must appear before -a parameter\n"), \
+-               program_name);                                           \
++               guestfs___program_name);                                           \
+       exit (EXIT_FAILURE);                                              \
+     }                                                                   \
+   } while (0)
+diff --git a/fish/uri.c b/fish/uri.c
+index f45c907..80e0235 100644
+--- a/fish/uri.c
++++ b/fish/uri.c
+@@ -110,7 +110,7 @@ parse (const char *arg, char **path_ret, char **protocol_ret,
+   uri = xmlParseURI (arg);
+   if (!uri) {
+     fprintf (stderr, _("%s: --add: could not parse URI '%s'\n"),
+-             program_name, arg);
++             guestfs___program_name, arg);
+     return -1;
+   }
+ 
+@@ -121,7 +121,7 @@ parse (const char *arg, char **path_ret, char **protocol_ret,
+   if (uri->scheme == NULL || STREQ (uri->scheme, "")) {
+     /* Probably can never happen. */
+     fprintf (stderr, _("%s: %s: scheme of URI is NULL or empty\n"),
+-             program_name, arg);
++             guestfs___program_name, arg);
+     return -1;
+   }
+ 
+@@ -129,14 +129,14 @@ parse (const char *arg, char **path_ret, char **protocol_ret,
+ 
+   if (uri->server && STRNEQ (uri->server, "") && socket) {
+     fprintf (stderr, _("%s: %s: cannot both a server name and a socket query parameter\n"),
+-             program_name, arg);
++             guestfs___program_name, arg);
+     return -1;
+   }
+ 
+   /* Is this needed? XXX
+   if (socket && socket[0] != '/') {
+     fprintf (stderr, _("%s: --add %s: socket query parameter must be an absolute path\n"),
+-             program_name, arg);
++             guestfs___program_name, arg);
+     return -1;
+   }
+   */
+diff --git a/fish/windows.c b/fish/windows.c
+index 04ead2f..63c5cae 100644
+--- a/fish/windows.c
++++ b/fish/windows.c
+@@ -104,7 +104,7 @@ mount_drive_letter (guestfs_h *g, char drive_letter, const char *root,
+     guestfs_inspect_get_drive_mappings (g, root);
+   if (drives == NULL || drives[0] == NULL) {
+     fprintf (stderr, _("%s: to use Windows drive letters, this must be a Windows guest\n"),
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -118,7 +118,7 @@ mount_drive_letter (guestfs_h *g, char drive_letter, const char *root,
+ 
+   if (device == NULL) {
+     fprintf (stderr, _("%s: drive '%c:' not found.\n"),
+-             program_name, drive_letter);
++             guestfs___program_name, drive_letter);
+     exit (EXIT_FAILURE);
+   }
+ 
+diff --git a/format/format.c b/format/format.c
+index 1651f31..06c138c 100644
+--- a/format/format.c
++++ b/format/format.c
+@@ -63,7 +63,7 @@ usage (int status)
+ 
+   if (status != EXIT_SUCCESS)
+     fprintf (stderr, _("Try `%s --help' for more information.\n%s\n"),
+-             program_name, warning);
++             guestfs___program_name, warning);
+   else {
+     fprintf (stdout,
+            _("%s: erase and make a blank disk\n"
+@@ -88,7 +88,7 @@ usage (int status)
+              "For more information, see the manpage %s(1).\n"
+              "\n"
+              "%s\n\n"),
+-             program_name, warning, program_name, program_name,
++             guestfs___program_name, warning, guestfs___program_name, guestfs___program_name,
+              warning);
+   }
+   exit (status);
+@@ -146,7 +146,7 @@ main (int argc, char *argv[])
+           filesystem = NULL;
+         else if (optarg[0] == '-') { /* eg: --filesystem --lvm */
+           fprintf (stderr, _("%s: no filesystem was specified\n"),
+-                   program_name);
++                   guestfs___program_name);
+           exit (EXIT_FAILURE);
+         } else
+           filesystem = optarg;
+@@ -154,7 +154,7 @@ main (int argc, char *argv[])
+         if (vg || lv) {
+           fprintf (stderr,
+                    _("%s: --lvm option cannot be given multiple times\n"),
+-                   program_name);
++                   guestfs___program_name);
+           exit (EXIT_FAILURE);
+         }
+         if (optarg == NULL) {
+@@ -179,7 +179,7 @@ main (int argc, char *argv[])
+         label = optarg;
+       } else {
+         fprintf (stderr, _("%s: unknown long option: %s (%d)\n"),
+-                 program_name, long_options[option_index].name, option_index);
++                 guestfs___program_name, long_options[option_index].name, option_index);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -272,7 +272,7 @@ main (int argc, char *argv[])
+                  "may mean there is some sort of partition table or disk\n"
+                  "data which we are unable to remove.  If you think this\n"
+                  "is a bug, please file a bug at http://libguestfs.org/\n"),
+-               program_name);
++               guestfs___program_name);
+       exit (EXIT_FAILURE);
+     }
+   }
+@@ -310,7 +310,7 @@ parse_vg_lv (const char *lvm)
+   } else {
+   cannot_parse:
+     fprintf (stderr, _("%s: cannot parse --lvm option (%s)\n"),
+-             program_name, lvm);
++             guestfs___program_name, lvm);
+     exit (EXIT_FAILURE);
+   }
+ 
+diff --git a/fuse/guestmount.c b/fuse/guestmount.c
+index 519bba3..abb93c0 100644
+--- a/fuse/guestmount.c
++++ b/fuse/guestmount.c
+@@ -88,7 +88,7 @@ static void __attribute__((noreturn))
+ fuse_help (void)
+ {
+   static struct fuse_operations null_operations;
+-  const char *tmp_argv[] = { program_name, "--help", NULL };
++  const char *tmp_argv[] = { guestfs___program_name, "--help", NULL };
+   fuse_main (2, (char **) tmp_argv, &null_operations, NULL);
+   exit (EXIT_SUCCESS);
+ }
+@@ -98,7 +98,7 @@ usage (int status)
+ {
+   if (status != EXIT_SUCCESS)
+     fprintf (stderr, _("Try `%s --help' for more information.\n"),
+-             program_name);
++             guestfs___program_name);
+   else {
+     fprintf (stdout,
+            _("%s: FUSE module for libguestfs\n"
+@@ -131,7 +131,7 @@ usage (int status)
+              "  -w|--rw              Mount read-write\n"
+              "  -x|--trace           Trace guestfs API calls\n"
+              ),
+-             program_name, program_name, program_name);
++             guestfs___program_name, guestfs___program_name, guestfs___program_name);
+   }
+   exit (status);
+ }
+@@ -242,12 +242,12 @@ main (int argc, char *argv[])
+       } else if (STREQ (long_options[option_index].name, "fd")) {
+         if (sscanf (optarg, "%d", &pipe_fd) != 1 || pipe_fd < 0) {
+           fprintf (stderr, _("%s: unable to parse --fd option value: %s\n"),
+-                   program_name, optarg);
++                   guestfs___program_name, optarg);
+           exit (EXIT_FAILURE);
+         }
+       } else {
+         fprintf (stderr, _("%s: unknown long option: %s (%d)\n"),
+-                 program_name, long_options[option_index].name, option_index);
++                 guestfs___program_name, long_options[option_index].name, option_index);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -317,7 +317,7 @@ main (int argc, char *argv[])
+     if (!drvs || !(mps || inspector)) {
+       fprintf (stderr,
+                _("%s: must have at least one -a/-d and at least one -m/-i option\n"),
+-               program_name);
++               guestfs___program_name);
+       exit (EXIT_FAILURE);
+     }
+   } else {
+@@ -327,14 +327,14 @@ main (int argc, char *argv[])
+     if (read_only) {
+       fprintf (stderr,
+                _("%s: --live is not compatible with --ro option\n"),
+-               program_name);
++               guestfs___program_name);
+       exit (EXIT_FAILURE);
+     }
+ 
+     if (inspector) {
+       fprintf (stderr,
+                _("%s: --live is not compatible with -i option\n"),
+-               program_name);
++               guestfs___program_name);
+       exit (EXIT_FAILURE);
+     }
+ 
+@@ -349,14 +349,14 @@ main (int argc, char *argv[])
+     if (count_d != 1) {
+       fprintf (stderr,
+                _("%s: with --live, you must use exactly one -d option\n"),
+-               program_name);
++               guestfs___program_name);
+       exit (EXIT_FAILURE);
+     }
+ 
+     if (count_other != 0) {
+       fprintf (stderr,
+                _("%s: --live is not compatible with -a option\n"),
+-               program_name);
++               guestfs___program_name);
+       exit (EXIT_FAILURE);
+     }
+   }
+@@ -365,7 +365,7 @@ main (int argc, char *argv[])
+   if (optind+1 != argc) {
+     fprintf (stderr,
+              _("%s: you must specify a mountpoint in the host filesystem\n"),
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+diff --git a/fuse/guestunmount.c b/fuse/guestunmount.c
+index c36c336..3df481b 100644
+--- a/fuse/guestunmount.c
++++ b/fuse/guestunmount.c
+@@ -50,7 +50,7 @@ usage (int status)
+ {
+   if (status != EXIT_SUCCESS)
+     fprintf (stderr, _("Try `%s --help' for more information.\n"),
+-             program_name);
++             guestfs___program_name);
+   else {
+     fprintf (stdout,
+            _("%s: clean up a mounted filesystem\n"
+@@ -66,7 +66,7 @@ usage (int status)
+              "  -v|--verbose         Verbose messages\n"
+              "  -V|--version         Display version and exit\n"
+              ),
+-             program_name, program_name);
++             guestfs___program_name, guestfs___program_name);
+   }
+   exit (status);
+ }
+@@ -109,7 +109,7 @@ main (int argc, char *argv[])
+       if (STREQ (long_options[option_index].name, "fd")) {
+         if (sscanf (optarg, "%d", &fd) != 1 || fd < 0) {
+           fprintf (stderr, _("%s: cannot parse fd option '%s'\n"),
+-                   program_name, optarg);
++                   guestfs___program_name, optarg);
+           exit (EXIT_FAILURE);
+         }
+       } else if (STREQ (long_options[option_index].name, "no-retry")) {
+@@ -117,12 +117,12 @@ main (int argc, char *argv[])
+       } else if (STREQ (long_options[option_index].name, "retry")) {
+         if (sscanf (optarg, "%zu", &retries) != 1 || retries >= 64) {
+           fprintf (stderr, _("%s: cannot parse retries option or value is too large '%s'\n"),
+-                   program_name, optarg);
++                   guestfs___program_name, optarg);
+           exit (EXIT_FAILURE);
+         }
+       } else {
+         fprintf (stderr, _("%s: unknown long option: %s (%d)\n"),
+-                 program_name, long_options[option_index].name, option_index);
++                 guestfs___program_name, long_options[option_index].name, option_index);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -151,7 +151,7 @@ main (int argc, char *argv[])
+   if (optind+1 != argc) {
+     fprintf (stderr,
+              _("%s: you must specify a mountpoint in the host filesystem\n"),
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -206,7 +206,7 @@ main (int argc, char *argv[])
+   /* fusermount failed after N retries */
+   if (!quiet) {
+     fprintf (stderr, _("%s: failed to unmount %s: %s\n"),
+-             program_name, mountpoint, error);
++             guestfs___program_name, mountpoint, error);
+     do_fuser (mountpoint);
+   }
+   free (error);
+@@ -217,7 +217,7 @@ main (int argc, char *argv[])
+  not_mounted:
+   if (!quiet)
+     fprintf (stderr, _("%s: %s is not mounted: %s\n"),
+-             program_name, mountpoint, error);
++             guestfs___program_name, mountpoint, error);
+ 
+   free (error);
+ 
+diff --git a/fuse/test-guestmount-fd.c b/fuse/test-guestmount-fd.c
+index 2b3ce5b..f969cf1 100644
+--- a/fuse/test-guestmount-fd.c
++++ b/fuse/test-guestmount-fd.c
+@@ -52,7 +52,7 @@ main (int argc, char *argv[])
+   skip = getenv ("SKIP_TEST_GUESTMOUNT_FD");
+   if (skip && guestfs___is_true (skip) > 0) {
+     fprintf (stderr, "%s: test skipped because environment variable set.\n",
+-             program_name);
++             guestfs___program_name);
+     exit (77);
+   }
+ 
+@@ -117,7 +117,7 @@ main (int argc, char *argv[])
+   }
+   if (r == 0) {
+     fprintf (stderr, "%s: unexpected end of file on pipe fd.\n",
+-             program_name);
++             guestfs___program_name);
+     ignore_value (rmdir (MOUNTPOINT));
+     exit (EXIT_FAILURE);
+   }
+@@ -125,7 +125,7 @@ main (int argc, char *argv[])
+   /* Check that the test image was mounted. */
+   if (access (TEST_FILE, R_OK) == -1) {
+     fprintf (stderr, "%s: test failed because test image is not mounted and ready.",
+-             program_name);
++             guestfs___program_name);
+     ignore_value (rmdir (MOUNTPOINT));
+     exit (EXIT_FAILURE);
+   }
+@@ -135,7 +135,7 @@ main (int argc, char *argv[])
+   if (r != 0) {
+     char status_string[80];
+ 
+-    fprintf (stderr, "%s: test failed: %s\n", program_name,
++    fprintf (stderr, "%s: test failed: %s\n", guestfs___program_name,
+              guestfs___exit_status_to_string (r, GUESTUNMOUNT_BINARY,
+                                               status_string,
+                                               sizeof status_string));
+@@ -156,7 +156,7 @@ main (int argc, char *argv[])
+     char status_string[80];
+ 
+     fprintf (stderr, "%s: test failed: %s\n",
+-             program_name,
++             guestfs___program_name,
+              guestfs___exit_status_to_string (status, GUESTMOUNT_BINARY,
+                                               status_string,
+                                               sizeof status_string));
+diff --git a/fuse/test-guestunmount-fd.c b/fuse/test-guestunmount-fd.c
+index 5a75469..9ddc842 100644
+--- a/fuse/test-guestunmount-fd.c
++++ b/fuse/test-guestunmount-fd.c
+@@ -83,7 +83,7 @@ main (int argc, char *argv[])
+   if (r != 0) {
+     char status_string[80];
+ 
+-    fprintf (stderr, "%s: test failed: %s\n", program_name,
++    fprintf (stderr, "%s: test failed: %s\n", guestfs___program_name,
+              guestfs___exit_status_to_string (r, "guestunmount",
+                                               status_string,
+                                               sizeof status_string));
+@@ -105,7 +105,7 @@ main (int argc, char *argv[])
+     char status_string[80];
+ 
+     fprintf (stderr, "%s: test failed: guestunmount didn't return status code 2; %s\n",
+-             program_name,
++             guestfs___program_name,
+              guestfs___exit_status_to_string (status, "guestunmount",
+                                               status_string,
+                                               sizeof status_string));
+diff --git a/generator/fish.ml b/generator/fish.ml
+index 6d6802a..fce7c92 100644
+--- a/generator/fish.ml
++++ b/generator/fish.ml
+@@ -486,7 +486,7 @@ Guestfish will prompt for these separately."
+             pr "    case -1:\n";
+             pr "      fprintf (stderr,\n";
+             pr "               _(\"%%s: '%%s': invalid boolean value, use 'true' or 'false'\\n\"),\n";
+-            pr "               program_name, argv[i-1]);\n";
++            pr "               guestfs___program_name, argv[i-1]);\n";
+             pr "      goto out_%s;\n" name;
+             pr "    case 0:  %s = 0; break;\n" name;
+             pr "    default: %s = 1;\n" name;
+@@ -529,7 +529,7 @@ Guestfish will prompt for these separately."
+                  pr "        case -1:\n";
+                  pr "          fprintf (stderr,\n";
+                  pr "                   _(\"%%s: '%%s': invalid boolean value, use 'true' or 'false'\\n\"),\n";
+-                 pr "                   program_name, &argv[i][%d]);\n" (len+1);
++                 pr "                   guestfs___program_name, &argv[i][%d]);\n" (len+1);
+                  pr "          goto out;\n";
+                  pr "        case 0:  optargs_s.%s = 0; break;\n" n;
+                  pr "        default: optargs_s.%s = 1;\n" n;
+diff --git a/inspector/inspector.c b/inspector/inspector.c
+index 71795ce..a9709c1 100644
+--- a/inspector/inspector.c
++++ b/inspector/inspector.c
+@@ -65,7 +65,7 @@ usage (int status)
+ {
+   if (status != EXIT_SUCCESS)
+     fprintf (stderr, _("Try `%s --help' for more information.\n"),
+-             program_name);
++             guestfs___program_name);
+   else {
+     fprintf (stdout,
+            _("%s: display information about a virtual machine\n"
+@@ -86,8 +86,8 @@ usage (int status)
+              "  -x                   Trace libguestfs API calls\n"
+              "  --xpath query        Perform an XPath query\n"
+              "For more information, see the manpage %s(1).\n"),
+-             program_name, program_name, program_name,
+-             program_name);
++             guestfs___program_name, guestfs___program_name, guestfs___program_name,
++             guestfs___program_name);
+   }
+   exit (status);
+ }
+@@ -147,7 +147,7 @@ main (int argc, char *argv[])
+         xpath = optarg;
+       } else {
+         fprintf (stderr, _("%s: unknown long option: %s (%d)\n"),
+-                 program_name, long_options[option_index].name, option_index);
++                 guestfs___program_name, long_options[option_index].name, option_index);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -240,7 +240,7 @@ main (int argc, char *argv[])
+   if (xpath) {
+     if (drvs != NULL) {
+       fprintf (stderr, _("%s: cannot use --xpath together with other options.\n"),
+-               program_name);
++               guestfs___program_name);
+       exit (EXIT_FAILURE);
+     }
+ 
+@@ -274,7 +274,7 @@ main (int argc, char *argv[])
+     CLEANUP_FREE_STRING_LIST char **roots = guestfs_inspect_os (g);
+     if (roots == NULL) {
+       fprintf (stderr, _("%s: no operating system could be detected inside this disk image.\n\nThis may be because the file is not a disk image, or is not a virtual machine\nimage, or because the OS type is not understood by libguestfs.\n\nNOTE for Red Hat Enterprise Linux 6 users: for Windows guest support you must\ninstall the separate libguestfs-winsupport package.\n\nIf you feel this is an error, please file a bug report including as much\ninformation about the disk image as possible.\n"),
+-               program_name);
++               guestfs___program_name);
+       exit (EXIT_FAILURE);
+     }
+ 
+@@ -289,7 +289,7 @@ main (int argc, char *argv[])
+ #define XMLERROR(code,e) do {                                           \
+     if ((e) == (code)) {                                                \
+       fprintf (stderr, _("%s: XML write error at \"%s\": %m\n"),        \
+-               #e, program_name);                                       \
++               #e, guestfs___program_name);                                       \
+       exit (EXIT_FAILURE);                                              \
+     }                                                                   \
+   } while (0)
+@@ -301,7 +301,7 @@ output (char **roots)
+   if (ob == NULL) {
+     fprintf (stderr,
+              _("%s: xmlOutputBufferCreateFd: failed to open stdout\n"),
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -310,7 +310,7 @@ output (char **roots)
+   if (xo == NULL) {
+     fprintf (stderr,
+              _("%s: xmlNewTextWriter: failed to create libxml2 writer\n"),
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -768,21 +768,21 @@ do_xpath (const char *query)
+ 
+   doc = xmlReadFd (STDIN_FILENO, NULL, "utf8", 0);
+   if (doc == NULL) {
+-    fprintf (stderr, _("%s: unable to parse XML from stdin\n"), program_name);
++    fprintf (stderr, _("%s: unable to parse XML from stdin\n"), guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+   xpathCtx = xmlXPathNewContext (doc);
+   if (xpathCtx == NULL) {
+     fprintf (stderr, _("%s: unable to create new XPath context\n"),
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+   xpathObj = xmlXPathEvalExpression (BAD_CAST query, xpathCtx);
+   if (xpathObj == NULL) {
+     fprintf (stderr, _("%s: unable to evaluate XPath expression\n"),
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -794,26 +794,26 @@ do_xpath (const char *query)
+ 
+     saveCtx = xmlSaveToFd (STDOUT_FILENO, NULL, XML_SAVE_NO_DECL);
+     if (saveCtx == NULL) {
+-      fprintf (stderr, _("%s: xmlSaveToFd failed\n"), program_name);
++      fprintf (stderr, _("%s: xmlSaveToFd failed\n"), guestfs___program_name);
+       exit (EXIT_FAILURE);
+     }
+ 
+     for (i = 0; i < (size_t) nodes->nodeNr; ++i) {
+       CLEANUP_XMLFREEDOC xmlDocPtr wrdoc = xmlNewDoc (BAD_CAST "1.0");
+       if (wrdoc == NULL) {
+-        fprintf (stderr, _("%s: xmlNewDoc failed\n"), program_name);
++        fprintf (stderr, _("%s: xmlNewDoc failed\n"), guestfs___program_name);
+         exit (EXIT_FAILURE);
+       }
+       wrnode = xmlCopyNode (nodes->nodeTab[i], 1);
+       if (wrnode == NULL) {
+-        fprintf (stderr, _("%s: xmlCopyNode failed\n"), program_name);
++        fprintf (stderr, _("%s: xmlCopyNode failed\n"), guestfs___program_name);
+         exit (EXIT_FAILURE);
+       }
+ 
+       xmlDocSetRootElement (wrdoc, wrnode);
+ 
+       if (xmlSaveDoc (saveCtx, wrdoc) == -1) {
+-        fprintf (stderr, _("%s: xmlSaveDoc failed\n"), program_name);
++        fprintf (stderr, _("%s: xmlSaveDoc failed\n"), guestfs___program_name);
+         exit (EXIT_FAILURE);
+       }
+     }
+diff --git a/make-fs/make-fs.c b/make-fs/make-fs.c
+index 406aa1d..22658fb 100644
+--- a/make-fs/make-fs.c
++++ b/make-fs/make-fs.c
+@@ -71,7 +71,7 @@ usage (int status)
+ {
+   if (status != EXIT_SUCCESS)
+     fprintf (stderr, _("Try `%s --help' for more information.\n"),
+-             program_name);
++             guestfs___program_name);
+   else {
+     fprintf (stdout,
+            _("%s: make a filesystem from a tar archive or files\n"
+@@ -92,8 +92,8 @@ usage (int status)
+              "  -V|--version           Display version and exit\n"
+              "  -x                     Trace libguestfs API calls\n"
+              "For more information, see the manpage %s(1).\n"),
+-             program_name, program_name, program_name, program_name,
+-             program_name);
++             guestfs___program_name, guestfs___program_name, guestfs___program_name, guestfs___program_name,
++             guestfs___program_name);
+   }
+   exit (status);
+ }
+@@ -140,7 +140,7 @@ main (int argc, char *argv[])
+           partition = optarg;
+       } else {
+         fprintf (stderr, _("%s: unknown long option: %s (%d)\n"),
+-                 program_name, long_options[option_index].name, option_index);
++                 guestfs___program_name, long_options[option_index].name, option_index);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -179,7 +179,7 @@ main (int argc, char *argv[])
+ 
+   if (optind + 2 != argc) {
+     fprintf (stderr, _("%s: missing input and output arguments on the command line\n"),
+-             program_name);
++             guestfs___program_name);
+     usage (EXIT_FAILURE);
+   }
+ 
+@@ -197,7 +197,7 @@ check_ntfs_available (void)
+   if (STREQ (type, "ntfs") &&
+       guestfs_feature_available (g, (char **) ntfs_features) == 0) {
+     fprintf (stderr, _("%s: NTFS support was disabled when libguestfs was compiled\n"),
+-             program_name);
++             guestfs___program_name);
+     return -1;
+   }
+ 
+@@ -246,7 +246,7 @@ exec_command (char **argv, const char *file)
+       return -1;
+     }
+     if (!WIFEXITED (status) || WEXITSTATUS (status) != 0) {
+-      fprintf (stderr, _("%s: %s command failed\n"), program_name, argv[0]);
++      fprintf (stderr, _("%s: %s command failed\n"), guestfs___program_name, argv[0]);
+       return -1;
+     }
+     return 0;
+@@ -303,7 +303,7 @@ exec_command_count_output (char **argv, uint64_t *bytes_rtn)
+       return -1;
+     }
+     if (!WIFEXITED (status) || WEXITSTATUS (status) != 0) {
+-      fprintf (stderr, _("%s: %s command failed\n"), program_name, argv[0]);
++      fprintf (stderr, _("%s: %s command failed\n"), guestfs___program_name, argv[0]);
+       return -1;
+     }
+     return 0;
+@@ -428,7 +428,7 @@ estimate_input (const char *input, uint64_t *estimate_rtn, char **ifmt_rtn)
+ 
+     if (sscanf (line, "%" SCNu64, estimate_rtn) != 1) {
+       fprintf (stderr, _("%s: cannot parse the output of 'du' command: %s\n"),
+-               program_name, line);
++               guestfs___program_name, line);
+       return -1;
+     }
+   }
+@@ -463,7 +463,7 @@ estimate_input (const char *input, uint64_t *estimate_rtn, char **ifmt_rtn)
+ 
+     if (strstr (line, "tar archive") == NULL) {
+       fprintf (stderr, _("%s: %s: input is not a directory, tar archive or compressed tar archive\n"),
+-               program_name, input);
++               guestfs___program_name, input);
+       return -1;
+     }
+ 
+@@ -494,7 +494,7 @@ estimate_input (const char *input, uint64_t *estimate_rtn, char **ifmt_rtn)
+       }
+       else {
+         fprintf (stderr, _("%s: %s: unknown compressed input format (%s)\n"),
+-                 program_name, input, line);
++                 guestfs___program_name, input, line);
+         return -1;
+       }
+ 
+@@ -617,7 +617,7 @@ parse_size (const char *str, uint64_t estimate, uint64_t *size_rtn)
+   if (xerr != LONGINT_OK) {
+     fprintf (stderr,
+              _("%s: %s: invalid size parameter '%s' (%s returned %d)\n"),
+-             program_name, "parse_size", str, "xstrtoull", xerr);
++             guestfs___program_name, "parse_size", str, "xstrtoull", xerr);
+     return -1;
+   }
+ 
+@@ -759,7 +759,7 @@ do_make_fs (const char *input, const char *output_str)
+     if (r == -1) {
+       /* Provide more guidance in the error message (RHBZ#823883). */
+       fprintf (stderr, "%s: 'mkfs' (create filesystem) operation failed.\n",
+-               program_name);
++               guestfs___program_name);
+       if (STREQ (type, "fat"))
+         fprintf (stderr, "Instead of 'fat', try 'vfat' (long filenames) or 'msdos' (short filenames).\n");
+       else
+@@ -816,7 +816,7 @@ do_make_fs (const char *input, const char *output_str)
+       return -1;
+     }
+     if (!WIFEXITED (status) || WEXITSTATUS (status) != 0) {
+-      fprintf (stderr, _("%s: subprocess failed\n"), program_name);
++      fprintf (stderr, _("%s: subprocess failed\n"), guestfs___program_name);
+       return -1;
+     }
+   }
+diff --git a/p2v/conversion.c b/p2v/conversion.c
+index 14e7b3b..e281e45 100644
+--- a/p2v/conversion.c
++++ b/p2v/conversion.c
+@@ -171,7 +171,7 @@ start_conversion (struct config *config,
+ #if DEBUG_STDERR
+     fprintf (stderr,
+              "%s: data connection for %s: SSH remote port %d, local port %d\n",
+-             program_name, device,
++             guestfs_int_program_name, device,
+              data_conns[i].nbd_remote_port, data_conns[i].nbd_local_port);
+ #endif
+   }
+@@ -203,7 +203,7 @@ start_conversion (struct config *config,
+     goto out;
+ 
+ #if DEBUG_STDERR
+-  fprintf (stderr, "%s: libvirt XML:\n%s", program_name, libvirt_xml);
++  fprintf (stderr, "%s: libvirt XML:\n%s", guestfs___program_name, libvirt_xml);
+ #endif
+ 
+   /* Open the control connection and start conversion */
+diff --git a/p2v/gui.c b/p2v/gui.c
+index 194f9fb..4d9363e 100644
+--- a/p2v/gui.c
++++ b/p2v/gui.c
+@@ -109,7 +109,7 @@ create_connection_dialog (struct config *config)
+   char port_str[64];
+ 
+   conn_dlg = gtk_dialog_new ();
+-  gtk_window_set_title (GTK_WINDOW (conn_dlg), program_name);
++  gtk_window_set_title (GTK_WINDOW (conn_dlg), guestfs___program_name);
+   gtk_window_set_resizable (GTK_WINDOW (conn_dlg), FALSE);
+ 
+   /* The main dialog area. */
+@@ -343,7 +343,7 @@ static void
+ about_button_clicked (GtkWidget *w, gpointer data)
+ {
+   gtk_show_about_dialog (GTK_WINDOW (conn_dlg),
+-                         "program-name", program_name,
++                         "program-name", guestfs___program_name,
+                          "version", PACKAGE_VERSION,
+                          "copyright", "\u00A9 2009-2014 Red Hat Inc.",
+                          "comments", "Convert a physical machine to use KVM",
+@@ -414,7 +414,7 @@ create_conversion_dialog (struct config *config)
+   char memory_str[64];
+ 
+   conv_dlg = gtk_dialog_new ();
+-  gtk_window_set_title (GTK_WINDOW (conv_dlg), program_name);
++  gtk_window_set_title (GTK_WINDOW (conv_dlg), guestfs___program_name);
+   gtk_window_set_resizable (GTK_WINDOW (conv_dlg), FALSE);
+   /* XXX It would be nice not to have to set this explicitly, but
+    * if we don't then Gtk chooses a very small window.
+@@ -1065,7 +1065,7 @@ static void
+ create_running_dialog (void)
+ {
+   run_dlg = gtk_dialog_new ();
+-  gtk_window_set_title (GTK_WINDOW (run_dlg), program_name);
++  gtk_window_set_title (GTK_WINDOW (run_dlg), guestfs___program_name);
+   gtk_window_set_resizable (GTK_WINDOW (run_dlg), FALSE);
+ 
+   /* The main dialog area. */
+@@ -1360,7 +1360,7 @@ notify_ui_callback (int type, const char *data)
+   default:
+     fprintf (stderr,
+              "%s: unknown message during conversion: type=%d data=%s\n",
+-             program_name, type, data);
++             guestfs___program_name, type, data);
+   }
+ 
+   gdk_threads_leave ();
+diff --git a/p2v/kernel.c b/p2v/kernel.c
+index e29355d..8333cf3 100644
+--- a/p2v/kernel.c
++++ b/p2v/kernel.c
+@@ -52,7 +52,7 @@ kernel_configuration (struct config *config, const char *cmdline)
+     r += 5+4;
+     if (sscanf (r, "%d", &config->port) != 1) {
+       fprintf (stderr, "%s: cannot parse p2v.port from kernel command line",
+-               program_name);
++               guestfs___program_name);
+       exit (EXIT_FAILURE);
+     }
+   }
+@@ -84,7 +84,7 @@ kernel_configuration (struct config *config, const char *cmdline)
+     const char *err = get_ssh_error ();
+ 
+     fprintf (stderr, "%s: error opening control connection to %s:%d: %s\n",
+-             program_name, config->server, config->port, err);
++             guestfs___program_name, config->server, config->port, err);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -101,7 +101,7 @@ kernel_configuration (struct config *config, const char *cmdline)
+     r += 5+5;
+     if (sscanf (r, "%d", &config->vcpus) != 1) {
+       fprintf (stderr, "%s: cannot parse p2v.vcpus from kernel command line\n",
+-               program_name);
++               guestfs___program_name);
+       exit (EXIT_FAILURE);
+     }
+   }
+@@ -113,7 +113,7 @@ kernel_configuration (struct config *config, const char *cmdline)
+     r += 5+6;
+     if (sscanf (r, "%" SCNu64 "%c", &config->memory, mem_code) != 1) {
+       fprintf (stderr, "%s: cannot parse p2v.memory from kernel command line\n",
+-               program_name);
++               guestfs___program_name);
+       exit (EXIT_FAILURE);
+     }
+     config->memory *= 1024;
+@@ -123,7 +123,7 @@ kernel_configuration (struct config *config, const char *cmdline)
+       config->memory *= 1024;
+     if (mem_code[0] != 'M' && mem_code[0] != 'G') {
+       fprintf (stderr, "%s: p2v.memory on kernel command line must be followed by 'G' or 'M'\n",
+-               program_name);
++               guestfs___program_name);
+       exit (EXIT_FAILURE);
+     }
+   }
+@@ -217,7 +217,7 @@ kernel_configuration (struct config *config, const char *cmdline)
+     const char *err = get_conversion_error ();
+ 
+     fprintf (stderr, "%s: error during conversion: %s\n",
+-             program_name, err);
++             guestfs___program_name, err);
+     exit (EXIT_FAILURE);
+   }
+ }
+@@ -227,7 +227,7 @@ notify_ui_callback (int type, const char *data)
+ {
+   switch (type) {
+   case NOTIFY_LOG_DIR:
+-    printf ("%s: remote log directory location: %s\n", program_name, data);
++    printf ("%s: remote log directory location: %s\n", guestfs___program_name, data);
+     break;
+ 
+   case NOTIFY_REMOTE_MESSAGE:
+@@ -235,11 +235,11 @@ notify_ui_callback (int type, const char *data)
+     break;
+ 
+   case NOTIFY_STATUS:
+-    printf ("%s: %s\n", program_name, data);
++    printf ("%s: %s\n", guestfs___program_name, data);
+     break;
+ 
+   default:
+     printf ("%s: unknown message during conversion: type=%d data=%s\n",
+-            program_name, type, data);
++            guestfs___program_name, type, data);
+   }
+ }
+diff --git a/p2v/main.c b/p2v/main.c
+index a93ca1c..4e11c0a 100644
+--- a/p2v/main.c
++++ b/p2v/main.c
+@@ -63,7 +63,7 @@ usage (int status)
+ {
+   if (status != EXIT_SUCCESS)
+     fprintf (stderr, _("Try `%s --help' for more information.\n"),
+-             program_name);
++             guestfs___program_name);
+   else {
+     fprintf (stdout,
+            _("%s: Convert a physical machine to use KVM\n"
+@@ -76,7 +76,7 @@ usage (int status)
+              "  -v|--verbose           Verbose messages\n"
+              "  -V|--version           Display version and exit\n"
+              "For more information, see the manpage %s(1).\n"),
+-             program_name, program_name, program_name);
++             guestfs___program_name, guestfs___program_name, guestfs___program_name);
+   }
+   exit (status);
+ }
+@@ -124,7 +124,7 @@ main (int argc, char *argv[])
+       }
+       else {
+         fprintf (stderr, _("%s: unknown long option: %s (%d)\n"),
+-                 program_name, long_options[option_index].name, option_index);
++                 guestfs___program_name, long_options[option_index].name, option_index);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -134,7 +134,7 @@ main (int argc, char *argv[])
+       break;
+ 
+     case 'V':
+-      printf ("%s %s\n", program_name, PACKAGE_VERSION);
++      printf ("%s %s\n", guestfs___program_name, PACKAGE_VERSION);
+       exit (EXIT_SUCCESS);
+ 
+     case HELP_OPTION:
+@@ -147,7 +147,7 @@ main (int argc, char *argv[])
+ 
+   if (optind != argc) {
+     fprintf (stderr, _("%s: unused arguments on the command line\n"),
+-             program_name);
++             guestfs___program_name);
+     usage (EXIT_FAILURE);
+   }
+ 
+@@ -429,7 +429,7 @@ find_all_disks (void)
+ 
+   if (all_disks == NULL) {
+     fprintf (stderr, "%s: error: no non-removable disks were discovered on this machine.\n",
+-             program_name);
++             guestfs___program_name);
+     fprintf (stderr, "virt-p2v looked in /sys/block.\n");
+     fprintf (stderr, "This is a fatal error and virt-p2v cannot continue.\n");
+     exit (EXIT_FAILURE);
+diff --git a/p2v/ssh.c b/p2v/ssh.c
+index d593451..3c1d2f7 100644
+--- a/p2v/ssh.c
++++ b/p2v/ssh.c
+@@ -372,7 +372,7 @@ test_connection (struct config *config)
+       sscanf (release_str, "%d", &v2v_release);
+ #if DEBUG_STDERR
+       fprintf (stderr, "%s: remote virt-v2v version: %d.%d.%d\n",
+-               program_name, v2v_major, v2v_minor, v2v_release);
++               guestfs___program_name, v2v_major, v2v_minor, v2v_release);
+ #endif
+       /* This is an internal error.  Need to check this here so we
+        * don't confuse it with the no-version case below.
+@@ -570,7 +570,7 @@ add_option (const char *type, char ***drivers, const char *name, size_t len)
+ 
+ #if DEBUG_STDERR
+   fprintf (stderr, "%s: remote virt-v2v supports %s driver %s\n",
+-           program_name, type, (*drivers)[n-1]);
++           guestfs___program_name, type, (*drivers)[n-1]);
+ #endif
+ }
+ 
+diff --git a/rescue/rescue.c b/rescue/rescue.c
+index 00187a4..541e42b 100644
+--- a/rescue/rescue.c
++++ b/rescue/rescue.c
+@@ -54,7 +54,7 @@ usage (int status)
+ {
+   if (status != EXIT_SUCCESS)
+     fprintf (stderr, _("Try `%s --help' for more information.\n"),
+-             program_name);
++             guestfs___program_name);
+   else {
+     fprintf (stdout,
+            _("%s: Run a rescue shell on a virtual machine\n"
+@@ -81,8 +81,8 @@ usage (int status)
+              "  -w|--rw              Mount read-write\n"
+              "  -x                   Trace libguestfs API calls\n"
+              "For more information, see the manpage %s(1).\n"),
+-             program_name, program_name, program_name,
+-             program_name);
++             guestfs___program_name, guestfs___program_name, guestfs___program_name,
++             guestfs___program_name);
+   }
+   exit (status);
+ }
+@@ -157,12 +157,12 @@ main (int argc, char *argv[])
+       } else if (STREQ (long_options[option_index].name, "smp")) {
+         if (sscanf (optarg, "%d", &smp) != 1) {
+           fprintf (stderr, _("%s: could not parse --smp parameter '%s'\n"),
+-                   program_name, optarg);
++                   guestfs___program_name, optarg);
+           exit (EXIT_FAILURE);
+         }
+         if (smp < 1) {
+           fprintf (stderr, _("%s: --smp parameter '%s' should be >= 1\n"),
+-                   program_name, optarg);
++                   guestfs___program_name, optarg);
+           exit (EXIT_FAILURE);
+         }
+       } else if (STREQ (long_options[option_index].name, "suggest")) {
+@@ -175,20 +175,20 @@ main (int argc, char *argv[])
+           if (sscanf (optarg, "%d", &n) != 1) {
+             fprintf (stderr,
+                      _("%s: could not parse --scratch parameter '%s'\n"),
+-                     program_name, optarg);
++                     guestfs___program_name, optarg);
+             exit (EXIT_FAILURE);
+           }
+           if (n < 1) {
+             fprintf (stderr,
+                      _("%s: --scratch parameter '%s' should be >= 1\n"),
+-                     program_name, optarg);
++                     guestfs___program_name, optarg);
+             exit (EXIT_FAILURE);
+           }
+           add_scratch_disks (n, &drvs);
+         }
+       } else {
+         fprintf (stderr, _("%s: unknown long option: %s (%d)\n"),
+-                 program_name, long_options[option_index].name, option_index);
++                 guestfs___program_name, long_options[option_index].name, option_index);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -208,7 +208,7 @@ main (int argc, char *argv[])
+     case 'm':
+       if (sscanf (optarg, "%d", &memsize) != 1) {
+         fprintf (stderr, _("%s: could not parse memory size '%s'\n"),
+-                 program_name, optarg);
++                 guestfs___program_name, optarg);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -316,7 +316,7 @@ main (int argc, char *argv[])
+           STRPREFIX (backend, "libvirt:")) {
+         fprintf (stderr, _("%s: warning: virt-rescue doesn't work with the libvirt backend\n"
+                            "at the moment.  As a workaround, forcing backend = 'direct'.\n"),
+-                 program_name);
++                 guestfs___program_name);
+         if (guestfs_set_backend (g, "direct") == -1)
+           exit (EXIT_FAILURE);
+       }
+diff --git a/src/guestfs-internal-frontend.h b/src/guestfs-internal-frontend.h
+index ba3ddde..9316421 100644
+--- a/src/guestfs-internal-frontend.h
++++ b/src/guestfs-internal-frontend.h
+@@ -162,12 +162,12 @@ extern GUESTFS_DLL_PUBLIC int guestfs___add_libvirt_dom (guestfs_h *g, virDomain
+ #endif /* HAVE_LIBVIRT */
+ 
+ /* Current program name.  Note <errno.h> must be included in all files
+- * that want to use 'program_name'.
++ * that want to use 'guestfs___program_name'.
+  */
+ #if HAVE_DECL_PROGRAM_INVOCATION_SHORT_NAME == 1
+-#  define program_name program_invocation_short_name
++#  define guestfs___program_name program_invocation_short_name
+ #else
+-#  define program_name "libguestfs"
++#  define guestfs___program_name "libguestfs"
+ #endif
+ 
+ /* Close all file descriptors matching the condition. */
+diff --git a/tests/charsets/test-charset-fidelity.c b/tests/charsets/test-charset-fidelity.c
+index 7ce7d94..c127314 100644
+--- a/tests/charsets/test-charset-fidelity.c
++++ b/tests/charsets/test-charset-fidelity.c
+@@ -83,7 +83,7 @@ main (int argc, char *argv[])
+   str = getenv (ourenvvar);
+   if (str && guestfs___is_true (str) > 0) {
+     printf ("%s: test skipped because environment variable is set.\n",
+-            program_name);
++            guestfs___program_name);
+     exit (77);
+   }
+ 
+diff --git a/tests/mount-local/test-parallel-mount-local.c b/tests/mount-local/test-parallel-mount-local.c
+index 88ca2d3..00c95dc 100644
+--- a/tests/mount-local/test-parallel-mount-local.c
++++ b/tests/mount-local/test-parallel-mount-local.c
+@@ -96,13 +96,13 @@ main (int argc, char *argv[])
+   skip = getenv ("SKIP_TEST_PARALLEL_MOUNT_LOCAL");
+   if (skip && guestfs___is_true (skip) > 0) {
+     fprintf (stderr, "%s: test skipped because environment variable set.\n",
+-             program_name);
++             guestfs___program_name);
+     exit (77);
+   }
+ 
+   if (access ("/dev/fuse", W_OK) == -1) {
+     fprintf (stderr, "%s: test skipped because /dev/fuse is not writable.\n",
+-             program_name);
++             guestfs___program_name);
+     exit (77);
+   }
+ 
+diff --git a/tests/parallel/test-parallel.c b/tests/parallel/test-parallel.c
+index e412143..0ed3a8e 100644
+--- a/tests/parallel/test-parallel.c
++++ b/tests/parallel/test-parallel.c
+@@ -78,7 +78,7 @@ main (int argc, char *argv[])
+   skip = getenv ("SKIP_TEST_PARALLEL");
+   if (skip && guestfs___is_true (skip) > 0) {
+     fprintf (stderr, "%s: test skipped because environment variable set.\n",
+-             program_name);
++             guestfs___program_name);
+     exit (77);
+   }
+ 
+diff --git a/tests/qemu/qemu-boot.c b/tests/qemu/qemu-boot.c
+index c1205d3..ce52f9a 100644
+--- a/tests/qemu/qemu-boot.c
++++ b/tests/qemu/qemu-boot.c
+@@ -102,7 +102,7 @@ main (int argc, char *argv[])
+     case 0:
+       /* Options which are long only. */
+       fprintf (stderr, "%s: unknown long option: %s (%d)\n",
+-               program_name, long_options[option_index].name, option_index);
++               guestfs___program_name, long_options[option_index].name, option_index);
+       exit (EXIT_FAILURE);
+ 
+     case 'i':
+@@ -112,14 +112,14 @@ main (int argc, char *argv[])
+     case 'n':
+       if (sscanf (optarg, "%zu", &n) != 1 || n == 0) {
+         fprintf (stderr, "%s: -n option not numeric and greater than 0\n",
+-                 program_name);
++                 guestfs___program_name);
+         exit (EXIT_FAILURE);
+       }
+       break;
+ 
+     case 'P':
+       if (sscanf (optarg, "%zu", &P) != 1) {
+-        fprintf (stderr, "%s: -P option not numeric\n", program_name);
++        fprintf (stderr, "%s: -P option not numeric\n", guestfs___program_name);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -143,13 +143,13 @@ main (int argc, char *argv[])
+   if (n == 0) {
+     fprintf (stderr,
+              "%s: must specify number of processes to run (-n option)\n",
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+   if (optind != argc) {
+     fprintf (stderr, "%s: extra arguments found on the command line\n",
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -168,7 +168,7 @@ main (int argc, char *argv[])
+     err = pthread_create (&threads[i], NULL, start_thread, &thread_data[i]);
+     if (err != 0) {
+       fprintf (stderr, "%s: pthread_create[%zu]: %s\n",
+-               program_name, i, strerror (err));
++               guestfs___program_name, i, strerror (err));
+       exit (EXIT_FAILURE);
+     }
+   }
+@@ -179,7 +179,7 @@ main (int argc, char *argv[])
+     err = pthread_join (threads[i], &status);
+     if (err != 0) {
+       fprintf (stderr, "%s: pthread_join[%zu]: %s\n",
+-               program_name, i, strerror (err));
++               guestfs___program_name, i, strerror (err));
+       errors++;
+     }
+     if (*(int *)status == -1)
+@@ -205,7 +205,7 @@ start_thread (void *thread_data_vp)
+     err = pthread_mutex_lock (&mutex);
+     if (err != 0) {
+       fprintf (stderr, "%s: pthread_mutex_lock: %s",
+-               program_name, strerror (err));
++               guestfs___program_name, strerror (err));
+       goto error;
+     }
+ 
+@@ -222,7 +222,7 @@ start_thread (void *thread_data_vp)
+     err = pthread_mutex_unlock (&mutex);
+     if (err != 0) {
+       fprintf (stderr, "%s: pthread_mutex_unlock: %s",
+-               program_name, strerror (err));
++               guestfs___program_name, strerror (err));
+       goto error;
+     }
+ 
+@@ -263,7 +263,7 @@ start_thread (void *thread_data_vp)
+ 
+   if (errors > 0) {
+     fprintf (stderr, "%s: thread %d: %u errors were ignored\n",
+-             program_name, thread_data->thread_num, errors);
++             guestfs___program_name, thread_data->thread_num, errors);
+     goto error;
+   }
+ 
+diff --git a/tests/qemu/qemu-speed-test.c b/tests/qemu/qemu-speed-test.c
+index 1d5ef86..b054bcf 100644
+--- a/tests/qemu/qemu-speed-test.c
++++ b/tests/qemu/qemu-speed-test.c
+@@ -132,7 +132,7 @@ main (int argc, char *argv[])
+       }
+       else {
+         fprintf (stderr, "%s: unknown long option: %s (%d)\n",
+-                 program_name, long_options[option_index].name, option_index);
++                 guestfs___program_name, long_options[option_index].name, option_index);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -141,7 +141,7 @@ main (int argc, char *argv[])
+       if (sscanf (optarg, "%d", &max_time_override) != 1 ||
+           max_time_override < 0) {
+         fprintf (stderr, "%s: -t: argument is not a positive integer\n",
+-                 program_name);
++                 guestfs___program_name);
+         exit (EXIT_FAILURE);
+       }
+       break;
+@@ -156,7 +156,7 @@ main (int argc, char *argv[])
+ 
+   if (optind != argc) {
+     fprintf (stderr, "%s: extra arguments found on the command line\n",
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -319,14 +319,14 @@ test_virtio_serial (void)
+     if (r == -1 && guestfs_last_errno (g) != EINTR) {
+       fprintf (stderr,
+                "%s: expecting upload command to return EINTR\n%s\n",
+-               program_name, guestfs_last_error (g));
++               guestfs___program_name, guestfs_last_error (g));
+       exit (EXIT_FAILURE);
+     }
+ 
+     if (rate == -1) {
+     rate_error:
+       fprintf (stderr, "%s: internal error: progress callback was not called! (r=%d, errno=%d)\n",
+-               program_name,
++               guestfs___program_name,
+                r, guestfs_last_errno (g));
+       exit (EXIT_FAILURE);
+     }
+@@ -355,7 +355,7 @@ test_virtio_serial (void)
+     if (r == -1 && guestfs_last_errno (g) != EINTR) {
+       fprintf (stderr,
+                "%s: expecting download command to return EINTR\n%s\n",
+-               program_name, guestfs_last_error (g));
++               guestfs___program_name, guestfs_last_error (g));
+       exit (EXIT_FAILURE);
+     }
+ 
+@@ -427,7 +427,7 @@ test_block_device (void)
+     exit (EXIT_FAILURE);
+   if (devices[0] == NULL) {
+     fprintf (stderr, "%s: expected guestfs_list_devices to return at least 1 device\n",
+-             program_name);
++             guestfs___program_name);
+     exit (EXIT_FAILURE);
+   }
+ 
+@@ -443,7 +443,7 @@ test_block_device (void)
+ 
+     if (sscanf (r, "%" SCNi64, &bytes_written) != 1) {
+       fprintf (stderr, "%s: could not parse device_speed output\n",
+-               program_name);
++               guestfs___program_name);
+       exit (EXIT_FAILURE);
+     }
+ 
+@@ -462,7 +462,7 @@ test_block_device (void)
+ 
+     if (sscanf (r, "%" SCNi64, &bytes_read) != 1) {
+       fprintf (stderr, "%s: could not parse device_speed output\n",
+-               program_name);
++               guestfs___program_name);
+       exit (EXIT_FAILURE);
+     }
+ 
+diff --git a/tests/regressions/rhbz790721.c b/tests/regressions/rhbz790721.c
+index 370ca49..683490c 100644
+--- a/tests/regressions/rhbz790721.c
++++ b/tests/regressions/rhbz790721.c
+@@ -72,7 +72,7 @@ main (int argc, char *argv[])
+   }
+   if (STRNEQ (backend, "direct")) {
+     fprintf (stderr, "%s: test skipped because backend isn't 'direct'.\n",
+-             program_name);
++             guestfs___program_name);
+     free (backend);
+     guestfs_close (g);
+     exit (77);
+diff --git a/tests/regressions/rhbz914931.c b/tests/regressions/rhbz914931.c
+index 569e261..a677ca9 100644
+--- a/tests/regressions/rhbz914931.c
++++ b/tests/regressions/rhbz914931.c
+@@ -43,7 +43,7 @@ main (int argc, char *argv[])
+   str = getenv ("SKIP_TEST_RHBZ914931");
+   if (str && guestfs___is_true (str) > 0) {
+     printf ("%s: test skipped because environment variable is set.\n",
+-            program_name);
++            guestfs___program_name);
+     exit (77);
+   }
+ 
+-- 
+1.8.3.1
+

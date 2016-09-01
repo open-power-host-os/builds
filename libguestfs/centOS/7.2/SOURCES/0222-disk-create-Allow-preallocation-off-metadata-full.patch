@@ -1,0 +1,109 @@
+From bd0016617d064694d8d2a8cd4e05fceb6788dd50 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 12 Aug 2015 16:34:16 +0100
+Subject: [PATCH] disk-create: Allow preallocation off/metadata/full.
+
+For raw, this allows "off" as a synonym for "sparse" (to make it
+consistent with qcow2).
+
+For qcow2, this allows "sparse" as a synonym for "off".
+
+It also adds qcow2 "full" preallocation, which is actually mapped to
+the qemu option "falloc" (see arguments about this on the qemu-devel
+mailing list, which we lost).
+
+This also updates the test.
+
+(cherry picked from commit 66daad38f37c8975c4b6bcb760094cf4490fef14)
+---
+ generator/actions.ml             | 13 +++++++------
+ src/create.c                     | 16 ++++++++++++----
+ tests/create/test-disk-create.sh |  3 +++
+ 3 files changed, 22 insertions(+), 10 deletions(-)
+
+diff --git a/generator/actions.ml b/generator/actions.ml
+index ca0208b..397b532 100644
+--- a/generator/actions.ml
++++ b/generator/actions.ml
+@@ -3109,13 +3109,14 @@ The other optional parameters are:
+ 
+ =item C<preallocation>
+ 
+-If format is C<raw>, then this can be either C<sparse> or C<full>
+-to create a sparse or fully allocated file respectively.  The default
+-is C<sparse>.
++If format is C<raw>, then this can be either C<off> (or C<sparse>)
++or C<full> to create a sparse or fully allocated file respectively.
++The default is C<off>.
+ 
+-If format is C<qcow2>, then this can be either C<off> or
+-C<metadata>.  Preallocating metadata can be faster when doing lots
+-of writes, but uses more space.  The default is C<off>.
++If format is C<qcow2>, then this can be C<off> (or C<sparse>),
++C<metadata> or C<full>.  Preallocating metadata can be faster
++when doing lots of writes, but uses more space.
++The default is C<off>.
+ 
+ =item C<compat>
+ 
+diff --git a/src/create.c b/src/create.c
+index 4e619c0..35a80a4 100644
+--- a/src/create.c
++++ b/src/create.c
+@@ -1,5 +1,5 @@
+ /* libguestfs
+- * Copyright (C) 2012 Red Hat Inc.
++ * Copyright (C) 2012-2015 Red Hat Inc.
+  *
+  * This library is free software; you can redistribute it and/or
+  * modify it under the terms of the GNU Lesser General Public
+@@ -139,7 +139,8 @@ disk_create_raw (guestfs_h *g, const char *filename, int64_t size,
+     return -1;
+   }
+   if (optargs->bitmask & GUESTFS_DISK_CREATE_PREALLOCATION_BITMASK) {
+-    if (STREQ (optargs->preallocation, "sparse"))
++    if (STREQ (optargs->preallocation, "off") ||
++        STREQ (optargs->preallocation, "sparse"))
+       allocated = 0;
+     else if (STREQ (optargs->preallocation, "full"))
+       allocated = 1;
+@@ -267,8 +268,15 @@ disk_create_qcow2 (guestfs_h *g, const char *orig_filename, int64_t size,
+     }
+   }
+   if (optargs->bitmask & GUESTFS_DISK_CREATE_PREALLOCATION_BITMASK) {
+-    preallocation = optargs->preallocation;
+-    if (STRNEQ (preallocation, "off") && STRNEQ (preallocation, "metadata")) {
++    if (STREQ (optargs->preallocation, "off") ||
++        STREQ (optargs->preallocation, "sparse"))
++      preallocation = "off";
++    else if (STREQ (optargs->preallocation, "metadata"))
++      preallocation = "metadata";
++    else if (STREQ (optargs->preallocation, "full"))
++      /* Ugh: https://lists.gnu.org/archive/html/qemu-devel/2014-08/msg03863.html */
++      preallocation = "falloc";
++    else {
+       error (g, _("invalid value for preallocation parameter '%s'"),
+              preallocation);
+       return -1;
+diff --git a/tests/create/test-disk-create.sh b/tests/create/test-disk-create.sh
+index 93dc706..e18d6da 100755
+--- a/tests/create/test-disk-create.sh
++++ b/tests/create/test-disk-create.sh
+@@ -27,11 +27,14 @@ rm -f disk*.img file:*.img
+ 
+ guestfish <<EOF
+   disk-create disk1.img  raw   256K
++  disk-create disk2.img  raw   256K preallocation:off
+   disk-create disk2.img  raw   256K preallocation:sparse
+   disk-create disk3.img  raw   256K preallocation:full
+   disk-create disk4.img  qcow2 256K
+   disk-create disk5.img  qcow2 256K preallocation:off
++  disk-create disk5.img  qcow2 256K preallocation:sparse
+   disk-create disk6.img  qcow2 256K preallocation:metadata
++  disk-create disk6.img  qcow2 256K preallocation:full
+   disk-create disk7.img  qcow2 256K compat:1.1
+   disk-create disk8.img  qcow2 256K clustersize:128K
+   disk-create disk9.img  qcow2 -1   backingfile:disk1.img compat:1.1
+-- 
+1.8.3.1
+

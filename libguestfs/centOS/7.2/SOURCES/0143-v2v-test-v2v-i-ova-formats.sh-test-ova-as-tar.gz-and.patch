@@ -1,0 +1,42 @@
+From 3f79c623f68192418c90a4bdc71a9fe49d76f9a9 Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Wed, 15 Apr 2015 15:27:11 +0200
+Subject: [PATCH] v2v: test-v2v-i-ova-formats.sh: test ova as tar.gz and tar.xz
+
+Extend test-v2v-i-ova-formats.sh to test for tarballs compressed as gzip
+or xz; followup of commit 3c582cfb8d62013a935953e919c79009452254f9.
+
+(cherry picked from commit 8f5503096598ac38bb5da8efab517d5cf36cb760)
+---
+ v2v/test-v2v-i-ova-formats.sh | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/v2v/test-v2v-i-ova-formats.sh b/v2v/test-v2v-i-ova-formats.sh
+index a9b2a96..bd3e048 100755
+--- a/v2v/test-v2v-i-ova-formats.sh
++++ b/v2v/test-v2v-i-ova-formats.sh
+@@ -22,7 +22,7 @@ unset CDPATH
+ export LANG=C
+ set -e
+ 
+-formats="tar zip"
++formats="tar zip tar-gz tar-xz"
+ 
+ if [ -n "$SKIP_TEST_V2V_I_OVA_FORMATS_SH" ]; then
+     echo "$0: test skipped because environment variable is set"
+@@ -71,6 +71,12 @@ for format in $formats; do
+             zip -r test ../test-v2v-i-ova-formats.ovf disk1.vmdk disk1.mf
+             mv test.zip test-$format.ova
+             ;;
++        tar-gz)
++            tar -czf test-$format.ova ../test-v2v-i-ova-formats.ovf disk1.vmdk disk1.mf
++            ;;
++        tar-xz)
++            tar -cJf test-$format.ova ../test-v2v-i-ova-formats.ovf disk1.vmdk disk1.mf
++            ;;
+         *)
+             echo "Unhandled format '$format'"
+             exit 1
+-- 
+1.8.3.1
+

@@ -1,0 +1,28 @@
+From 3abf69d23cd95082daedb7cb1a1c98049f310368 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Fri, 10 Oct 2014 17:45:48 +0100
+Subject: [PATCH] RHEL 7: Revert "appliance: add dhcpcd and gptfdisk on
+ Archlinux"
+
+This reverts commit 979e7a49147f4ef1387337db262bf7ea12f627e3.
+---
+ appliance/packagelist.in | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/appliance/packagelist.in b/appliance/packagelist.in
+index a60e532..9032d7d 100644
+--- a/appliance/packagelist.in
++++ b/appliance/packagelist.in
+@@ -104,8 +104,7 @@ ifelse(ARCHLINUX,1,
+   btrfs-progs
+   cdrkit
+   cryptsetup
+-  dhcpcd
+-  gptfdisk
++  dhclient
+   grub
+   hivex
+   iproute2
+-- 
+1.8.3.1
+

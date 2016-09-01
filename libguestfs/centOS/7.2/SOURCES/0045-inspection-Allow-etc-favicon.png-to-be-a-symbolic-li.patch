@@ -1,0 +1,76 @@
+From 9b73cc026b38e871ffd13892c6e9fe878ae47b07 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 17 Nov 2014 10:33:35 +0000
+Subject: [PATCH] inspection: Allow /etc/favicon.png to be a symbolic link
+ (RHBZ#1164619).
+
+If /etc/favicon.png is a symbolic link, follow it.
+
+Unfortunately RHEL 7 and Fedora have crappy 16x16 /etc/favicon.png
+symlinks in the base distro.  It would be nice to ignore this symlink,
+but it's almost impossible to determine if the symlink is part of the
+base distro or was added by the user.  (This is a bug in those
+distros.)  virt-inspector and virt-mananger both ignore favicons.
+
+(cherry picked from commit 42391913287d935e582b0c67571a17e657aa8e2e)
+---
+ inspector/inspector.c |  4 +++-
+ src/inspect-icon.c    | 12 ++++++++++--
+ 2 files changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/inspector/inspector.c b/inspector/inspector.c
+index 8b2e578..71795ce 100644
+--- a/inspector/inspector.c
++++ b/inspector/inspector.c
+@@ -480,7 +480,9 @@ output_root (xmlTextWriterPtr xo, char *root)
+ 
+   output_applications (xo, root);
+ 
+-  /* Don't return favicon.  XXX Should we? */
++  /* Don't return favicon.  RHEL 7 and Fedora have crappy 16x16
++   * favicons in the base distro.
++   */
+   str = guestfs_inspect_get_icon (g, root, &size,
+                                   GUESTFS_INSPECT_GET_ICON_FAVICON, 0,
+                                   -1);
+diff --git a/src/inspect-icon.c b/src/inspect-icon.c
+index 4f10dfb..72d4bba 100644
+--- a/src/inspect-icon.c
++++ b/src/inspect-icon.c
+@@ -223,6 +223,7 @@ get_png (guestfs_h *g, struct inspect_fs *fs, const char *filename,
+          size_t *size_r, size_t max_size)
+ {
+   char *ret;
++  CLEANUP_FREE char *real = NULL;
+   CLEANUP_FREE char *type = NULL;
+   CLEANUP_FREE char *local = NULL;
+   int r, w, h;
+@@ -234,8 +235,15 @@ get_png (guestfs_h *g, struct inspect_fs *fs, const char *filename,
+   if (r == 0)
+     return NOT_FOUND;
+ 
++  /* Resolve the path, in case it's a symbolic link (as in RHEL 7). */
++  guestfs_push_error_handler (g, NULL, NULL);
++  real = guestfs_realpath (g, filename);
++  guestfs_pop_error_handler (g);
++  if (real == NULL)
++    return NOT_FOUND; /* could just be a broken link */
++
+   /* Check the file type and geometry. */
+-  type = guestfs_file (g, filename);
++  type = guestfs_file (g, real);
+   if (!type)
+     return NOT_FOUND;
+ 
+@@ -252,7 +260,7 @@ get_png (guestfs_h *g, struct inspect_fs *fs, const char *filename,
+   if (max_size == 0)
+     max_size = 4 * w * h;
+ 
+-  local = guestfs___download_to_tmp (g, fs, filename, "icon", max_size);
++  local = guestfs___download_to_tmp (g, fs, real, "icon", max_size);
+   if (!local)
+     return NOT_FOUND;
+ 
+-- 
+1.8.3.1
+

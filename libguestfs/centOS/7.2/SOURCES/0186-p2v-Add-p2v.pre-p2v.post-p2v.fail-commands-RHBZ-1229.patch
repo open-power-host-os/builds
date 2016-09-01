@@ -1,0 +1,154 @@
+From 47455b13d2defac1654d3ba5e28026be72ecbe39 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 9 Jun 2015 17:06:33 +0100
+Subject: [PATCH] p2v: Add p2v.pre, p2v.post, p2v.fail commands (RHBZ#1229385).
+
+The default p2v.post command, when run from the ISO, is to poweroff
+the machine after successful conversion.
+
+(cherry picked from commit b45f6a04359b4b64256b7b21a04416fa772c9423)
+---
+ p2v/kernel.c         | 43 +++++++++++++++++++++++++++++++++++++++++++
+ p2v/test-virt-p2v.sh |  2 +-
+ p2v/virt-p2v.pod     | 35 +++++++++++++++++++++++++++++++++++
+ 3 files changed, 79 insertions(+), 1 deletion(-)
+
+diff --git a/p2v/kernel.c b/p2v/kernel.c
+index 88d18bd..d7664d5 100644
+--- a/p2v/kernel.c
++++ b/p2v/kernel.c
+@@ -29,16 +29,23 @@
+ #include <assert.h>
+ #include <locale.h>
+ #include <libintl.h>
++#include <sys/types.h>
++#include <sys/wait.h>
+ 
+ #include "p2v.h"
+ 
+ static void notify_ui_callback (int type, const char *data);
++static void run_command (int verbose, const char *stage, const char *command);
+ 
+ void
+ kernel_configuration (struct config *config, char **cmdline, int cmdline_source)
+ {
+   const char *p;
+ 
++  p = get_cmdline_key (cmdline, "p2v.pre");
++  if (p)
++    run_command (config->verbose, "p2v.pre", p);
++
+   p = get_cmdline_key (cmdline, "p2v.server");
+   assert (p); /* checked by caller */
+   free (config->server);
+@@ -193,8 +200,21 @@ kernel_configuration (struct config *config, char **cmdline, int cmdline_source)
+ 
+     fprintf (stderr, "%s: error during conversion: %s\n",
+              guestfs_int_program_name, err);
++
++    p = get_cmdline_key (cmdline, "p2v.fail");
++    if (p)
++      run_command (config->verbose, "p2v.fail", p);
++
+     exit (EXIT_FAILURE);
+   }
++
++  p = get_cmdline_key (cmdline, "p2v.post");
++  if (!p) {
++    if (geteuid () == 0 && cmdline_source == CMDLINE_SOURCE_PROC_CMDLINE)
++      p = "poweroff";
++  }
++  if (p)
++    run_command (config->verbose, "p2v.post", p);
+ }
+ 
+ static void
+@@ -218,3 +238,26 @@ notify_ui_callback (int type, const char *data)
+             guestfs_int_program_name, type, data);
+   }
+ }
++
++static void
++run_command (int verbose, const char *stage, const char *command)
++{
++  int r;
++
++  if (STREQ (command, ""))
++    return;
++
++  if (verbose)
++    printf ("%s\n", command);
++
++  r = system (command);
++  if (r == -1) {
++    perror ("system");
++    exit (EXIT_FAILURE);
++  }
++  if ((WIFEXITED (r) && WEXITSTATUS (r) != 0) || !WIFEXITED (r)) {
++    fprintf (stderr, "%s: %s: unexpected failure of external command\n",
++             guestfs_int_program_name, stage);
++    exit (EXIT_FAILURE);
++  }
++}
+diff --git a/p2v/test-virt-p2v.sh b/p2v/test-virt-p2v.sh
+index f4d28d1..5184dab 100755
+--- a/p2v/test-virt-p2v.sh
++++ b/p2v/test-virt-p2v.sh
+@@ -59,7 +59,7 @@ export PATH=$d:$PATH
+ # under test (because of the ./run script).
+ 
+ # The Linux kernel command line.
+-cmdline="p2v.server=localhost p2v.name=windows p2v.debug p2v.disks=$f p2v.o=local p2v.os=$d p2v.network=em1:wired,other"
++cmdline="p2v.server=localhost p2v.name=windows p2v.debug p2v.disks=$f p2v.o=local p2v.os=$d p2v.network=em1:wired,other p2v.post="
+ 
+ virt-p2v --cmdline="$cmdline"
+ 
+diff --git a/p2v/virt-p2v.pod b/p2v/virt-p2v.pod
+index 9c1dba1..dd44a1c 100644
+--- a/p2v/virt-p2v.pod
++++ b/p2v/virt-p2v.pod
+@@ -422,6 +422,41 @@ option.  See L<virt-v2v(1)/OPTIONS>.
+ 
+ If not specified, the default is C</var/tmp> (on the conversion server).
+ 
++=item B<p2v.pre=COMMAND>
++
++=item B<p2v.pre="COMMAND ARG ...">
++
++Select a pre-conversion command to run.  Any command or script can be
++specified here.  If the command contains spaces, you must quote the
++whole command with double quotes.  The default is not to run any
++command.
++
++=item B<p2v.post=poweroff>
++
++=item B<p2v.post=reboot>
++
++=item B<p2v.post=COMMAND>
++
++=item B<p2v.post="COMMAND ARG ...">
++
++Select a post-conversion command to run if conversion is successful.
++This can be any command or script.  If the command contains spaces,
++you must quote the whole command with double quotes.
++
++I<If> virt-p2v is running as root, I<and> the command line was set
++from C</proc/cmdline> (not I<--cmdline>), then the default is to run
++the L<poweroff(8)> command.  Otherwise the default is not to run any
++command.
++
++=item B<p2v.fail=COMMAND>
++
++=item B<p2v.fail="COMMAND ARG ...">
++
++Select a post-conversion command to run if conversion fails.  Any
++command or script can be specified here.  If the command contains
++spaces, you must quote the whole command with double quotes.  The
++default is not to run any command.
++
+ =item B<ip=dhcp>
+ 
+ Use DHCP for configuring the network interface (this is the default).
+-- 
+1.8.3.1
+

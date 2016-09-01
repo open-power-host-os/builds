@@ -1,0 +1,42 @@
+From 839b3d82f37159f02d5c188367dcb157f5b3da4e Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Tue, 4 Nov 2014 09:16:17 +0100
+Subject: [PATCH] customize: firstboot: fix Linux log output
+
+Pass -a to each tee invocation, otherwise just the last one (so only for
+the last script executed) will appear in the log file.
+
+(cherry picked from commit 25cad1e62fa73e9cfd9a0e3d1d330165b19339ec)
+---
+ customize/firstboot.ml | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/customize/firstboot.ml b/customize/firstboot.ml
+index 1b92194..594f5b8 100644
+--- a/customize/firstboot.ml
++++ b/customize/firstboot.ml
+@@ -49,8 +49,8 @@ d=%s/scripts
+ d_done=%s/scripts-done
+ logfile=~root/virt-sysprep-firstboot.log
+ 
+-echo \"$0\" \"$@\" 2>&1 | tee $logfile
+-echo \"Scripts dir: $d\" 2>&1 | tee $logfile
++echo \"$0\" \"$@\" 2>&1 | tee -a $logfile
++echo \"Scripts dir: $d\" 2>&1 | tee -a $logfile
+ 
+ if test \"$1\" = \"start\"
+ then
+@@ -61,8 +61,8 @@ then
+       # move the script to the 'scripts-done' directory, so it is not
+       # executed again at the next boot
+       mv $f $d_done
+-      echo '=== Running' $f '===' 2>&1 | tee $logfile
+-      $d_done/$(basename $f) 2>&1 | tee $logfile
++      echo '=== Running' $f '===' 2>&1 | tee -a $logfile
++      $d_done/$(basename $f) 2>&1 | tee -a $logfile
+     fi
+   done
+   rm -f $d_done/*
+-- 
+1.8.3.1
+

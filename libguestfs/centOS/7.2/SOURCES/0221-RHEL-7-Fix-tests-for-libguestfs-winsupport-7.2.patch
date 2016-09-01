@@ -1,0 +1,56 @@
+From bcec3e2389bb58164e8d7faa8952ddea6fcc8f26 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Sun, 30 Aug 2015 03:21:57 -0400
+Subject: [PATCH] RHEL 7: Fix tests for libguestfs-winsupport 7.2.
+
+It doesn't let us use guestfish for arbitrary Windows edits.
+---
+ tests/charsets/test-charset-fidelity.c     | 2 ++
+ tests/guests/guest-aux/make-windows-img.sh | 1 +
+ v2v/test-v2v-windows-conversion.sh         | 5 ++++-
+ 3 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/tests/charsets/test-charset-fidelity.c b/tests/charsets/test-charset-fidelity.c
+index 4f2346e..2c11132 100644
+--- a/tests/charsets/test-charset-fidelity.c
++++ b/tests/charsets/test-charset-fidelity.c
+@@ -91,6 +91,8 @@ main (int argc, char *argv[])
+   if (g == NULL)
+     error (EXIT_FAILURE, 0, "failed to create handle");
+ 
++  guestfs_set_program (g, "virt-testing");
++
+   if (guestfs_add_drive_scratch (g, 1024*1024*1024, -1) == -1)
+     exit (EXIT_FAILURE);
+ 
+diff --git a/tests/guests/guest-aux/make-windows-img.sh b/tests/guests/guest-aux/make-windows-img.sh
+index 575c2ee..02e2b6d 100755
+--- a/tests/guests/guest-aux/make-windows-img.sh
++++ b/tests/guests/guest-aux/make-windows-img.sh
+@@ -37,6 +37,7 @@ fi
+ 
+ # Create a disk image.
+ guestfish <<EOF
++set-program virt-testing
+ sparse windows.img.tmp.$$ 512M
+ run
+ 
+diff --git a/v2v/test-v2v-windows-conversion.sh b/v2v/test-v2v-windows-conversion.sh
+index 7e8e628..8354bc3 100755
+--- a/v2v/test-v2v-windows-conversion.sh
++++ b/v2v/test-v2v-windows-conversion.sh
+@@ -71,7 +71,10 @@ test -f $d/windows.xml
+ test -f $d/windows-sda
+ 
+ # Test some aspects of the target disk image.
+-guestfish --ro -a $d/windows-sda -i <<EOF
++guestfish --ro -a $d/windows-sda <<EOF
++  set-program virt-testing
++  run
++  mount /dev/sda1 /
+   is-dir "/Program Files/Red Hat/Firstboot"
+   is-file "/Program Files/Red Hat/Firstboot/firstboot.bat"
+   is-dir "/Program Files/Red Hat/Firstboot/scripts"
+-- 
+1.8.3.1
+

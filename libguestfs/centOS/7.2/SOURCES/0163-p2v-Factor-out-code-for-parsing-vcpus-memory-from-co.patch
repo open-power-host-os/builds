@@ -1,0 +1,90 @@
+From d0c304a1e5aab10933ab4a3b625bc37f223d9d17 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 5 May 2015 15:09:13 +0100
+Subject: [PATCH] p2v: Factor out code for parsing vcpus & memory from
+ conversion dialog.
+
+No functional change, just code refactoring.
+
+(cherry picked from commit b1336f26e6a4a643eefd7422e8cd2d4520b1a565)
+---
+ p2v/gui.c | 42 ++++++++++++++++++++++++++++++------------
+ 1 file changed, 30 insertions(+), 12 deletions(-)
+
+diff --git a/p2v/gui.c b/p2v/gui.c
+index 5065560..8a5cda1 100644
+--- a/p2v/gui.c
++++ b/p2v/gui.c
+@@ -375,6 +375,8 @@ static void set_interfaces_from_ui (struct config *);
+ static void conversion_back_clicked (GtkWidget *w, gpointer data);
+ static void start_conversion_clicked (GtkWidget *w, gpointer data);
+ static void notify_ui_callback (int type, const char *data);
++static int get_vcpus_from_conv_dlg (void);
++static uint64_t get_memory_from_conv_dlg (void);
+ 
+ enum {
+   DISKS_COL_CONVERT = 0,
+@@ -1051,6 +1053,32 @@ conversion_back_clicked (GtkWidget *w, gpointer data)
+   gtk_widget_set_sensitive (next_button, FALSE);
+ }
+ 
++static int
++get_vcpus_from_conv_dlg (void)
++{
++  const char *str;
++  int i;
++
++  str = gtk_entry_get_text (GTK_ENTRY (vcpus_entry));
++  if (sscanf (str, "%d", &i) == 1 && i > 0)
++    return i;
++  else
++    return 1;
++}
++
++static uint64_t
++get_memory_from_conv_dlg (void)
++{
++  const char *str;
++  uint64_t i;
++
++  str = gtk_entry_get_text (GTK_ENTRY (memory_entry));
++  if (sscanf (str, "%" SCNu64, &i) == 1 && i >= 256)
++    return i * 1024 * 1024;
++  else
++    return UINT64_C (1024) * 1024 * 1024;
++}
++
+ /*----------------------------------------------------------------------*/
+ /* Running dialog. */
+ 
+@@ -1174,7 +1202,6 @@ static void
+ start_conversion_clicked (GtkWidget *w, gpointer data)
+ {
+   struct config *config = data;
+-  int i;
+   const char *str;
+   char *str2;
+   GtkWidget *dlg;
+@@ -1200,17 +1227,8 @@ start_conversion_clicked (GtkWidget *w, gpointer data)
+     return;
+   }
+ 
+-  str = gtk_entry_get_text (GTK_ENTRY (vcpus_entry));
+-  if (sscanf (str, "%d", &i) == 1 && i > 0)
+-    config->vcpus = i;
+-  else
+-    config->vcpus = 1;
+-
+-  str = gtk_entry_get_text (GTK_ENTRY (memory_entry));
+-  if (sscanf (str, "%d", &i) == 1 && i >= 256)
+-    config->memory = (uint64_t) i * 1024 * 1024;
+-  else
+-    config->memory = 1024 * 1024 * 1024;
++  config->vcpus = get_vcpus_from_conv_dlg ();
++  config->memory = get_memory_from_conv_dlg ();
+ 
+   config->verbose =
+     gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (debug_button));
+-- 
+1.8.3.1
+

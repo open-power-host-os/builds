@@ -1,0 +1,29 @@
+From e871083162bb0f42931b8f218d98f370f6c017d4 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 24 Nov 2014 10:56:57 +0000
+Subject: [PATCH] ntfsresize: Capture errors sent to stdout (RHBZ#1166618).
+
+ntfsresize sends error messages to stdout.  Capture those error
+messages.
+
+(cherry picked from commit dc845c9a6694dc7f06894e0df137176a4da73c66)
+---
+ daemon/ntfs.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/daemon/ntfs.c b/daemon/ntfs.c
+index aef45a2..762ca88 100644
+--- a/daemon/ntfs.c
++++ b/daemon/ntfs.c
+@@ -94,7 +94,7 @@ do_ntfsresize (const char *device, int64_t size, int force)
+   ADD_ARG (argv, i, device);
+   ADD_ARG (argv, i, NULL);
+ 
+-  r = commandv (NULL, &err, argv);
++  r = commandvf (NULL, &err, COMMAND_FLAG_FOLD_STDOUT_ON_STDERR, argv);
+   if (r == -1) {
+     reply_with_error ("%s: %s", device, err);
+     return -1;
+-- 
+1.8.3.1
+

@@ -1,0 +1,13 @@
+Package:
+ name: 'libguestfs'
+# clone_url: 'https://github.com/libguestfs/libguestfs.git'
+ download_source: 'wget http://libguestfs.org/download/1.28-stable/libguestfs-1.28.1.tar.gz'
+# branch: 'stable-1.28'
+# commit_id: '6e05b45' #1.28.1
+ expects_source: "libguestfs-1.28.1.tar.gz"
+ files:
+  centos:
+   '7.2':
+    spec: 'centOS/7.2/libguestfs.spec'
+    build_files: 'centOS/7.2/SOURCES'
+    rpmmacro: 'centOS/7.2/rpmmacro'

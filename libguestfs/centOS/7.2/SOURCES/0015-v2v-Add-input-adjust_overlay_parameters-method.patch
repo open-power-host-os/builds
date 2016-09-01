@@ -1,0 +1,64 @@
+From 9b1984eb3ce4411b1a1882cddc263766b3984ba0 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 20 Oct 2014 18:21:38 +0100
+Subject: [PATCH] v2v: Add input#adjust_overlay_parameters method.
+
+This is called before the copying phase to allow the input method to
+adjust overlay/backing parameters.
+
+The default implementation does nothing, so this commit has no effect.
+
+(cherry picked from commit 0084736f5fe75f62f72f0014333b32ab753b1554)
+---
+ v2v/types.ml  | 1 +
+ v2v/types.mli | 3 +++
+ v2v/v2v.ml    | 7 +++++++
+ 3 files changed, 11 insertions(+)
+
+diff --git a/v2v/types.ml b/v2v/types.ml
+index 5124f3c..c5a05f6 100644
+--- a/v2v/types.ml
++++ b/v2v/types.ml
+@@ -194,6 +194,7 @@ and guestcaps_video_type = QXL | Cirrus
+ class virtual input verbose = object
+   method virtual as_options : string
+   method virtual source : unit -> source
++  method adjust_overlay_parameters (_ : overlay) = ()
+ end
+ 
+ class virtual output verbose = object
+diff --git a/v2v/types.mli b/v2v/types.mli
+index c077dc2..2123a41 100644
+--- a/v2v/types.mli
++++ b/v2v/types.mli
+@@ -143,6 +143,9 @@ class virtual input : bool -> object
+       This is just used for pretty-printing log messages. *)
+   method virtual source : unit -> source
+   (** Examine the source hypervisor and create a source struct. *)
++  method adjust_overlay_parameters : overlay -> unit
++  (** Called just before copying to allow the input module to adjust
++      parameters of the overlay disk. *)
+ end
+ (** Encapsulates all [-i], etc input arguments as an object. *)
+ 
+diff --git a/v2v/v2v.ml b/v2v/v2v.ml
+index 6bd2e2c..6f98a8c 100644
+--- a/v2v/v2v.ml
++++ b/v2v/v2v.ml
+@@ -307,6 +307,13 @@ let rec main () =
+           if not ((new G.guestfs ())#disk_has_backing_file overlay_file) then
+             error (f_"internal error: qemu corrupted the overlay file");
+ 
++          (* Give the input module a chance to adjust the parameters
++           * of the overlay/backing file.  This allows us to increase
++           * the readahead parameter when copying (see RHBZ#1151033 and
++           * RHBZ#1153589 for the gruesome details).
++           *)
++          input#adjust_overlay_parameters t.target_overlay;
++
+           (* It turns out that libguestfs's disk creation code is
+            * considerably more flexible and easier to use than
+            * qemu-img, so create the disk explicitly using libguestfs
+-- 
+1.8.3.1
+

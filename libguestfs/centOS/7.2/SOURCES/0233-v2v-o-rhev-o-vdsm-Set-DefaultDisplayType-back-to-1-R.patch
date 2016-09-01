@@ -1,0 +1,40 @@
+From 99042dcb95d87ce6ac7e5cac9f437c543d6559af Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 9 Sep 2015 13:47:19 +0100
+Subject: [PATCH] v2v: -o rhev, -o vdsm: Set DefaultDisplayType back to 1
+ (RHBZ#1260590).
+
+In commit c4bc8116d9d586085f96da2e5558c9b366e84925, the DefaultDisplayType
+was changed from 1 -> 2.  However this is in fact wrong.  See
+https://bugzilla.redhat.com/show_bug.cgi?id=1260590#c17 for details.
+
+This reverts the code back to what it was in
+commit 829e3fe7a6ed834939a7a79e453ab873d3328ae1.
+
+Thanks: Omer Frenkel
+(cherry picked from commit e3aee9c14d093d010349567b2f035defceef57df)
+---
+ v2v/OVF.ml | 7 ++-----
+ 1 file changed, 2 insertions(+), 5 deletions(-)
+
+diff --git a/v2v/OVF.ml b/v2v/OVF.ml
+index 01f244a..9b387f2 100644
+--- a/v2v/OVF.ml
++++ b/v2v/OVF.ml
+@@ -275,11 +275,8 @@ let rec create_ovf verbose source targets guestcaps inspect
+         e "IsStateless" [] [PCData "False"];
+         e "Origin" [] [PCData "0"];
+         e "VmType" [] [PCData vmtype];
+-        (* The documentation for DefaultDisplayType is wrong.  See
+-         * https://bugzilla.redhat.com/show_bug.cgi?id=1260590#c7 for
+-         * correct information.
+-         *)
+-        e "DefaultDisplayType" [] [PCData "2" (* qxl *)];
++        (* See https://bugzilla.redhat.com/show_bug.cgi?id=1260590#c17 *)
++        e "DefaultDisplayType" [] [PCData "1"];
+ 
+         e "Section" ["ovf:id", vm_uuid; "ovf:required", "false";
+                      "xsi:type", "ovf:OperatingSystemSection_Type"] [
+-- 
+1.8.3.1
+

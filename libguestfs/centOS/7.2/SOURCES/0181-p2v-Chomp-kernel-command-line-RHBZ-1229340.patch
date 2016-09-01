@@ -1,0 +1,34 @@
+From 82ef64343231734b0ea08e083b4c2a8dc77d2877 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 8 Jun 2015 14:40:20 +0100
+Subject: [PATCH] p2v: Chomp kernel command line (RHBZ#1229340).
+
+When using the kernel command line to configure virt-p2v, if any p2v.*
+parameter appeared right at the end of the kernel command line, then a
+bogus \n would be appended.  Remove this.
+
+This is essentially the same fix as:
+https://github.com/libguestfs/supermin/commit/4819655b3c96e836e46d0d679f84b10f8e9abcf5
+
+(cherry picked from commit 6114c10df05cdb1662ac22930010fd45714f9c40)
+---
+ p2v/main.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/p2v/main.c b/p2v/main.c
+index 6d71dd4..fd9c156 100644
+--- a/p2v/main.c
++++ b/p2v/main.c
+@@ -517,6 +517,9 @@ read_cmdline (void)
+     return NULL;
+   }
+ 
++  if (len >= 1 && ret[len-1] == '\n')
++    ret[len-1] = '\0';
++
+   return ret;
+ }
+ 
+-- 
+1.8.3.1
+

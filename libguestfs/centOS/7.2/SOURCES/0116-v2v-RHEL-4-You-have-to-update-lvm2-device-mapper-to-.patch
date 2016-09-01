@@ -1,0 +1,34 @@
+From 953e67d5f2545886862e9a403663f919004719f4 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 30 Mar 2015 13:23:10 +0100
+Subject: [PATCH] v2v: RHEL 4: You have to update lvm2, device-mapper to get
+ virtio support.
+
+Also include the updated selinux policy that goes with RHEL 4.8.
+
+Also mention that policycoreutils should be updated - see previous
+commit.
+
+(cherry picked from commit 453db7e210673cbd361a4d380e07e607ea833b9c)
+---
+ v2v/virt-v2v.pod | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/v2v/virt-v2v.pod b/v2v/virt-v2v.pod
+index e3f97f2..033040e 100644
+--- a/v2v/virt-v2v.pod
++++ b/v2v/virt-v2v.pod
+@@ -598,6 +598,10 @@ below.
+  RHEL 3         No virtio drivers are available
+  
+  RHEL 4         kernel >= 2.5.9-89.EL
++                lvm2 >= 2.02.42-5.el4
++                device-mapper >= 1.02.28-2.el4
++                selinux-policy-targeted >= 1.17.30-2.152.el4
++                policycoreutils >= 1.18.1-4.13
+  
+  RHEL 5         kernel >= 2.6.18-128.el5
+                 lvm2 >= 2.02.40-6.el5
+-- 
+1.8.3.1
+

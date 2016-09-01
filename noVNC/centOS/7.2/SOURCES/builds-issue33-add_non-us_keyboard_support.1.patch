@@ -1,0 +1,363 @@
+@@ -, +, @@ 
+- added a new extension code, QEMUExtendedKeyEvent, value -258.
+- handleKeyPress now receives 'keyevent' instead of 'keysym' and
+- tests/test.rfb.js were changed folowing the onKeyPress() signature
+- added a new function to send the QEMU extended key message.
+- added a new function that enables the QEMU extension support
+---
+ include/input.js  |  10 +-
+ include/rfb.js    | 277 +++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ tests/test.rfb.js |   6 +-
+ 3 files changed, 287 insertions(+), 6 deletions(-)
+--- a/include/input.js  
++++ a/include/input.js  
+@@ -51,10 +51,18 @@ var Keyboard, Mouse;
+             if (this._onKeyPress) {
+                 Util.Debug("onKeyPress " + (e.type == 'keydown' ? "down" : "up") +
+                            ", keysym: " + e.keysym.keysym + "(" + e.keysym.keyname + ")");
+-                this._onKeyPress(e.keysym.keysym, e.type == 'keydown');
++                this._onKeyPress(e);
+             }
+         },
+ 
++        setQEMUVNCKeyboardHandler: function () {
++            this._handler = new QEMUKeyEventDecoder(kbdUtil.ModifierSync(),
++                TrackQEMUKeyState(
++                    this._handleRfbEvent.bind(this)
++                )
++            );
++        },
++
+         _handleKeyDown: function (e) {
+             if (!this._focused) { return true; }
+ 
+--- a/include/rfb.js    
++++ a/include/rfb.js    
+@@ -53,7 +53,8 @@ var RFB;
+             //['compress_lo',      -255 ],
+             ['compress_hi',        -247 ],
+             ['last_rect',          -224 ],
+-            ['xvp',                -309 ]
++            ['xvp',                -309 ],
++            ['QEMUExtendedKeyEvent', -258 ]
+         ];
+ 
+         this._encHandlers = {};
+@@ -112,6 +113,9 @@ var RFB;
+         this._viewportDragging = false;
+         this._viewportDragPos = {};
+ 
++        // QEMU Extended Key Event support - default to false
++        this._QEMU_Extended_Key_Event = false;
++
+         // set the default value on user-facing properties
+         Util.set_defaults(this, defaults, {
+             'target': 'null',                       // VNC display rendering Canvas object
+@@ -541,9 +545,26 @@ var RFB;
+             }
+         },
+ 
+-        _handleKeyPress: function (keysym, down) {
++        _handleKeyPress: function (keyevent) {
+             if (this._view_only) { return; } // View only, skip keyboard, events
+-            this._sock.send(RFB.messages.keyEvent(keysym, down));
++            var down = (keyevent.type == 'keydown');
++
++            if (this._QEMU_Extended_Key_Event) {
++                var xt_scancode = this._XT_scancode[keyevent.code];
++                if (xt_scancode) {
++                    var keysym = keyevent.keysym;
++                    this._sock.send(
++                        RFB.messages.QEMUExtendedKeyEvent(
++                            keysym,
++                            down,
++                            xt_scancode
++                        )
++                    );
++                }
++            } else {
++               keysym = keyevent.keysym.keysym;
++               this._sock.send(RFB.messages.keyEvent(keysym, down));
++            }
+         },
+ 
+         _handleMouseButton: function (x, y, down, bmask) {
+@@ -1238,6 +1259,41 @@ var RFB;
+             return arr;
+         },
+ 
++        QEMUExtendedKeyEvent: function (keysym, down, keycode) {
++
++            function getRFBkeycode(xt_scancode) {
++                var upperByte = (keycode >> 8);
++                var lowerByte = (keycode & 0x00ff);
++                if (upperByte === 0xe0 && lowerByte < 0x7f) {
++                    lowerByte = lowerByte | 0x80;
++                    return lowerByte;
++                }
++                return xt_scancode
++            }
++
++            var buff = [12];
++
++            buff[0] = 255; // msg-type
++            buff[1] = 0; // sub msg-type
++
++            buff[2] = (down >> 8);
++            buff[3] = down;
++
++            buff[4] = (keysym >> 24);
++            buff[5] = (keysym >> 16);
++            buff[6] = (keysym >> 8);
++            buff[7] = keysym;
++
++            var RFBkeycode = getRFBkeycode(keycode)
++
++            buff[8] = (RFBkeycode >> 24);
++            buff[9] = (RFBkeycode >> 16);
++            buff[10] = (RFBkeycode >> 8);
++            buff[11] = RFBkeycode;
++
++            return buff;
++        },
++
+         pointerEvent: function (x, y, mask) {
+             var arr = [5];  // msg-type
+             arr.push8(mask);
+@@ -1877,6 +1933,219 @@ var RFB;
+ 
+         compress_lo: function () {
+             Util.Error("Server sent compress level pseudo-encoding");
+-        }
++        },
++
++        QEMUExtendedKeyEvent: function () {
++
++            var common_XT_scancode = {};
++            common_XT_scancode["Escape"] = 0x0001;
++            common_XT_scancode["Digit1"] = 0x0002;
++            common_XT_scancode["Digit2"] = 0x0003;
++            common_XT_scancode["Digit3"] = 0x0004;
++            common_XT_scancode["Digit4"] = 0x0005;
++            common_XT_scancode["Digit5"] = 0x0006;
++            common_XT_scancode["Digit6"] = 0x0007;
++            common_XT_scancode["Digit7"] = 0x0008;
++            common_XT_scancode["Digit8"] = 0x0009;
++            common_XT_scancode["Digit9"] = 0x000A;
++            common_XT_scancode["Digit0"] = 0x000B;
++            common_XT_scancode["Minus"] = 0x000C;
++            common_XT_scancode["Equal"] = 0x000D;
++            common_XT_scancode["Backspace"] = 0x000E;
++            common_XT_scancode["Tab"] = 0x000F;
++            common_XT_scancode["KeyQ"] = 0x0010;
++            common_XT_scancode["KeyW"] = 0x0011;
++            common_XT_scancode["KeyE"] = 0x0012;
++            common_XT_scancode["KeyR"] = 0x0013;
++            common_XT_scancode["KeyT"] = 0x0014;
++            common_XT_scancode["KeyY"] = 0x0015;
++            common_XT_scancode["KeyU"] = 0x0016;
++            common_XT_scancode["KeyI"] = 0x0017;
++            common_XT_scancode["KeyO"] = 0x0018;
++            common_XT_scancode["KeyP"] = 0x0019;
++            common_XT_scancode["BracketLeft"] = 0x001A;
++            common_XT_scancode["BracketRight"] = 0x001B;
++            common_XT_scancode["Enter"] = 0x001C;
++            common_XT_scancode["ControlLeft"] = 0x001D;
++            common_XT_scancode["KeyA"] = 0x001E;
++            common_XT_scancode["KeyS"] = 0x001F;
++            common_XT_scancode["KeyD"] = 0x0020;
++            common_XT_scancode["KeyF"] = 0x0021;
++            common_XT_scancode["KeyG"] = 0x0022;
++            common_XT_scancode["KeyH"] = 0x0023;
++            common_XT_scancode["KeyJ"] = 0x0024;
++            common_XT_scancode["KeyK"] = 0x0025;
++            common_XT_scancode["KeyL"] = 0x0026;
++            common_XT_scancode["Semicolon"] = 0x0027;
++            common_XT_scancode["Quote"] = 0x0028;
++            common_XT_scancode["Backquote"] = 0x0029;
++            common_XT_scancode["ShiftLeft"] = 0x002A;
++            common_XT_scancode["Backslash"] = 0x002B;
++            common_XT_scancode["KeyZ"] = 0x002C;
++            common_XT_scancode["KeyX"] = 0x002D;
++            common_XT_scancode["KeyC"] = 0x002E;
++            common_XT_scancode["KeyV"] = 0x002F;
++            common_XT_scancode["KeyB"] = 0x0030;
++            common_XT_scancode["KeyN"] = 0x0031;
++            common_XT_scancode["KeyM"] = 0x0032;
++            common_XT_scancode["Comma"] = 0x0033;
++            common_XT_scancode["Period"] = 0x0034;
++            common_XT_scancode["Slash"] = 0x0035;
++            common_XT_scancode["ShiftRight"] = 0x0036;
++            common_XT_scancode["NumpadMultiply"] = 0x0037;
++            common_XT_scancode["AltLeft"] = 0x0038;
++            common_XT_scancode["Space"] = 0x0039;
++            common_XT_scancode["CapsLock"] = 0x003A;
++            common_XT_scancode["F1"] = 0x003B;
++            common_XT_scancode["F2"] = 0x003C;
++            common_XT_scancode["F3"] = 0x003D;
++            common_XT_scancode["F4"] = 0x003E;
++            common_XT_scancode["F5"] = 0x003F;
++            common_XT_scancode["F6"] = 0x0040;
++            common_XT_scancode["F7"] = 0x0041;
++            common_XT_scancode["F8"] = 0x0042;
++            common_XT_scancode["F9"] = 0x0043;
++            common_XT_scancode["F10"] = 0x0044;
++            common_XT_scancode["Pause"] = 0xE045;
++            common_XT_scancode["ScrollLock"] = 0x0046;
++            common_XT_scancode["Numpad7"] = 0x0047;
++            common_XT_scancode["Numpad8"] = 0x0048;
++            common_XT_scancode["Numpad9"] = 0x0049;
++            common_XT_scancode["NumpadSubtract"] = 0x004A;
++            common_XT_scancode["Numpad4"] = 0x004B;
++            common_XT_scancode["Numpad5"] = 0x004C;
++            common_XT_scancode["Numpad6"] = 0x004D;
++            common_XT_scancode["NumpadAdd"] = 0x004E;
++            common_XT_scancode["Numpad1"] = 0x004F;
++            common_XT_scancode["Numpad2"] = 0x0050;
++            common_XT_scancode["Numpad3"] = 0x0051;
++            common_XT_scancode["Numpad0"] = 0x0052;
++            common_XT_scancode["NumpadDecimal"] = 0x0053;
++            common_XT_scancode["IntlBackslash"] = 0x0056;
++            common_XT_scancode["F11"] = 0x0057;
++            common_XT_scancode["F12"] = 0x0058;
++            common_XT_scancode["IntlYen"] = 0x007D;
++            common_XT_scancode["MediaTrackPrevious"] = 0xE010;
++            common_XT_scancode["MediaTrackNext"] = 0xE019;
++            common_XT_scancode["NumpadEnter"] = 0xE01C;
++            common_XT_scancode["ControlRight"] = 0xE01D;
++            common_XT_scancode["VolumeMute"] = 0xE020;
++            common_XT_scancode["MediaPlayPause"] = 0xE022;
++            common_XT_scancode["MediaStop"] = 0xE024;
++            common_XT_scancode["VolumeDown"] = 0xE02E;
++            common_XT_scancode["VolumeUp"] = 0xE030;
++            common_XT_scancode["BrowserHome"] = 0xE032;
++            common_XT_scancode["NumpadDivide"] = 0xE035;
++            common_XT_scancode["PrintScreen"] = 0xE037;
++            common_XT_scancode["AltRight"] = 0xE038;
++            common_XT_scancode["NumLock"] = 0x0045;
++            common_XT_scancode["Home"] = 0xE047;
++            common_XT_scancode["ArrowUp"] = 0xE048;
++            common_XT_scancode["PageUp"] = 0xE049;
++            common_XT_scancode["ArrowLeft"] = 0xE04B;
++            common_XT_scancode["ArrowRight"] = 0xE04D;
++            common_XT_scancode["End"] = 0xE04F;
++            common_XT_scancode["ArrowDown"] = 0xE050;
++            common_XT_scancode["PageDown"] = 0xE051;
++            common_XT_scancode["Insert"] = 0xE052;
++            common_XT_scancode["Delete"] = 0xE053;
++            common_XT_scancode["OSLeft"] = 0xE05B;
++            common_XT_scancode["OSRight"] = 0xE05C;
++            common_XT_scancode["ContextMenu"] = 0xE05D;
++            common_XT_scancode["BrowserSearch"] = 0xE065;
++            common_XT_scancode["BrowserFavorites"] = 0xE066;
++            common_XT_scancode["BrowserRefresh"] = 0xE067;
++            common_XT_scancode["BrowserStop"] = 0xE068;
++            common_XT_scancode["BrowserForward"] = 0xE069;
++            common_XT_scancode["BrowserBack"] = 0xE06A;
++            common_XT_scancode["NumpadComma"] = 0x007E;
++
++            var chromium_XT_scancode = {};
++            chromium_XT_scancode["F13"] = 0x005B;
++            chromium_XT_scancode["F14"] = 0x005C;
++            chromium_XT_scancode["F15"] = 0x005D;
++            chromium_XT_scancode["F16"] = 0x0063;
++            chromium_XT_scancode["F17"] = 0x0064;
++            chromium_XT_scancode["F18"] = 0x0065;
++            chromium_XT_scancode["F19"] = 0x0066;
++            chromium_XT_scancode["F20"] = 0x0067;
++            chromium_XT_scancode["F21"] = 0x0068;
++            chromium_XT_scancode["F22"] = 0x0069;
++            chromium_XT_scancode["F23"] = 0x006A;
++            chromium_XT_scancode["F24"] = 0x006B;
++            chromium_XT_scancode["Undo"] = 0xE008;
++            chromium_XT_scancode["Paste"] = 0xE00A;
++            chromium_XT_scancode["Cut"] = 0xE017;
++            chromium_XT_scancode["Copy"] = 0xE018;
++            chromium_XT_scancode["LaunchMail"] = 0xE01E;
++            chromium_XT_scancode["Eject"] = 0xE02C;
++            chromium_XT_scancode["Help"] = 0xE03B;
++
++            var gecko_XT_scancode = {};
++            gecko_XT_scancode["NumpadEqual"] = 0x0059;
++            gecko_XT_scancode["F13"] = 0x0064;
++            gecko_XT_scancode["F14"] = 0x0065;
++            gecko_XT_scancode["F15"] = 0x0066;
++            gecko_XT_scancode["F16"] = 0x0067;
++            gecko_XT_scancode["F17"] = 0x0068;
++            gecko_XT_scancode["F18"] = 0x0069;
++            gecko_XT_scancode["F19"] = 0x006A;
++            gecko_XT_scancode["F20"] = 0x006B;
++            gecko_XT_scancode["F21"] = 0x006C;
++            gecko_XT_scancode["F22"] = 0x006D;
++            gecko_XT_scancode["F23"] = 0x006E;
++            gecko_XT_scancode["F24"] = 0x0076;
++            gecko_XT_scancode["KanaMode"] = 0x0070;
++            gecko_XT_scancode["Lang2"] = 0x0071;
++            gecko_XT_scancode["Lang1"] = 0x0072;
++            gecko_XT_scancode["IntlRo"] = 0x0073;
++            gecko_XT_scancode["Convert"] = 0x0079;
++            gecko_XT_scancode["NonConvert"] = 0x007B;
++            gecko_XT_scancode["LaunchApp2"] = 0xE021;
++            gecko_XT_scancode["Power"] = 0xE05E;
++            gecko_XT_scancode["LaunchApp1"] = 0xE06B;
++            gecko_XT_scancode["LaunchMail"] = 0xE06C;
++            gecko_XT_scancode["MediaSelect"] = 0xE06D;
++
++            function checkIfRunningInSupportedBrowser() {
++                var brVersion = navigator.userAgent;
++
++                if (brVersion.indexOf("Chrome") !== -1 ||
++                    brVersion.indexOf("Chromium") !==-1) {
++
++                    return "Chrome";
++
++                } else if (brVersion.indexOf("Firefox") !== -1) {
++                    return "Firefox";
++
++                } else if (brVersion.indexOf("OPR") !== -1) {
++                    return "Opera";
++                }
++                return null;
++            }
++
++            this._FBU.rects--;
++
++            var supportedBrowser = checkIfRunningInSupportedBrowser();
++            if (supportedBrowser !== null) {
++                Util.Info("QEMU Key Event extension enabled");
++
++                this._QEMU_Extended_Key_Event = true;
++                this._keyboard.setQEMUVNCKeyboardHandler();
++
++                this._XT_scancode = common_XT_scancode;
++
++                if (supportedBrowser === "Chrome") {
++                    for (var code in chromium_XT_scancode) {
++                        this._XT_scancode[code] = chromium_XT_scancode[code];
++                    }
++                } else if (supportedBrowser === "Firefox") {
++                    for (var code in gecko_XT_scancode) {
++                        this._XT_scancode[code] = gecko_XT_scancode[code];
++                    }
++                }
++            }
++
++        },
+     };
+ })();
+--- a/tests/test.rfb.js 
++++ a/tests/test.rfb.js 
+@@ -1623,7 +1623,11 @@ describe('Remote Frame Buffer Protocol Client', function() {
+             });
+ 
+             it('should send a key message on a key press', function () {
+-                client._keyboard._onKeyPress(1234, 1);
++                var keyevent = {};
++                keyevent.type = 'keydown';
++                keyevent.keysym = {};
++                keyevent.keysym.keysym = 1234;
++                client._keyboard._onKeyPress(keyevent);
+                 expect(client._sock.send).to.have.been.calledOnce;
+                 var key_msg = RFB.messages.keyEvent(1234, 1);
+                 expect(client._sock.send).to.have.been.calledWith(key_msg);
+-- 

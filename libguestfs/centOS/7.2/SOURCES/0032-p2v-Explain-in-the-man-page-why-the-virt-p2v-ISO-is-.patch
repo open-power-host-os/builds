@@ -1,0 +1,29 @@
+From 96dd0999819b0efdea763c66d11cbf99684cdbd1 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Sun, 26 Oct 2014 19:35:36 +0000
+Subject: [PATCH] p2v: Explain in the man page why the virt-p2v ISO is used.
+
+(cherry picked from commit fab95a52bd307e6be699681de67134788687bf13)
+---
+ p2v/virt-p2v.pod | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/p2v/virt-p2v.pod b/p2v/virt-p2v.pod
+index 2dfe0a4..6e7a77d 100644
+--- a/p2v/virt-p2v.pod
++++ b/p2v/virt-p2v.pod
+@@ -18,7 +18,10 @@ L<virt-v2v(1)>.
+ Normally you don't run the virt-p2v program directly.  Instead you
+ have to boot the physical machine using the bootable CD-ROM, ISO or
+ PXE image.  This bootable image contains the virt-p2v binary and runs
+-it automatically.
++it automatically.  Booting from a CD-ROM/etc is required because the
++disks which are being converted must be quiescent.  It is not safe to
++try to convert a running physical machine where other programs may be
++modifying the disk content at the same time.
+ 
+ This manual page documents running the virt-p2v program.  To create
+ the bootable image you should look at L<virt-p2v-make-disk(1)> or
+-- 
+1.8.3.1
+

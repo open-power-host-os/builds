@@ -1,0 +1,32 @@
+From 23483d8fc3f3a6fad88648eeee4be61e19dfde0a Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 6 Jul 2015 12:20:48 +0100
+Subject: [PATCH] v2v: -o libvirt: Add readonly=yes to UEFI <loader> attribute
+ (RHBZ#1184690).
+
+Thanks: Junqin Zhou for diagnosing the bug and finding the correct
+solution.  https://bugzilla.redhat.com/show_bug.cgi?id=1184690#c22
+
+This fixes commit 40558450dd87190c9dc2649cadbf284ae0a21606.
+
+(cherry picked from commit 74e87a970b39864b8f38c9a8b0ddab61b9d9a76e)
+---
+ v2v/output_libvirt.ml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/v2v/output_libvirt.ml b/v2v/output_libvirt.ml
+index 6188aa6..40280dd 100644
+--- a/v2v/output_libvirt.ml
++++ b/v2v/output_libvirt.ml
+@@ -125,7 +125,7 @@ let create_libvirt_xml ?pool source targets guestcaps
+           * until that day we have to use a bunch of heuristics. XXX
+           *)
+          let code, vars_template = find_uefi_firmware guestcaps.gcaps_arch in
+-         [ e "loader" ["type", "pflash"] [ PCData code ];
++         [ e "loader" ["readonly", "yes"; "type", "pflash"] [ PCData code ];
+            e "nvram" ["template", vars_template] [] ] in
+ 
+     (e "type" ["arch", guestcaps.gcaps_arch] [PCData "hvm"]) :: loader in
+-- 
+1.8.3.1
+

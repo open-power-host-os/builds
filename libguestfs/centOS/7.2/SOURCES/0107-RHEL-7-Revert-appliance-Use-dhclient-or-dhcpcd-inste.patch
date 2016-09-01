@@ -1,0 +1,91 @@
+From 8b61f836790e57690852b41bdc0856df42a58867 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Fri, 10 Oct 2014 17:46:02 +0100
+Subject: [PATCH] RHEL 7: Revert "appliance: Use dhclient or dhcpcd instead of
+ hard-coding IP address of appliance."
+
+This reverts commit 67e6f32a240c7c234e6af637c1cd324b36a82cd3.
+---
+ appliance/init           | 13 ++++++-------
+ appliance/packagelist.in |  6 ------
+ 2 files changed, 6 insertions(+), 13 deletions(-)
+
+diff --git a/appliance/init b/appliance/init
+index f719a72..6d62338 100755
+--- a/appliance/init
++++ b/appliance/init
+@@ -79,13 +79,12 @@ hwclock -u -s
+ ip addr add 127.0.0.1/8 brd + dev lo scope host
+ ip link set dev lo up
+ 
+-if grep -sq guestfs_network=1 /proc/cmdline; then
+-    if dhclient --version >/dev/null 2>&1; then
+-        dhclient
+-    else
+-        dhcpcd
+-    fi
+-fi
++ip addr add 169.254.2.10/16 brd + dev eth0 scope global
++ip link set dev eth0 up
++
++ip route add default via 169.254.2.2
++
++echo nameserver 169.254.2.3 > /etc/resolv.conf
+ 
+ # Scan for MDs.
+ mdadm -As --auto=yes --run
+diff --git a/appliance/packagelist.in b/appliance/packagelist.in
+index 9032d7d..8fb6eca 100644
+--- a/appliance/packagelist.in
++++ b/appliance/packagelist.in
+@@ -27,7 +27,6 @@ ifelse(REDHAT,1,
+   btrfs-progs
+   cryptsetup
+   cryptsetup-luks      dnl old name used before Fedora 17
+-  dhclient
+   dnl e4fsprogs only exists on RHEL 5, will be ignored everywhere else.
+   e4fsprogs
+   genisoimage
+@@ -74,7 +73,6 @@ dnl iproute has been renamed to iproute2
+   iputils-ping
+   iputils-arping
+   iputils-tracepath
+-  isc-dhcp-client
+   libaugeas0
+   libc-bin
+   libcap2
+@@ -104,7 +102,6 @@ ifelse(ARCHLINUX,1,
+   btrfs-progs
+   cdrkit
+   cryptsetup
+-  dhclient
+   grub
+   hivex
+   iproute2
+@@ -133,7 +130,6 @@ ifelse(SUSE,1,
+   augeas-lenses
+   btrfsprogs
+   cryptsetup
+-  dhcpcd
+   genisoimage
+   glibc-locale
+   gptfdisk
+@@ -154,7 +150,6 @@ ifelse(FRUGALWARE,1,
+   btrfs-progs
+   cryptsetup-luks
+   cdrkit
+-  dhclient
+   grub2
+   hfsplus
+   iproute2
+@@ -182,7 +177,6 @@ ifelse(MAGEIA,1,
+   chkconfig /* for /etc/init.d */
+   cdrkit-genisoimage
+   cdrkit-isotools
+-  dhclient
+   extlinux
+   gfs2-utils
+   grub
+-- 
+1.8.3.1
+

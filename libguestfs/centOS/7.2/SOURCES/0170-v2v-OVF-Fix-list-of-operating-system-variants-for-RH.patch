@@ -1,0 +1,97 @@
+From d3659622155fedf1669e09e8ca46a253481601e7 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Sun, 10 May 2015 16:12:33 +0100
+Subject: [PATCH] v2v: OVF: Fix list of operating system variants for RHEV >=
+ 3.3 (RHBZ#1219857).
+
+Since RHEV 3.3, OS variant names like "RHEL6x64" were deprecated and
+replaced by names like "rhel_6x64".  "RHEL7x64" was never valid, and
+we should have used "rhel_7x64".  "Windows2012R2x64" was also never
+valid and should have been "windows_2012R2x64".
+
+For backwards compatibility, RHEV still understands the old names, and
+we still pass them for compatiblity with old RHEV.
+
+However for the new OS variants supported by virt-v2v in RHEL 7.2, use
+the new names.
+
+This commit also adds support for SLES and ppc64.
+
+This updates commit 3c51302d691cc204e4d43f4ab9837095d424bf3b
+and also RHBZ#1213324.
+
+(cherry picked from commit 6f9d5dce47f8502bee5d7285faf7695b22b5300b)
+---
+ v2v/OVF.ml | 32 +++++++++++++++++++++++++-------
+ 1 file changed, 25 insertions(+), 7 deletions(-)
+
+diff --git a/v2v/OVF.ml b/v2v/OVF.ml
+index 4a6ee8d..849bedd 100644
+--- a/v2v/OVF.ml
++++ b/v2v/OVF.ml
+@@ -97,17 +97,35 @@ let get_vmtype = function
+ 
+ (* Determine the ovf:OperatingSystemSection_Type from libguestfs
+  * inspection.  See ovirt-engine sources, file:
+- * frontend/webadmin/modules/uicompat/src/main/resources/org/ovirt/engine/ui/uicompat/Enums.properties
++ *   packaging/conf/osinfo-defaults.properties
++ * and also:
++ *   https://bugzilla.redhat.com/show_bug.cgi?id=1219857#c9
+  *)
+ and get_ostype = function
+   | { i_type = "linux"; i_distro = "rhel"; i_major_version = v;
+-      i_arch = "i386" } ->
++      i_arch = "i386" } when v <= 6 ->
+     sprintf "RHEL%d" v
+ 
+   | { i_type = "linux"; i_distro = "rhel"; i_major_version = v;
+-      i_arch = "x86_64" } ->
++      i_arch = "x86_64" } when v <= 6 ->
+     sprintf "RHEL%dx64" v
+ 
++  | { i_type = "linux"; i_distro = "rhel"; i_major_version = v;
++      i_arch = "x86_64" } (* when v >= 7 *) ->
++    sprintf "rhel_%dx64" v
++
++  | { i_type = "linux"; i_distro = "rhel"; i_major_version = 7;
++      i_arch = "ppc64" | "ppc64le" } ->
++    "rhel_7_ppc64"
++
++  | { i_type = "linux"; i_distro = "sles"; i_major_version = 11;
++      i_arch = "x86_64" } ->
++    "sles_11"
++
++  | { i_type = "linux"; i_distro = "sles"; i_major_version = 11;
++      i_arch = "ppc64" | "ppc64le" } ->
++    "sles_11_ppc64"
++
+   | { i_type = "linux" } -> "OtherLinux"
+ 
+   | { i_type = "windows"; i_major_version = 5; i_minor_version = 1 } ->
+@@ -147,19 +165,19 @@ and get_ostype = function
+ 
+   | { i_type = "windows"; i_major_version = 6; i_minor_version = 2;
+       i_arch = "i386" } ->
+-    "Windows8"
++    "windows_8"
+ 
+   | { i_type = "windows"; i_major_version = 6; i_minor_version = 2;
+       i_arch = "x86_64"; i_product_variant = "Client" } ->
+-    "Windows8x64"
++    "windows_8x64"
+ 
+   | { i_type = "windows"; i_major_version = 6; i_minor_version = 2;
+       i_arch = "x86_64" } ->
+-    "Windows2012x64"
++    "windows_2012x64"
+ 
+   | { i_type = "windows"; i_major_version = 6; i_minor_version = 3;
+       i_arch = "x86_64" } ->
+-    "Windows2012R2x64"
++    "windows_2012R2x64"
+ 
+   | { i_type = typ; i_distro = distro;
+       i_major_version = major; i_minor_version = minor;
+-- 
+1.8.3.1
+

@@ -1,0 +1,131 @@
+From 549bd2733e2530b74632964b2e28548a5704114e Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Thu, 15 Jan 2015 14:40:17 +0100
+Subject: [PATCH] mknod: filter modes in mkfifo, mknod_b, mknod_c
+ (RHBZ#1182463).
+
+Since mkfifo, mknod_b, and mknod_c add the correct file type to the
+modes of the resulting file, make sure the specified mode contains only
+permissions bits.
+
+(cherry picked from commit 8b9ca28e111e38eafe8db7265e7fe18c5f31b460)
+---
+ daemon/mknod.c       | 15 +++++++++++++++
+ generator/actions.ml | 21 ++++++++++++++++++---
+ 2 files changed, 33 insertions(+), 3 deletions(-)
+
+diff --git a/daemon/mknod.c b/daemon/mknod.c
+index 7f71210..9af8701 100644
+--- a/daemon/mknod.c
++++ b/daemon/mknod.c
+@@ -38,6 +38,15 @@ optgroup_mknod_available (void)
+   return 1;
+ }
+ 
++#define CHECK_MODE \
++  do { \
++    if ((mode & ~07777) != 0) { \
++      reply_with_error ("%o: mode must specify only file permission bits", \
++                        (unsigned int) mode); \
++      return -1; \
++    } \
++  } while (0)
++
+ int
+ do_mknod (int mode, int devmajor, int devminor, const char *path)
+ {
+@@ -63,18 +72,24 @@ do_mknod (int mode, int devmajor, int devminor, const char *path)
+ int
+ do_mkfifo (int mode, const char *path)
+ {
++  CHECK_MODE;
++
+   return do_mknod (mode | S_IFIFO, 0, 0, path);
+ }
+ 
+ int
+ do_mknod_b (int mode, int devmajor, int devminor, const char *path)
+ {
++  CHECK_MODE;
++
+   return do_mknod (mode | S_IFBLK, devmajor, devminor, path);
+ }
+ 
+ int
+ do_mknod_c (int mode, int devmajor, int devminor, const char *path)
+ {
++  CHECK_MODE;
++
+   return do_mknod (mode | S_IFCHR, devmajor, devminor, path);
+ }
+ 
+diff --git a/generator/actions.ml b/generator/actions.ml
+index 4bc043b..263c6f3 100644
+--- a/generator/actions.ml
++++ b/generator/actions.ml
+@@ -6104,7 +6104,9 @@ The mode actually set is affected by the umask." };
+       InitScratchFS, Always, TestResult (
+         [["mkfifo"; "0o777"; "/mkfifo"];
+          ["stat"; "/mkfifo"]],
+-        "S_ISFIFO (ret->mode) && (ret->mode & 0777) == 0755"), []
++        "S_ISFIFO (ret->mode) && (ret->mode & 0777) == 0755"), [];
++      InitScratchFS, Always, TestLastFail (
++        [["mkfifo"; "0o20777"; "/mkfifo-2"]]), [];
+     ];
+     shortdesc = "make FIFO (named pipe)";
+     longdesc = "\
+@@ -6112,6 +6114,9 @@ This call creates a FIFO (named pipe) called C<path> with
+ mode C<mode>.  It is just a convenient wrapper around
+ C<guestfs_mknod>.
+ 
++Unlike with C<guestfs_mknod>, C<mode> B<must> contain only permissions
++bits.
++
+ The mode actually set is affected by the umask." };
+ 
+   { defaults with
+@@ -6123,7 +6128,9 @@ The mode actually set is affected by the umask." };
+       InitScratchFS, Always, TestResult (
+         [["mknod_b"; "0o777"; "99"; "66"; "/mknod_b"];
+          ["stat"; "/mknod_b"]],
+-        "S_ISBLK (ret->mode) && (ret->mode & 0777) == 0755"), []
++        "S_ISBLK (ret->mode) && (ret->mode & 0777) == 0755"), [];
++      InitScratchFS, Always, TestLastFail (
++        [["mknod_b"; "0o10777"; "99"; "66"; "/mknod_b-2"]]), [];
+     ];
+     shortdesc = "make block device node";
+     longdesc = "\
+@@ -6131,6 +6138,9 @@ This call creates a block device node called C<path> with
+ mode C<mode> and device major/minor C<devmajor> and C<devminor>.
+ It is just a convenient wrapper around C<guestfs_mknod>.
+ 
++Unlike with C<guestfs_mknod>, C<mode> B<must> contain only permissions
++bits.
++
+ The mode actually set is affected by the umask." };
+ 
+   { defaults with
+@@ -6142,7 +6152,9 @@ The mode actually set is affected by the umask." };
+       InitScratchFS, Always, TestResult (
+         [["mknod_c"; "0o777"; "99"; "66"; "/mknod_c"];
+          ["stat"; "/mknod_c"]],
+-        "S_ISCHR (ret->mode) && (ret->mode & 0777) == 0755"), []
++        "S_ISCHR (ret->mode) && (ret->mode & 0777) == 0755"), [];
++      InitScratchFS, Always, TestLastFail (
++        [["mknod_c"; "0o20777"; "99"; "66"; "/mknod_c-2"]]), [];
+     ];
+     shortdesc = "make char device node";
+     longdesc = "\
+@@ -6150,6 +6162,9 @@ This call creates a char device node called C<path> with
+ mode C<mode> and device major/minor C<devmajor> and C<devminor>.
+ It is just a convenient wrapper around C<guestfs_mknod>.
+ 
++Unlike with C<guestfs_mknod>, C<mode> B<must> contain only permissions
++bits.
++
+ The mode actually set is affected by the umask." };
+ 
+   { defaults with
+-- 
+1.8.3.1
+

@@ -1,0 +1,46 @@
+From 745cb07a0d0090283383a35656bd0af36c446377 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 4 Dec 2014 09:12:27 +0000
+Subject: [PATCH] v2v: Disable autoreboot when converting Windows guests.
+
+This allows users to see stop errors, so we can get an accurate report
+when things go wrong.
+
+(cherry picked from commit 39d64121ec809076703b109053e12a3c91b9c2ea)
+---
+ v2v/convert_windows.ml | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/v2v/convert_windows.ml b/v2v/convert_windows.ml
+index beca99c..1605a91 100644
+--- a/v2v/convert_windows.ml
++++ b/v2v/convert_windows.ml
+@@ -191,6 +191,7 @@ echo uninstalling Xen PV driver
+     if verbose then printf "current ControlSet is %s\n%!" current_cs;
+ 
+     disable_services root current_cs;
++    disable_autoreboot root current_cs;
+     install_virtio_drivers root current_cs
+ 
+   and disable_services root current_cs =
+@@ -212,6 +213,17 @@ echo uninstalling Xen PV driver
+         )
+     ) disable
+ 
++  and disable_autoreboot root current_cs =
++    (* If the guest reboots after a crash, it's hard to see the original
++     * error (eg. the infamous 0x0000007B).  Turn off autoreboot.
++     *)
++    try
++      let crash_control =
++        get_node root [current_cs; "Control"; "CrashControl"] in
++      g#hivex_node_set_value crash_control "AutoReboot" 4_L (le32_of_int 0_L)
++    with
++      Not_found -> ()
++
+   and install_virtio_drivers root current_cs =
+     (* Copy the virtio drivers to the guest. *)
+     let driverdir = sprintf "%s/Drivers/VirtIO" systemroot in
+-- 
+1.8.3.1
+

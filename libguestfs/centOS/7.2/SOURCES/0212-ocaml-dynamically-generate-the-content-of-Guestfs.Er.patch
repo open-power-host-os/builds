@@ -1,0 +1,216 @@
+From 6cbba6117ae103b157c8e1b242de1868117d7601 Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Mon, 24 Aug 2015 17:57:10 +0200
+Subject: [PATCH] ocaml: dynamically generate the content of Guestfs.Errno
+
+Put in a list the errnos to expose, filling the content of the
+Guestfs.Errno submodule from that.
+Also, generate a separate guestfs-c-errnos.c with the implementations of
+the functions returning the errno codes.
+
+Only code motion and refactoring, no actual changes on the content of
+the ocaml Guestfs module.
+
+(cherry picked from commit 649f439cb78f12bb04ef90d83b81e1fa23495852)
+---
+ .gitignore         |  1 +
+ generator/main.ml  |  1 +
+ generator/ocaml.ml | 71 +++++++++++++++++++++++++++++++++++++++++++++++++-----
+ ocaml/Makefile.am  |  2 ++
+ ocaml/guestfs-c.c  | 16 ------------
+ po/POTFILES        |  1 +
+ 6 files changed, 70 insertions(+), 22 deletions(-)
+
+diff --git a/.gitignore b/.gitignore
+index abb63d8..b18a123 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -316,6 +316,7 @@ Makefile.in
+ /ocaml/examples/inspect_vm
+ /ocaml/examples/stamp-guestfs-ocaml.pod
+ /ocaml/guestfs-c-actions.c
++/ocaml/guestfs-c-errnos.c
+ /ocaml/guestfs.ml
+ /ocaml/guestfs.mli
+ /ocamlinit-stamp
+diff --git a/generator/main.ml b/generator/main.ml
+index c0ad146..cb6e77b 100644
+--- a/generator/main.ml
++++ b/generator/main.ml
+@@ -129,6 +129,7 @@ Run it from the top source directory using the command
+   output_to "ocaml/guestfs.mli" generate_ocaml_mli;
+   output_to "ocaml/guestfs.ml" generate_ocaml_ml;
+   output_to "ocaml/guestfs-c-actions.c" generate_ocaml_c;
++  output_to "ocaml/guestfs-c-errnos.c" generate_ocaml_c_errnos;
+   output_to "ocaml/bindtests.ml" generate_ocaml_bindtests;
+   output_to "perl/Guestfs.xs" generate_perl_xs;
+   output_to "perl/lib/Sys/Guestfs.pm" generate_perl_pm;
+diff --git a/generator/ocaml.ml b/generator/ocaml.ml
+index a0101d5..f58cab3 100644
+--- a/generator/ocaml.ml
++++ b/generator/ocaml.ml
+@@ -30,6 +30,14 @@ open Structs
+ open C
+ open Events
+ 
++(* List of errnos to expose on Guestfs.Errno. *)
++let ocaml_errnos = [
++  "EINVAL";
++  "ENOTSUP";
++  "EPERM";
++  "ESRCH";
++]
++
+ (* Generate the OCaml bindings interface. *)
+ let rec generate_ocaml_mli () =
+   generate_header OCamlStyle LGPLv2plus;
+@@ -132,8 +140,12 @@ val last_errno : t -> int
+     which you can use to test the return value of {!Guestfs.last_errno}. *)
+ 
+ module Errno : sig
+-  val errno_ENOTSUP : int
+-  val errno_ESRCH : int
++";
++  List.iter (
++    fun e ->
++      pr "  val errno_%s : int\n" e
++  ) ocaml_errnos;
++  pr "\
+ end
+ 
+ ";
+@@ -265,10 +277,15 @@ external event_to_string : event list -> string
+ external last_errno : t -> int = \"ocaml_guestfs_last_errno\"
+ 
+ module Errno = struct
+-  external enotsup : unit -> int = \"ocaml_guestfs_get_ENOTSUP\" \"noalloc\"
+-  let errno_ENOTSUP = enotsup ()
+-  external esrch : unit -> int = \"ocaml_guestfs_get_ESRCH\" \"noalloc\"
+-  let errno_ESRCH = esrch ()
++";
++  List.iter (
++    fun e ->
++      let le = String.lowercase e in
++      pr "  external %s : unit -> int = \"ocaml_guestfs_get_%s\" \"noalloc\"\n"
++        le e;
++      pr "  let errno_%s = %s ()\n" e le
++  ) ocaml_errnos;
++  pr "\
+ end
+ 
+ (* Give the exceptions names, so they can be raised from the C code. *)
+@@ -691,6 +708,48 @@ copy_table (char * const * argv)
+       )
+   ) external_functions_sorted
+ 
++(* Generate the OCaml bindings C errnos. *)
++and generate_ocaml_c_errnos () =
++  generate_header CStyle LGPLv2plus;
++
++  pr "\
++#include <config.h>
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <errno.h>
++
++#include <caml/config.h>
++#include <caml/alloc.h>
++#include <caml/fail.h>
++#include <caml/memory.h>
++#include <caml/mlvalues.h>
++
++#include \"guestfs.h\"
++
++#include \"guestfs-c.h\"
++
++/* These prototypes are solely to quiet gcc warnings. */
++";
++  List.iter (
++    fun e ->
++      pr "value ocaml_guestfs_get_%s (value unitv);\n" e
++  ) ocaml_errnos;
++
++  List.iter (
++    fun e ->
++      pr "\
++
++/* NB: \"noalloc\" function. */
++value
++ocaml_guestfs_get_%s (value unitv)
++{
++  return Val_int (%s);
++}
++" e e
++  ) ocaml_errnos
++
+ and generate_ocaml_structure_decls () =
+   List.iter (
+     fun { s_name = typ; s_cols = cols } ->
+diff --git a/ocaml/Makefile.am b/ocaml/Makefile.am
+index 94f11ef..d2444dc 100644
+--- a/ocaml/Makefile.am
++++ b/ocaml/Makefile.am
+@@ -21,6 +21,7 @@ generator_built = \
+ 	guestfs.mli \
+ 	guestfs.ml \
+ 	guestfs-c-actions.c \
++	guestfs-c-errnos.c \
+ 	$(srcdir)/bindtests.ml
+ 
+ EXTRA_DIST = \
+@@ -87,6 +88,7 @@ libguestfsocaml_a_CFLAGS = \
+ libguestfsocaml_a_SOURCES = \
+ 	guestfs-c.c \
+ 	guestfs-c-actions.c \
++	guestfs-c-errnos.c \
+ 	../src/utils.c
+ 
+ if HAVE_OCAMLDOC
+diff --git a/ocaml/guestfs-c.c b/ocaml/guestfs-c.c
+index 0ebb84c..1bcf5b8 100644
+--- a/ocaml/guestfs-c.c
++++ b/ocaml/guestfs-c.c
+@@ -63,8 +63,6 @@ value ocaml_guestfs_set_event_callback (value gv, value closure, value events);
+ value ocaml_guestfs_delete_event_callback (value gv, value eh);
+ value ocaml_guestfs_event_to_string (value events);
+ value ocaml_guestfs_last_errno (value gv);
+-value ocaml_guestfs_get_ENOTSUP (value unitv);
+-value ocaml_guestfs_get_ESRCH (value unitv);
+ 
+ /* Allocate handles and deal with finalization. */
+ static void
+@@ -440,17 +438,3 @@ ocaml_guestfs_last_errno (value gv)
+   rv = Val_int (r);
+   CAMLreturn (rv);
+ }
+-
+-/* NB: "noalloc" function. */
+-value
+-ocaml_guestfs_get_ENOTSUP (value unitv)
+-{
+-  return Val_int (ENOTSUP);
+-}
+-
+-/* NB: "noalloc" function. */
+-value
+-ocaml_guestfs_get_ESRCH (value unitv)
+-{
+-  return Val_int (ESRCH);
+-}
+diff --git a/po/POTFILES b/po/POTFILES
+index 7c99fd0..b359bf6 100644
+--- a/po/POTFILES
++++ b/po/POTFILES
+@@ -252,6 +252,7 @@ mllib/progress-c.c
+ mllib/tty-c.c
+ mllib/uri-c.c
+ ocaml/guestfs-c-actions.c
++ocaml/guestfs-c-errnos.c
+ ocaml/guestfs-c.c
+ p2v/authors.c
+ p2v/config.c
+-- 
+1.8.3.1
+

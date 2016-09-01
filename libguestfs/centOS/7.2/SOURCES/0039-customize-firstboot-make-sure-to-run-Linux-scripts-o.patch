@@ -1,0 +1,64 @@
+From 7b8b3767102ea1e2b1f47e20d1bdb0bb69e3626b Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Mon, 3 Nov 2014 21:15:59 +0100
+Subject: [PATCH] customize: firstboot: make sure to run Linux scripts only
+ once
+
+If a script does not finish, hangs, etc, it would be executed again at
+the next boot, since the injected firstboot.sh helper removes it only
+after it finished.
+
+Before executing a script, move it to another internal subdirectory
+(scripts-done) and execute it from there, so it is not run again by
+firstboot.sh.  The downside is that now scripts are executed only once
+at all, so if a script fails it will not be attempted at the next boot.
+
+Also, remove all the files found in scripts-done, as they have been run
+(or at least attempted) in a previous boot.
+
+This fixes RHBZ#1159651.
+
+(cherry picked from commit f8ed15462fbb03c5b19972361f2a2e6fed4c5f02)
+---
+ customize/firstboot.ml | 11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/customize/firstboot.ml b/customize/firstboot.ml
+index 142eab4..1b92194 100644
+--- a/customize/firstboot.ml
++++ b/customize/firstboot.ml
+@@ -46,6 +46,7 @@ module Linux = struct
+ ### END INIT INFO
+ 
+ d=%s/scripts
++d_done=%s/scripts-done
+ logfile=~root/virt-sysprep-firstboot.log
+ 
+ echo \"$0\" \"$@\" 2>&1 | tee $logfile
+@@ -53,16 +54,20 @@ echo \"Scripts dir: $d\" 2>&1 | tee $logfile
+ 
+ if test \"$1\" = \"start\"
+ then
++  mkdir -p $d_done
+   for f in $d/* ; do
+     if test -x \"$f\"
+     then
++      # move the script to the 'scripts-done' directory, so it is not
++      # executed again at the next boot
++      mv $f $d_done
+       echo '=== Running' $f '===' 2>&1 | tee $logfile
+-      $f 2>&1 | tee $logfile
+-      rm -f $f
++      $d_done/$(basename $f) 2>&1 | tee $logfile
+     fi
+   done
++  rm -f $d_done/*
+ fi
+-" firstboot_dir
++" firstboot_dir firstboot_dir
+ 
+   let firstboot_service = sprintf "\
+ [Unit]
+-- 
+1.8.3.1
+

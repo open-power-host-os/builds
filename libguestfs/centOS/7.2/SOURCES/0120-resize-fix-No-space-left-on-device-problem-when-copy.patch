@@ -1,0 +1,42 @@
+From 67cdc9c732090a47f7f0345d43614c8b4a527f53 Mon Sep 17 00:00:00 2001
+From: Hu Tao <hutao@cn.fujitsu.com>
+Date: Mon, 8 Dec 2014 11:20:54 +0800
+Subject: [PATCH] resize: fix 'No space left on device' problem when copying to
+ an extended partition (RHBZ#1169015)
+
+Because of the size of an extended partition reported by Linux is always 1024
+bytes, so it will always fail to copy to an extended partition.
+
+This patch fixes this problem by copying to the offset of an extended
+partition in the destination disk.
+
+Signed-off-by: Hu Tao <hutao@cn.fujitsu.com>
+(cherry picked from commit 9d6f0b6a86d68438b27a3d783677c63f39ec6627)
+---
+ resize/resize.ml | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/resize/resize.ml b/resize/resize.ml
+index b581b39..b4e8990 100644
+--- a/resize/resize.ml
++++ b/resize/resize.ml
+@@ -1152,9 +1152,15 @@ read the man page virt-resize(1).
+             * source = "/dev/sda2", because the device name only covers
+             * the first 1K of the partition.  Instead, copy the
+             * source bytes from the parent disk (/dev/sda).
++            *
++            * You can't write directly to the extended partition,
++            * because the size of it reported by Linux is always 1024
++            * bytes. Instead, write to the offset of the extended
++            * partition in the destination disk (/dev/sdb).
+             *)
+            let srcoffset = p.p_part.G.part_start in
+-           g#copy_device_to_device ~srcoffset ~size:copysize "/dev/sda" target
++           let destoffset = p.p_target_start *^ 512L in
++           g#copy_device_to_device ~srcoffset ~destoffset ~size:copysize "/dev/sda" "/dev/sdb"
+         )
+       | OpIgnore | OpDelete -> ()
+   in
+-- 
+1.8.3.1
+

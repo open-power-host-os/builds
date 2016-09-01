@@ -1,0 +1,40 @@
+From f2d1b07e1a04bb587657813e837c9040b0183a4a Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 20 Apr 2015 13:12:08 +0100
+Subject: [PATCH] v2v: Only emit fstrim warning when debugging (RHBZ#1168144).
+
+fstrim is an optimization.  If it fails, it's not fatal (although
+virt-v2v will run a lot more slowly).
+
+We also expect that it will fail for non-aligned NTFS partitions found
+on old versions of Windows, and in that case there's nothing that can
+be done about it.
+
+Therefore only emit the warning when we are debugging.
+
+(cherry picked from commit 0576fdd0b6bafaeaa3d69bf6fc6fef0d0a1254d1)
+---
+ v2v/v2v.ml | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/v2v/v2v.ml b/v2v/v2v.ml
+index 8639482..1ab6a24 100644
+--- a/v2v/v2v.ml
++++ b/v2v/v2v.ml
+@@ -621,7 +621,12 @@ and do_fstrim ~verbose g no_trim inspect =
+       let mounted = try g#mount dev "/"; true with G.Error _ -> false in
+       if mounted then (
+         try g#fstrim "/"
+-        with G.Error msg -> warning ~prog (f_"%s (ignored)") msg
++        with G.Error msg ->
++          (* Only emit this warning when debugging, because otherwise
++           * it causes distress (RHBZ#1168144).
++           *)
++          if verbose then
++            warning ~prog (f_"%s (ignored)") msg
+       )
+   ) fses
+ 
+-- 
+1.8.3.1
+

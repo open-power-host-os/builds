@@ -1,0 +1,11 @@
+Package:
+ name: 'noVNC'
+ clone_url: 'https://github.com/kanaka/noVNC.git'
+ branch: 'master' #v0.5.1
+ commit_id: 'fc00821'
+ expects_source: 'novnc'
+ files:
+  centos:
+   '7.2':
+    spec: 'centOS/7.2/noVNC.spec'
+    build_files: 'centOS/7.2/SOURCES'

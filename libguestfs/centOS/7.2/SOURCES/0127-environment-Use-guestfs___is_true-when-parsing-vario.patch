@@ -1,0 +1,188 @@
+From 05105da1347d3d7e9fbc41e0a14b8cd18905b60b Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 17 Dec 2014 12:52:46 +0000
+Subject: [PATCH] environment: Use guestfs___is_true when parsing various
+ boolean environment variables (RHBZ#1175196).
+
+You can now use LIBGUESTFS_DEBUG=true (etc.)
+
+You can disable debugging/tracing by setting LIBGUESTFS_DEBUG=0 (etc.)
+
+(cherry picked from commit 5f6677ebd0fd6f6712de808ca27eab4468f966bc)
+---
+ fuse/test-guestmount-fd.c                     |  2 +-
+ src/handle.c                                  | 30 ++++++++++++++++++++-------
+ tests/charsets/test-charset-fidelity.c        |  4 ++--
+ tests/mount-local/test-parallel-mount-local.c |  2 +-
+ tests/parallel/Makefile.am                    |  1 +
+ tests/parallel/test-parallel.c                |  2 +-
+ tests/regressions/Makefile.am                 |  1 +
+ tests/regressions/rhbz914931.c                |  2 +-
+ 8 files changed, 30 insertions(+), 14 deletions(-)
+
+diff --git a/fuse/test-guestmount-fd.c b/fuse/test-guestmount-fd.c
+index 00eab0c..2b3ce5b 100644
+--- a/fuse/test-guestmount-fd.c
++++ b/fuse/test-guestmount-fd.c
+@@ -50,7 +50,7 @@ main (int argc, char *argv[])
+ 
+   /* Allow the test to be skipped. */
+   skip = getenv ("SKIP_TEST_GUESTMOUNT_FD");
+-  if (skip && STREQ (skip, "1")) {
++  if (skip && guestfs___is_true (skip) > 0) {
+     fprintf (stderr, "%s: test skipped because environment variable set.\n",
+              program_name);
+     exit (77);
+diff --git a/src/handle.c b/src/handle.c
+index 141ba7d..0990082 100644
+--- a/src/handle.c
++++ b/src/handle.c
+@@ -176,7 +176,7 @@ parse_environment (guestfs_h *g,
+                    char *(*do_getenv) (const void *data, const char *),
+                    const void *data)
+ {
+-  int memsize;
++  int memsize, b;
+   char *str;
+ 
+   /* Don't bother checking the return values of functions
+@@ -184,12 +184,24 @@ parse_environment (guestfs_h *g,
+    */
+ 
+   str = do_getenv (data, "LIBGUESTFS_TRACE");
+-  if (str != NULL && STREQ (str, "1"))
+-    guestfs_set_trace (g, 1);
++  if (str) {
++    b = guestfs___is_true (str);
++    if (b == -1) {
++      error (g, _("%s=%s: non-boolean value"), "LIBGUESTFS_TRACE", str);
++      return -1;
++    }
++    guestfs_set_trace (g, b);
++  }
+ 
+   str = do_getenv (data, "LIBGUESTFS_DEBUG");
+-  if (str != NULL && STREQ (str, "1"))
+-    guestfs_set_verbose (g, 1);
++  if (str) {
++    b = guestfs___is_true (str);
++    if (b == -1) {
++      error (g, _("%s=%s: non-boolean value"), "LIBGUESTFS_TRACE", str);
++      return -1;
++    }
++    guestfs_set_verbose (g, b);
++  }
+ 
+   str = do_getenv (data, "LIBGUESTFS_TMPDIR");
+   if (str && STRNEQ (str, "")) {
+@@ -816,6 +828,7 @@ int
+ guestfs___get_backend_setting_bool (guestfs_h *g, const char *name)
+ {
+   CLEANUP_FREE char *value = NULL;
++  int b;
+ 
+   guestfs_push_error_handler (g, NULL, NULL);
+   value = guestfs_get_backend_setting (g, name);
+@@ -827,10 +840,11 @@ guestfs___get_backend_setting_bool (guestfs_h *g, const char *name)
+   if (value == NULL)
+     return -1;
+ 
+-  if (STREQ (value, "1"))
+-    return 1;
++  b = guestfs___is_true (value);
++  if (b == -1)
++    return -1;
+ 
+-  return 0;
++  return b;
+ }
+ 
+ int
+diff --git a/tests/charsets/test-charset-fidelity.c b/tests/charsets/test-charset-fidelity.c
+index 4b34b0e..7ce7d94 100644
+--- a/tests/charsets/test-charset-fidelity.c
++++ b/tests/charsets/test-charset-fidelity.c
+@@ -81,7 +81,7 @@ main (int argc, char *argv[])
+ 
+   /* Allow this test to be skipped. */
+   str = getenv (ourenvvar);
+-  if (str && STREQ (str, "1")) {
++  if (str && guestfs___is_true (str) > 0) {
+     printf ("%s: test skipped because environment variable is set.\n",
+             program_name);
+     exit (77);
+@@ -126,7 +126,7 @@ test_filesystem (guestfs_h *g, const struct filesystem *fs)
+ 
+   snprintf (envvar, sizeof envvar, "%s_%s", ourenvvar, fs->fs_name);
+   str = getenv (envvar);
+-  if (str && STREQ (str, "1")) {
++  if (str && guestfs___is_true (str) > 0) {
+     printf ("skipped test of %s because environment variable is set\n",
+             fs->fs_name);
+     return;
+diff --git a/tests/mount-local/test-parallel-mount-local.c b/tests/mount-local/test-parallel-mount-local.c
+index fa6cd79..88ca2d3 100644
+--- a/tests/mount-local/test-parallel-mount-local.c
++++ b/tests/mount-local/test-parallel-mount-local.c
+@@ -94,7 +94,7 @@ main (int argc, char *argv[])
+ 
+   /* Allow the test to be skipped by setting an environment variable. */
+   skip = getenv ("SKIP_TEST_PARALLEL_MOUNT_LOCAL");
+-  if (skip && STREQ (skip, "1")) {
++  if (skip && guestfs___is_true (skip) > 0) {
+     fprintf (stderr, "%s: test skipped because environment variable set.\n",
+              program_name);
+     exit (77);
+diff --git a/tests/parallel/Makefile.am b/tests/parallel/Makefile.am
+index be63256..9421bfc 100644
+--- a/tests/parallel/Makefile.am
++++ b/tests/parallel/Makefile.am
+@@ -34,6 +34,7 @@ test_parallel_CFLAGS = \
+ 	-pthread \
+ 	$(WARN_CFLAGS) $(WERROR_CFLAGS)
+ test_parallel_LDADD = \
++	$(top_builddir)/src/libutils.la \
+ 	$(top_builddir)/src/libguestfs.la \
+ 	$(top_builddir)/gnulib/lib/libgnu.la
+ 
+diff --git a/tests/parallel/test-parallel.c b/tests/parallel/test-parallel.c
+index edd87d9..e412143 100644
+--- a/tests/parallel/test-parallel.c
++++ b/tests/parallel/test-parallel.c
+@@ -76,7 +76,7 @@ main (int argc, char *argv[])
+ 
+   /* Allow the test to be skipped by setting an environment variable. */
+   skip = getenv ("SKIP_TEST_PARALLEL");
+-  if (skip && STREQ (skip, "1")) {
++  if (skip && guestfs___is_true (skip) > 0) {
+     fprintf (stderr, "%s: test skipped because environment variable set.\n",
+              program_name);
+     exit (77);
+diff --git a/tests/regressions/Makefile.am b/tests/regressions/Makefile.am
+index a5e7cfc..de97526 100644
+--- a/tests/regressions/Makefile.am
++++ b/tests/regressions/Makefile.am
+@@ -111,6 +111,7 @@ rhbz914931_CFLAGS = \
+ 	-pthread \
+ 	$(WARN_CFLAGS) $(WERROR_CFLAGS)
+ rhbz914931_LDADD = \
++	$(top_builddir)/src/libutils.la \
+ 	$(top_builddir)/src/libguestfs.la
+ 
+ rhbz1055452_SOURCES = rhbz1055452.c
+diff --git a/tests/regressions/rhbz914931.c b/tests/regressions/rhbz914931.c
+index faa3dd2..569e261 100644
+--- a/tests/regressions/rhbz914931.c
++++ b/tests/regressions/rhbz914931.c
+@@ -41,7 +41,7 @@ main (int argc, char *argv[])
+ 
+   /* Allow this test to be skipped. */
+   str = getenv ("SKIP_TEST_RHBZ914931");
+-  if (str && STREQ (str, "1")) {
++  if (str && guestfs___is_true (str) > 0) {
+     printf ("%s: test skipped because environment variable is set.\n",
+             program_name);
+     exit (77);
+-- 
+1.8.3.1
+

@@ -1,0 +1,586 @@
+From f55cbd578c873ad815bd3f8915a49be430b35b72 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 29 Jul 2013 14:47:56 +0100
+Subject: [PATCH] RHEL 7: Disable unsupported remote drive protocols
+ (RHBZ#962113).
+
+This disables support for unsupported remote drive protocols:
+
+ * ftp
+ * ftps
+ * http
+ * https
+ * tftp
+ * gluster
+ * iscsi
+ * sheepdog
+ * ssh
+
+Note 'nbd' is not disabled, and of course 'file' works.
+
+We hope to gradually add some of these back over the lifetime of RHEL 7.
+
+In RHEL 7.2: rbd (Ceph) support was enabled.
+---
+ examples/guestfs-testing.pod           |  21 -------
+ fish/guestfish.pod                     |  64 ++-------------------
+ fish/test-add-uri.sh                   |  25 ---------
+ generator/actions.ml                   |  48 +---------------
+ src/drives.c                           |   8 +++
+ src/guestfs.pod                        | 100 ---------------------------------
+ tests/disks/test-qemu-drive-libvirt.sh |  28 ---------
+ tests/disks/test-qemu-drive.sh         |  51 -----------------
+ 8 files changed, 15 insertions(+), 330 deletions(-)
+
+diff --git a/examples/guestfs-testing.pod b/examples/guestfs-testing.pod
+index 2186ed3..ae23b59 100644
+--- a/examples/guestfs-testing.pod
++++ b/examples/guestfs-testing.pod
+@@ -117,27 +117,6 @@ image.  To exit, type C<exit>.
+ If you get an error, try enabling debugging (add C<-v> to the command
+ line).  Also make sure that L<libguestfs-test-tool(1)> succeeds.
+ 
+-=head2 Try to open a remote guest image with guestfish.
+-
+-B<Note> this test requires S<libguestfs E<ge> 1.22> and S<qemu E<ge> 1.5>.
+-You may also have to disable libvirt by setting this:
+-
+- export LIBGUESTFS_BACKEND=direct
+-
+-If you have a disk image available over HTTP/FTP, try to open it.
+-
+- guestfish --ro -i --format=raw -a http://www.example.com/disk.img
+-
+-For SSH you will need to make sure that ssh-agent is set up so you
+-don't need a password to log in to the remote machine.  Then a command
+-similar to this should work:
+-
+- guestfish --ro -i --format=raw \
+-   -a ssh://remote.example.com/path/to/disk.img
+-
+-If you get an error, try enabling debugging (add C<-v> to the command
+-line).  Also make sure that L<libguestfs-test-tool(1)> succeeds.
+-
+ =head2 Run virt-alignment-scan on all your guests.
+ 
+ Run L<virt-alignment-scan(1)> on guests or disk images:
+diff --git a/fish/guestfish.pod b/fish/guestfish.pod
+index 12bf243..e7423a6 100644
+--- a/fish/guestfish.pod
++++ b/fish/guestfish.pod
+@@ -138,9 +138,9 @@ To list what is available do:
+ 
+ =head2 Remote drives
+ 
+-Access a remote disk using ssh:
++Access a remote disk using NBD:
+ 
+- guestfish -a ssh://example.com/path/to/disk.img
++ guestfish -a nbd://example.com
+ 
+ =head2 Remote control
+ 
+@@ -1125,12 +1125,12 @@ L<guestfs(3)/REMOTE STORAGE>>.
+ On the command line, you can use the I<-a> option to add network
+ block devices using a URI-style format, for example:
+ 
+- guestfish -a ssh://root@example.com/disk.img
++ guestfish -a nbd://example.com
+ 
+ URIs I<cannot> be used with the L</add> command.  The equivalent
+ command using the API directly is:
+ 
+- ><fs> add /disk.img protocol:ssh server:tcp:example.com username:root
++ ><fs> add /disk.img protocol:nbd server:tcp:example.com
+ 
+ The possible I<-a URI> formats are described below.
+ 
+@@ -1140,40 +1140,6 @@ The possible I<-a URI> formats are described below.
+ 
+ Add the local disk image (or device) called C<disk.img>.
+ 
+-=head2 B<-a ftp://[user@]example.com[:port]/disk.img>
+-
+-=head2 B<-a ftps://[user@]example.com[:port]/disk.img>
+-
+-=head2 B<-a http://[user@]example.com[:port]/disk.img>
+-
+-=head2 B<-a https://[user@]example.com[:port]/disk.img>
+-
+-=head2 B<-a tftp://[user@]example.com[:port]/disk.img>
+-
+-Add a disk located on a remote FTP, HTTP or TFTP server.
+-
+-The equivalent API command would be:
+-
+- ><fs> add /disk.img protocol:(ftp|...) server:tcp:example.com
+-
+-=head2 B<-a gluster://example.com[:port]/volname/image>
+-
+-Add a disk image located on GlusterFS storage.
+-
+-The server is the one running C<glusterd>, and may be C<localhost>.
+-
+-The equivalent API command would be:
+-
+- ><fs> add volname/image protocol:gluster server:tcp:example.com
+-
+-=head2 B<-a iscsi://example.com[:port]/target-iqn-name[/lun]>
+-
+-Add a disk located on an iSCSI server.
+-
+-The equivalent API command would be:
+-
+- ><fs> add target-iqn-name/lun protocol:iscsi server:tcp:example.com
+-
+ =head2 B<-a nbd://example.com[:port]>
+ 
+ =head2 B<-a nbd://example.com[:port]/exportname>
+@@ -1208,28 +1174,6 @@ The equivalent API command would be:
+ 
+  ><fs> add pool/disk protocol:rbd server:tcp:example.com:port
+ 
+-=head2 B<-a sheepdog://[example.com[:port]]/volume/image>
+-
+-Add a disk image located on a Sheepdog volume.
+-
+-The server name is optional.  Although libguestfs and Sheepdog
+-supports multiple servers, only at most one server can be specified
+-when using this URI syntax.
+-
+-The equivalent API command would be:
+-
+- ><fs> add volume protocol:sheepdog [server:tcp:example.com]
+-
+-=head2 B<-a ssh://[user@]example.com[:port]/disk.img>
+-
+-Add a disk image located on a remote server, accessed using the Secure
+-Shell (ssh) SFTP protocol.  SFTP is supported out of the box by all
+-major SSH servers.
+-
+-The equivalent API command would be:
+-
+- ><fs> add /disk protocol:ssh server:tcp:example.com [username:user]
+-
+ =head1 PROGRESS BARS
+ 
+ Some (not all) long-running commands send progress notification
+diff --git a/fish/test-add-uri.sh b/fish/test-add-uri.sh
+index 2f83754..48c12b8 100755
+--- a/fish/test-add-uri.sh
++++ b/fish/test-add-uri.sh
+@@ -37,14 +37,6 @@ function fail ()
+ $VG guestfish -x -a file://$(pwd)/test-add-uri.img </dev/null >test-add-uri.out 2>&1
+ grep -sq 'add_drive ".*/test-add-uri.img"' test-add-uri.out || fail
+ 
+-# curl
+-$VG guestfish -x -a ftp://user@example.com/disk.img </dev/null >test-add-uri.out 2>&1
+-grep -sq 'add_drive "/disk.img" "protocol:ftp" "server:tcp:example.com" "username:user"' test-add-uri.out || fail
+-
+-# gluster
+-$VG guestfish -x -a gluster://example.com/disk </dev/null >test-add-uri.out 2>&1
+-grep -sq 'add_drive "disk" "protocol:gluster" "server:tcp:example.com"' test-add-uri.out || fail
+-
+ # NBD
+ $VG guestfish -x -a nbd://example.com </dev/null >test-add-uri.out 2>&1
+ grep -sq 'add_drive "" "protocol:nbd" "server:tcp:example.com"' test-add-uri.out || fail
+@@ -64,22 +56,5 @@ grep -sq 'add_drive "pool/disk" "protocol:rbd" "server:tcp:example.com:6789"' te
+ $VG guestfish -x -a rbd:///pool/disk </dev/null >test-add-uri.out 2>&1
+ grep -sq 'add_drive "pool/disk" "protocol:rbd"' test-add-uri.out || fail
+ 
+-# sheepdog
+-$VG guestfish -x -a sheepdog:///volume/image </dev/null >test-add-uri.out 2>&1
+-grep -sq 'add_drive "volume/image" "protocol:sheepdog"' test-add-uri.out || fail
+-
+-$VG guestfish -x -a sheepdog://example.com:3000/volume/image </dev/null >test-add-uri.out 2>&1
+-grep -sq 'add_drive "volume/image" "protocol:sheepdog" "server:tcp:example.com:3000"' test-add-uri.out || fail
+-
+-# ssh
+-$VG guestfish -x -a ssh://example.com/disk.img </dev/null >test-add-uri.out 2>&1
+-grep -sq 'add_drive "/disk.img" "protocol:ssh" "server:tcp:example.com"' test-add-uri.out || fail
+-
+-$VG guestfish -x -a ssh://user@example.com/disk.img </dev/null >test-add-uri.out 2>&1
+-grep -sq 'add_drive "/disk.img" "protocol:ssh" "server:tcp:example.com" "username:user"' test-add-uri.out || fail
+-
+-$VG guestfish -x -a ssh://user@example.com:2000/disk.img </dev/null >test-add-uri.out 2>&1
+-grep -sq 'add_drive "/disk.img" "protocol:ssh" "server:tcp:example.com:2000" "username:user"' test-add-uri.out || fail
+-
+ rm test-add-uri.out
+ rm test-add-uri.img
+diff --git a/generator/actions.ml b/generator/actions.ml
+index 2f2ab66..ea715d0 100644
+--- a/generator/actions.ml
++++ b/generator/actions.ml
+@@ -1397,27 +1397,6 @@ C<filename> is interpreted as a local file or device.
+ This is the default if the optional protocol parameter
+ is omitted.
+ 
+-=item C<protocol = \"ftp\"|\"ftps\"|\"http\"|\"https\"|\"tftp\">
+-
+-Connect to a remote FTP, HTTP or TFTP server.
+-The C<server> parameter must also be supplied - see below.
+-
+-See also: L<guestfs(3)/FTP, HTTP AND TFTP>
+-
+-=item C<protocol = \"gluster\">
+-
+-Connect to the GlusterFS server.
+-The C<server> parameter must also be supplied - see below.
+-
+-See also: L<guestfs(3)/GLUSTER>
+-
+-=item C<protocol = \"iscsi\">
+-
+-Connect to the iSCSI server.
+-The C<server> parameter must also be supplied - see below.
+-
+-See also: L<guestfs(3)/ISCSI>.
+-
+ =item C<protocol = \"nbd\">
+ 
+ Connect to the Network Block Device server.
+@@ -1434,22 +1413,6 @@ The C<secret> parameter may be supplied.  See below.
+ 
+ See also: L<guestfs(3)/CEPH>.
+ 
+-=item C<protocol = \"sheepdog\">
+-
+-Connect to the Sheepdog server.
+-The C<server> parameter may also be supplied - see below.
+-
+-See also: L<guestfs(3)/SHEEPDOG>.
+-
+-=item C<protocol = \"ssh\">
+-
+-Connect to the Secure Shell (ssh) server.
+-
+-The C<server> parameter must be supplied.
+-The C<username> parameter may be supplied.  See below.
+-
+-See also: L<guestfs(3)/SSH>.
+-
+ =back
+ 
+ =item C<server>
+@@ -1460,13 +1423,8 @@ is a list of server(s).
+  Protocol       Number of servers required
+  --------       --------------------------
+  file           List must be empty or param not used at all
+- ftp|ftps|http|https|tftp  Exactly one
+- gluster        Exactly one
+- iscsi          Exactly one
+  nbd            Exactly one
+  rbd            Zero or more
+- sheepdog       Zero or more
+- ssh            Exactly one
+ 
+ Each list element is a string specifying a server.  The string must be
+ in one of the following formats:
+@@ -1482,10 +1440,10 @@ for the protocol is used (see C</etc/services>).
+ 
+ =item C<username>
+ 
+-For the C<ftp>, C<ftps>, C<http>, C<https>, C<iscsi>, C<rbd>, C<ssh>
+-and C<tftp> protocols, this specifies the remote username.
++For the C<rbd>
++protocol, this specifies the remote username.
+ 
+-If not given, then the local username is used for C<ssh>, and no authentication
++If not given, then no authentication
+ is attempted for ceph.  But note this sometimes may give unexpected results, for
+ example if using the libvirt backend and if the libvirt backend is configured to
+ start the qemu appliance as a special user such as C<qemu.qemu>.  If in doubt,
+diff --git a/src/drives.c b/src/drives.c
+index 307f267..34cf07a 100644
+--- a/src/drives.c
++++ b/src/drives.c
+@@ -199,6 +199,7 @@ create_drive_non_file (guestfs_h *g,
+   return drv;
+ }
+ 
++#if 0 /* DISABLED IN RHEL 7 */
+ static struct drive *
+ create_drive_curl (guestfs_h *g,
+                    const struct drive_create_data *data)
+@@ -257,6 +258,7 @@ create_drive_gluster (guestfs_h *g,
+ 
+   return create_drive_non_file (g, data);
+ }
++#endif /* DISABLED IN RHEL 7 */
+ 
+ static int
+ nbd_port (void)
+@@ -325,6 +327,7 @@ create_drive_rbd (guestfs_h *g,
+   return create_drive_non_file (g, data);
+ }
+ 
++#if 0 /* DISABLED IN RHEL 7 */
+ static struct drive *
+ create_drive_sheepdog (guestfs_h *g,
+                        const struct drive_create_data *data)
+@@ -435,6 +438,7 @@ create_drive_iscsi (guestfs_h *g,
+ 
+   return create_drive_non_file (g, data);
+ }
++#endif /* DISABLED IN RHEL 7 */
+ 
+ /* Traditionally you have been able to use /dev/null as a filename, as
+  * many times as you like.  Ancient KVM (RHEL 5) cannot handle adding
+@@ -882,6 +886,7 @@ guestfs__add_drive_opts (guestfs_h *g, const char *filename,
+       drv = create_drive_file (g, &data);
+     }
+   }
++#if 0 /* DISABLED IN RHEL 7 */
+   else if (STREQ (protocol, "ftp")) {
+     data.protocol = drive_protocol_ftp;
+     drv = create_drive_curl (g, &data);
+@@ -906,6 +911,7 @@ guestfs__add_drive_opts (guestfs_h *g, const char *filename,
+     data.protocol = drive_protocol_iscsi;
+     drv = create_drive_iscsi (g, &data);
+   }
++#endif /* DISABLED IN RHEL 7 */
+   else if (STREQ (protocol, "nbd")) {
+     data.protocol = drive_protocol_nbd;
+     drv = create_drive_nbd (g, &data);
+@@ -914,6 +920,7 @@ guestfs__add_drive_opts (guestfs_h *g, const char *filename,
+     data.protocol = drive_protocol_rbd;
+     drv = create_drive_rbd (g, &data);
+   }
++#if 0 /* DISABLED IN RHEL 7 */
+   else if (STREQ (protocol, "sheepdog")) {
+     data.protocol = drive_protocol_sheepdog;
+     drv = create_drive_sheepdog (g, &data);
+@@ -926,6 +933,7 @@ guestfs__add_drive_opts (guestfs_h *g, const char *filename,
+     data.protocol = drive_protocol_tftp;
+     drv = create_drive_curl (g, &data);
+   }
++#endif /* DISABLED IN RHEL 7 */
+   else {
+     error (g, _("unknown protocol '%s'"), protocol);
+     drv = NULL; /*FALLTHROUGH*/
+diff --git a/src/guestfs.pod b/src/guestfs.pod
+index c9ac1fa..3c1ad46 100644
+--- a/src/guestfs.pod
++++ b/src/guestfs.pod
+@@ -695,70 +695,6 @@ servers.  The server string is documented in
+ L</guestfs_add_drive_opts>. The C<username> and C<secret> parameters are
+ also optional, and if not given, then no authentication will be used.
+ 
+-=head3 FTP, HTTP AND TFTP
+-
+-Libguestfs can access remote disks over FTP, FTPS, HTTP, HTTPS
+-or TFTP protocols.
+-
+-To do this, set the optional C<protocol> and C<server> parameters of
+-L</guestfs_add_drive_opts> like this:
+-
+- char **servers = { "www.example.org", NULL };
+- guestfs_add_drive_opts (g, "/disk.img",
+-                         GUESTFS_ADD_DRIVE_OPTS_FORMAT, "raw",
+-                         GUESTFS_ADD_DRIVE_OPTS_PROTOCOL, "http",
+-                         GUESTFS_ADD_DRIVE_OPTS_SERVER, servers,
+-                         -1);
+-
+-The C<protocol> can be one of C<"ftp">, C<"ftps">, C<"http">,
+-C<"https"> or C<"tftp">.
+-
+-C<servers> (the C<server> parameter) is a list which must have a
+-single element.  The single element is a string defining the web,
+-FTP or TFTP server.  The format of this string is documented in
+-L</guestfs_add_drive_opts>.
+-
+-=head3 GLUSTER
+-
+-Libguestfs can access Gluster disks.
+-
+-To do this, set the optional C<protocol> and C<server> parameters of
+-L</guestfs_add_drive_opts> like this:
+-
+- char **servers = { "gluster.example.org:24007", NULL };
+- guestfs_add_drive_opts (g, "volname/image",
+-                         GUESTFS_ADD_DRIVE_OPTS_FORMAT, "raw",
+-                         GUESTFS_ADD_DRIVE_OPTS_PROTOCOL, "gluster",
+-                         GUESTFS_ADD_DRIVE_OPTS_SERVER, servers,
+-                         -1);
+-
+-C<servers> (the C<server> parameter) is a list which must have a
+-single element.  The single element is a string defining the Gluster
+-server.  The format of this string is documented in
+-L</guestfs_add_drive_opts>.
+-
+-Note that gluster usually requires the client process (ie. libguestfs)
+-to run as B<root> and will give unfathomable errors if it is not
+-(eg. "No data available").
+-
+-=head3 ISCSI
+-
+-Libguestfs can access iSCSI disks remotely.
+-
+-To do this, set the optional C<protocol> and C<server> parameters like
+-this:
+-
+- char **server = { "iscsi.example.org:3000", NULL };
+- guestfs_add_drive_opts (g, "target-iqn-name/lun",
+-                         GUESTFS_ADD_DRIVE_OPTS_FORMAT, "raw",
+-                         GUESTFS_ADD_DRIVE_OPTS_PROTOCOL, "iscsi",
+-                         GUESTFS_ADD_DRIVE_OPTS_SERVER, server,
+-                         -1);
+-
+-The C<server> parameter is a list which must have a single element.
+-The single element is a string defining the iSCSI server.  The format
+-of this string is documented in L</guestfs_add_drive_opts>.
+-
+ =head3 NETWORK BLOCK DEVICE
+ 
+ Libguestfs can access Network Block Device (NBD) disks remotely.
+@@ -821,42 +757,6 @@ L<https://bugs.launchpad.net/qemu/+bug/1155677>
+ 
+ =back
+ 
+-=head3 SHEEPDOG
+-
+-Libguestfs can access Sheepdog disks.
+-
+-To do this, set the optional C<protocol> and C<server> parameters of
+-L</guestfs_add_drive_opts> like this:
+-
+- char **servers = { /* optional servers ... */ NULL };
+- guestfs_add_drive_opts (g, "volume",
+-                         GUESTFS_ADD_DRIVE_OPTS_FORMAT, "raw",
+-                         GUESTFS_ADD_DRIVE_OPTS_PROTOCOL, "sheepdog",
+-                         GUESTFS_ADD_DRIVE_OPTS_SERVER, servers,
+-                         -1);
+-
+-The optional list of C<servers> may be zero or more server addresses
+-(C<"hostname:port">).  The format of the server strings is documented
+-in L</guestfs_add_drive_opts>.
+-
+-=head3 SSH
+-
+-Libguestfs can access disks over a Secure Shell (SSH) connection.
+-
+-To do this, set the C<protocol> and C<server> and (optionally)
+-C<username> parameters of L</guestfs_add_drive_opts> like this:
+-
+- char **server = { "remote.example.com", NULL };
+- guestfs_add_drive_opts (g, "/path/to/disk.img",
+-                         GUESTFS_ADD_DRIVE_OPTS_FORMAT, "raw",
+-                         GUESTFS_ADD_DRIVE_OPTS_PROTOCOL, "ssh",
+-                         GUESTFS_ADD_DRIVE_OPTS_SERVER, server,
+-                         GUESTFS_ADD_DRIVE_OPTS_USERNAME, "remoteuser",
+-                         -1);
+-
+-The format of the server string is documented in
+-L</guestfs_add_drive_opts>.
+-
+ =head2 INSPECTION
+ 
+ Libguestfs has APIs for inspecting an unknown disk image to find out
+diff --git a/tests/disks/test-qemu-drive-libvirt.sh b/tests/disks/test-qemu-drive-libvirt.sh
+index 9930865..1367079 100755
+--- a/tests/disks/test-qemu-drive-libvirt.sh
++++ b/tests/disks/test-qemu-drive-libvirt.sh
+@@ -76,34 +76,6 @@ check_output
+ grep -sq -- '-drive file=rbd:abc-def/ghi-jkl:auth_supported=none,' "$DEBUG_QEMU_FILE" || fail
+ rm "$DEBUG_QEMU_FILE"
+ 
+-# Gluster.
+-
+-$guestfish -d gluster run ||:
+-check_output
+-grep -sq -- '-drive file=gluster://1.2.3.4:1234/volname/image,' "$DEBUG_QEMU_FILE" || fail
+-rm "$DEBUG_QEMU_FILE"
+-
+-# iSCSI.
+-
+-$guestfish -d iscsi run ||:
+-check_output
+-grep -sq -- '-drive file=iscsi://1.2.3.4:1234/iqn.2003-01.org.linux-iscsi.fedora,' "$DEBUG_QEMU_FILE" || fail
+-rm "$DEBUG_QEMU_FILE"
+-
+-# NBD.
+-
+-$guestfish -d nbd run ||:
+-check_output
+-grep -sq -- '-drive file=nbd:1.2.3.4:1234,' "$DEBUG_QEMU_FILE" || fail
+-rm "$DEBUG_QEMU_FILE"
+-
+-# Sheepdog.
+-
+-$guestfish -d sheepdog run ||:
+-check_output
+-grep -sq -- '-drive file=sheepdog:volume,' "$DEBUG_QEMU_FILE" || fail
+-rm "$DEBUG_QEMU_FILE"
+-
+ # To do:
+ 
+ # HTTP - curl not yet supported by libvirt
+diff --git a/tests/disks/test-qemu-drive.sh b/tests/disks/test-qemu-drive.sh
+index b530e7d..c0239ff 100755
+--- a/tests/disks/test-qemu-drive.sh
++++ b/tests/disks/test-qemu-drive.sh
+@@ -61,36 +61,6 @@ check_output
+ grep -sq -- '-drive file=rbd:abc-def/ghi-jkl:auth_supported=none,' "$DEBUG_QEMU_FILE" || fail
+ rm "$DEBUG_QEMU_FILE"
+ 
+-# HTTP.
+-
+-guestfish <<EOF ||:
+-  add "/disk.img" "format:raw" "protocol:http" "server:www.example.com"
+-  run
+-EOF
+-check_output
+-grep -sq -- '-drive file=http://www.example.com/disk.img,' "$DEBUG_QEMU_FILE" || fail
+-rm "$DEBUG_QEMU_FILE"
+-
+-# Gluster.
+-
+-guestfish <<EOF ||:
+-  add "volname/image" "format:raw" "protocol:gluster" "server:www.example.com:24007"
+-  run
+-EOF
+-check_output
+-grep -sq -- '-drive file=gluster://www.example.com:24007/volname/image,' "$DEBUG_QEMU_FILE" || fail
+-rm "$DEBUG_QEMU_FILE"
+-
+-# iSCSI.
+-
+-guestfish <<EOF ||:
+-  add "target-iqn-name/lun" "format:raw" "protocol:iscsi" "server:www.example.com:3000"
+-  run
+-EOF
+-check_output
+-grep -sq -- '-drive file=iscsi://www.example.com:3000/target-iqn-name/lun,' "$DEBUG_QEMU_FILE" || fail
+-rm "$DEBUG_QEMU_FILE"
+-
+ # NBD.
+ 
+ guestfish <<EOF ||:
+@@ -108,24 +78,3 @@ EOF
+ check_output
+ grep -sq -- '-drive file=nbd:unix:/socket,' "$DEBUG_QEMU_FILE" || fail
+ rm "$DEBUG_QEMU_FILE"
+-
+-# Sheepdog.
+-
+-guestfish <<EOF ||:
+-  add "volume" "format:raw" "protocol:sheepdog"
+-  run
+-EOF
+-check_output
+-grep -sq -- '-drive file=sheepdog:volume,' "$DEBUG_QEMU_FILE" || fail
+-rm "$DEBUG_QEMU_FILE"
+-
+-# SSH.
+-
+-guestfish <<EOF ||:
+-  add "/disk.img" "format:raw" "protocol:ssh" "server:example.com" \
+-    "username:rich"
+-  run
+-EOF
+-check_output
+-grep -sq -- '-drive file=ssh://rich@example.com/disk.img,' "$DEBUG_QEMU_FILE" || fail
+-rm "$DEBUG_QEMU_FILE"
+-- 
+1.8.3.1
+

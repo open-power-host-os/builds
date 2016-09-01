@@ -1,0 +1,32 @@
+From 3f1b598dc776761ed83153f60281aec7425c1ad9 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 25 Nov 2014 14:33:55 +0000
+Subject: [PATCH] v2v: -i ova: Small correction to warning message.
+
+Thanks: Pino Toscano
+
+(cherry picked from commit 7030635e51050514b8a597911c9b1f9077d89a56)
+---
+ v2v/input_ova.ml | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/v2v/input_ova.ml b/v2v/input_ova.ml
+index 43e1499..1ab0320 100644
+--- a/v2v/input_ova.ml
++++ b/v2v/input_ova.ml
+@@ -170,10 +170,10 @@ object
+       | 6 -> Some `SCSI
+       | 5 -> Some `IDE
+       | 0 ->
+-        warning ~prog (f_"ova hard disk has no parent controller, please report this as a bug supplying the *.ovf file extracted from the ova");
++        warning ~prog (f_"ova disk has no parent controller, please report this as a bug supplying the *.ovf file extracted from the ova");
+         None
+       | _ ->
+-        warning ~prog (f_"ova hard disk has an unknown VMware controller type (%d), please report this as a bug supplying the *.ovf file extracted from the ova")
++        warning ~prog (f_"ova disk has an unknown VMware controller type (%d), please report this as a bug supplying the *.ovf file extracted from the ova")
+           controller;
+         None
+     in
+-- 
+1.8.3.1
+

@@ -1,0 +1,472 @@
+From 1f743267838b68dfade8451b5610925c16237457 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 20 Apr 2015 17:35:44 +0100
+Subject: [PATCH] v2v: Pass sound card information from the source to the
+ target (RHBZ#1176493).
+
+Collect sound card information from the source, and where possible,
+create a compatible sound card on the target.
+
+Notes:
+
+* VMware's libvirt driver, and also OVF files, do not appear to
+  contain any sound card information, so it cannot be collected from
+  VMware sources.
+
+* Xen does emulate sound cards and makes that information available
+  through libvirt XML.
+
+* There are no paravirt drivers for sound that I'm aware of.
+  Therefore we can just copy the same sound model to the target (so
+  the sound device does not appear to change).  If the target, KVM,
+  does not support the device, it is dropped.  But ...
+
+* ... Unfortunately we cannot easily tell which sound cards are
+  supported by KVM on the target.  This is especially a problem for
+  RHEL, where many sound drivers have been removed.  There is a
+  convenience function, `Utils.qemu_supports_sound_card', which can be
+  modified by packagers to hard code the list of supported sound
+  cards.
+
+* If a sound card is dubious / not supported by the target / has any
+  other problem, then we drop it, since it is more important that the
+  guest boots on the target than that sound works.
+
+(cherry picked from commit 2b0c6e8565977c3a53e3a834f3518cce2128aaec)
+---
+ v2v/Makefile.am                       |  2 ++
+ v2v/input_disk.ml                     |  1 +
+ v2v/input_libvirtxml.ml               | 25 ++++++++++++++
+ v2v/input_ova.ml                      |  1 +
+ v2v/output_libvirt.ml                 | 11 +++++-
+ v2v/output_qemu.ml                    | 16 +++++++++
+ v2v/test-v2v-i-ova-formats.expected   |  1 +
+ v2v/test-v2v-i-ova-gz.expected        |  1 +
+ v2v/test-v2v-i-ova-two-disks.expected |  1 +
+ v2v/test-v2v-print-source.sh          |  1 +
+ v2v/test-v2v-sound.sh                 | 64 +++++++++++++++++++++++++++++++++++
+ v2v/test-v2v-sound.xml                | 36 ++++++++++++++++++++
+ v2v/types.ml                          | 27 +++++++++++++++
+ v2v/types.mli                         |  9 +++++
+ v2v/utils.ml                          | 11 ++++++
+ 15 files changed, 206 insertions(+), 1 deletion(-)
+ create mode 100755 v2v/test-v2v-sound.sh
+ create mode 100644 v2v/test-v2v-sound.xml
+
+diff --git a/v2v/Makefile.am b/v2v/Makefile.am
+index ab26baf..242dd49 100644
+--- a/v2v/Makefile.am
++++ b/v2v/Makefile.am
+@@ -31,6 +31,7 @@ EXTRA_DIST = \
+ 	test-v2v-i-ova-two-disks.ovf \
+ 	test-v2v-networks-and-bridges-expected.xml \
+ 	test-v2v-networks-and-bridges.xml \
++	test-v2v-sound.xml \
+ 	virt-v2v.pod
+ 
+ CLEANFILES = *~ *.cmi *.cmo *.cmx *.cmxa *.o virt-v2v
+@@ -244,6 +245,7 @@ TESTS += \
+ 	test-v2v-of-option.sh \
+ 	test-v2v-on-option.sh \
+ 	test-v2v-print-source.sh \
++	test-v2v-sound.sh \
+ 	test-v2v-windows-conversion.sh
+ endif ENABLE_APPLIANCE
+ 
+diff --git a/v2v/input_disk.ml b/v2v/input_disk.ml
+index 54e0bbe..c308907 100644
+--- a/v2v/input_disk.ml
++++ b/v2v/input_disk.ml
+@@ -88,6 +88,7 @@ class input_disk verbose input_format disk = object
+       s_display =
+         Some { s_display_type = Window; s_keymap = None; s_password = None;
+                s_listen = LNone; s_port = None };
++      s_sound = None;
+       s_disks = [disk];
+       s_removables = [];
+       s_nics = [network];
+diff --git a/v2v/input_libvirtxml.ml b/v2v/input_libvirtxml.ml
+index 16a8115..0db0a88 100644
+--- a/v2v/input_libvirtxml.ml
++++ b/v2v/input_libvirtxml.ml
+@@ -140,6 +140,30 @@ let parse_libvirt_xml ?conn ~verbose xml =
+         None
+     ) in
+ 
++  (* Sound card. *)
++  let sound =
++    let obj = Xml.xpath_eval_expression xpathctx "/domain/devices/sound" in
++    let nr_nodes = Xml.xpathobj_nr_nodes obj in
++    if nr_nodes < 1 then None
++    else (
++      (* Ignore everything except the first <sound> device. *)
++      let node = Xml.xpathobj_node doc obj 0 in
++
++      Xml.xpathctx_set_current_context xpathctx node;
++      match xpath_to_string "@model" "" with
++      | "" -> None
++      | "ac97"   -> Some { s_sound_model = AC97 }
++      | "es1370" -> Some { s_sound_model = ES1370 }
++      | "ich6"   -> Some { s_sound_model = ICH6 }
++      | "ich9"   -> Some { s_sound_model = ICH9 }
++      | "pcspk"  -> Some { s_sound_model = PCSpeaker }
++      | "sb16"   -> Some { s_sound_model = SB16 }
++      | "usb"    -> Some { s_sound_model = USBAudio }
++      | model ->
++         warning ~prog (f_"unknown sound model %s ignored") model;
++         None
++    ) in
++
+   (* Non-removable disk devices. *)
+   let disks =
+     let get_disks, add_disk =
+@@ -324,6 +348,7 @@ let parse_libvirt_xml ?conn ~verbose xml =
+     s_vcpu = vcpu;
+     s_features = features;
+     s_display = display;
++    s_sound = sound;
+     s_disks = [];
+     s_removables = removables;
+     s_nics = nics;
+diff --git a/v2v/input_ova.ml b/v2v/input_ova.ml
+index f530b92..84ac57e 100644
+--- a/v2v/input_ova.ml
++++ b/v2v/input_ova.ml
+@@ -359,6 +359,7 @@ object
+       s_vcpu = vcpu;
+       s_features = []; (* XXX *)
+       s_display = None; (* XXX *)
++      s_sound = None;
+       s_disks = disks;
+       s_removables = removables;
+       s_nics = List.rev !nics;
+diff --git a/v2v/output_libvirt.ml b/v2v/output_libvirt.ml
+index dee432d..368f235 100644
+--- a/v2v/output_libvirt.ml
++++ b/v2v/output_libvirt.ml
+@@ -257,7 +257,16 @@ let create_libvirt_xml ?pool source targets guestcaps target_features =
+ 
+     video, graphics in
+ 
+-  let devices = disks @ removables @ nics @ [video] @ [graphics] @
++  let sound =
++    match source.s_sound with
++    | None -> []
++    | Some { s_sound_model = model } ->
++       if qemu_supports_sound_card model then
++         [ e "sound" [ "model", string_of_source_sound_model model ] [] ]
++       else
++         [] in
++
++  let devices = disks @ removables @ nics @ [video] @ [graphics] @ sound @
+   (* Standard devices added to every guest. *) [
+     e "input" ["type", "tablet"; "bus", "usb"] [];
+     e "input" ["type", "mouse"; "bus", "ps2"] [];
+diff --git a/v2v/output_qemu.ml b/v2v/output_qemu.ml
+index 860e1bf..77152a4 100644
+--- a/v2v/output_qemu.ml
++++ b/v2v/output_qemu.ml
+@@ -102,6 +102,22 @@ object
+         (match guestcaps.gcaps_video with Cirrus -> "cirrus" | QXL -> "qxl")
+     );
+ 
++    (* Add a sound card. *)
++    (match source.s_sound with
++     | None -> ()
++     | Some { s_sound_model = model } ->
++        if qemu_supports_sound_card model then (
++          match model with
++          | AC97      -> fpf "%s-device AC97" nl
++          | ES1370    -> fpf "%s-device ES1370" nl
++          | ICH6      -> fpf "%s-device intel-hda -device hda-duplex" nl
++          | ICH9      -> fpf "%s-device ich9-intel-hda" nl
++          | PCSpeaker -> fpf "%s-soundhw pcspk" nl (* not qdev-ified *)
++          | SB16      -> fpf "%s-device sb16" nl
++          | USBAudio  -> fpf "%s-device usb-audio" nl
++        )
++    );
++
+     (* Add a serial console to Linux guests. *)
+     if inspect.i_type = "linux" then
+       fpf "%s-serial stdio" nl;
+diff --git a/v2v/test-v2v-i-ova-formats.expected b/v2v/test-v2v-i-ova-formats.expected
+index 8b3d62c..68a761e 100644
+--- a/v2v/test-v2v-i-ova-formats.expected
++++ b/v2v/test-v2v-i-ova-formats.expected
+@@ -6,6 +6,7 @@ hypervisor type: vmware
+        nr vCPUs: 1
+    CPU features: 
+         display: 
++          sound: 
+ disks:
+ 	disk1.vmdk (vmdk) [scsi]
+ removable media:
+diff --git a/v2v/test-v2v-i-ova-gz.expected b/v2v/test-v2v-i-ova-gz.expected
+index e605afa..4eeb74d 100644
+--- a/v2v/test-v2v-i-ova-gz.expected
++++ b/v2v/test-v2v-i-ova-gz.expected
+@@ -6,6 +6,7 @@ hypervisor type: vmware
+        nr vCPUs: 1
+    CPU features: 
+         display: 
++          sound: 
+ disks:
+ 	.vmdk (vmdk) [scsi]
+ removable media:
+diff --git a/v2v/test-v2v-i-ova-two-disks.expected b/v2v/test-v2v-i-ova-two-disks.expected
+index cd31898..f54f370 100644
+--- a/v2v/test-v2v-i-ova-two-disks.expected
++++ b/v2v/test-v2v-i-ova-two-disks.expected
+@@ -6,6 +6,7 @@ hypervisor type: vmware
+        nr vCPUs: 1
+    CPU features: 
+         display: 
++          sound: 
+ disks:
+ 	disk1.vmdk (vmdk) [scsi]
+ 	disk2.vmdk (vmdk) [scsi]
+diff --git a/v2v/test-v2v-print-source.sh b/v2v/test-v2v-print-source.sh
+index cd32db9..5abd391 100755
+--- a/v2v/test-v2v-print-source.sh
++++ b/v2v/test-v2v-print-source.sh
+@@ -59,6 +59,7 @@ hypervisor type: test
+        nr vCPUs: 1
+    CPU features: 
+         display: 
++          sound: 
+ disks:
+ 	/windows.img (raw) [virtio]
+ removable media:
+diff --git a/v2v/test-v2v-sound.sh b/v2v/test-v2v-sound.sh
+new file mode 100755
+index 0000000..7cb6f24
+--- /dev/null
++++ b/v2v/test-v2v-sound.sh
+@@ -0,0 +1,64 @@
++#!/bin/bash -
++# libguestfs virt-v2v test script
++# Copyright (C) 2015 Red Hat Inc.
++#
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 2 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++
++# Test <sound> is transferred to destination domain.
++
++unset CDPATH
++export LANG=C
++set -e
++
++if [ -n "$SKIP_TEST_V2V_SOUND_SH" ]; then
++    echo "$0: test skipped because environment variable is set"
++    exit 77
++fi
++
++if [ "$(guestfish get-backend)" = "uml" ]; then
++    echo "$0: test skipped because UML backend does not support network"
++    exit 77
++fi
++
++abs_builddir="$(pwd)"
++libvirt_uri="test://$abs_builddir/test-v2v-sound.xml"
++
++f=../tests/guests/windows.img
++if ! test -f $f || ! test -s $f; then
++    echo "$0: test skipped because phony Windows image was not created"
++    exit 77
++fi
++
++virt_tools_data_dir=${VIRT_TOOLS_DATA_DIR:-/usr/share/virt-tools}
++if ! test -r $virt_tools_data_dir/rhsrvany.exe; then
++    echo "$0: test skipped because rhsrvany.exe is not installed"
++    exit 77
++fi
++
++d=test-v2v-sound.d
++rm -rf $d
++mkdir $d
++
++$VG virt-v2v --debug-gc \
++    -i libvirt -ic "$libvirt_uri" windows \
++    -o local -os $d --no-copy
++
++# Test the libvirt XML metadata was created.
++test -f $d/windows.xml
++
++# Check the <sound> element exists in the output.
++grep 'sound model=.ich9' $d/windows.xml
++
++rm -r $d
+diff --git a/v2v/test-v2v-sound.xml b/v2v/test-v2v-sound.xml
+new file mode 100644
+index 0000000..f2babef
+--- /dev/null
++++ b/v2v/test-v2v-sound.xml
+@@ -0,0 +1,36 @@
++<!--
++libguestfs virt-v2v tool
++Copyright (C) 2009-2015 Red Hat Inc.
++
++This program is free software; you can redistribute it and/or modify
++it under the terms of the GNU General Public License as published by
++the Free Software Foundation; either version 2 of the License, or
++(at your option) any later version.
++
++This program is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++You should have received a copy of the GNU General Public License
++along with this program; if not, write to the Free Software
++Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++-->
++<node>
++  <domain type='test'>
++    <name>windows</name>
++    <memory>1048576</memory>
++    <os>
++      <type>hvm</type>
++      <boot dev='hd'/>
++    </os>
++    <devices>
++      <disk type='file' device='disk'>
++        <driver name='qemu' type='raw'/>
++        <source file='../tests/guests/windows.img'/>
++        <target dev='vda' bus='virtio'/>
++      </disk>
++    <sound model="ich9"/>
++    </devices>
++  </domain>
++</node>
+diff --git a/v2v/types.ml b/v2v/types.ml
+index bbe679a..00ff526 100644
+--- a/v2v/types.ml
++++ b/v2v/types.ml
+@@ -28,6 +28,7 @@ type source = {
+   s_vcpu : int;
+   s_features : string list;
+   s_display : source_display option;
++  s_sound : source_sound option;
+   s_disks : source_disk list;
+   s_removables : source_removable list;
+   s_nics : source_nic list;
+@@ -64,6 +65,12 @@ and s_display_listen =
+   | LAddress of string
+   | LNetwork of string
+ 
++and source_sound = {
++  s_sound_model : source_sound_model;
++}
++and source_sound_model =
++  AC97 | ES1370 | ICH6 | ICH9 | PCSpeaker | SB16 | USBAudio
++
+ let rec string_of_source s =
+   sprintf "    source name: %s
+ hypervisor type: %s
+@@ -71,6 +78,7 @@ hypervisor type: %s
+        nr vCPUs: %d
+    CPU features: %s
+         display: %s
++          sound: %s
+ disks:
+ %s
+ removable media:
+@@ -86,6 +94,9 @@ NICs:
+     (match s.s_display with
+     | None -> ""
+     | Some display -> string_of_source_display display)
++    (match s.s_sound with
++    | None -> ""
++    | Some sound -> string_of_source_sound sound)
+     (String.concat "\n" (List.map string_of_source_disk s.s_disks))
+     (String.concat "\n" (List.map string_of_source_removable s.s_removables))
+     (String.concat "\n" (List.map string_of_source_nic s.s_nics))
+@@ -135,6 +146,22 @@ and string_of_source_display { s_display_type = typ;
+     | LNetwork n -> sprintf " listening on network %s" n
+     )
+ 
++and string_of_source_sound { s_sound_model = model } =
++  string_of_source_sound_model model
++
++(* NB: This function must produce names compatible with libvirt.  The
++ * documentation for libvirt is incomplete, look instead at the
++ * sources.
++ *)
++and string_of_source_sound_model = function
++  | AC97      -> "ac97"
++  | ES1370    -> "es1370"
++  | ICH6      -> "ich6"
++  | ICH9      -> "ich9"
++  | PCSpeaker -> "pcspk"
++  | SB16      -> "sb16"
++  | USBAudio  -> "usb"
++
+ type overlay = {
+   ov_overlay_file : string;
+   ov_sd : string;
+diff --git a/v2v/types.mli b/v2v/types.mli
+index 5925c97..1b3a9cf 100644
+--- a/v2v/types.mli
++++ b/v2v/types.mli
+@@ -28,6 +28,7 @@ type source = {
+   s_vcpu : int;                         (** Number of CPUs. *)
+   s_features : string list;             (** Machine features. *)
+   s_display : source_display option;    (** Guest display. *)
++  s_sound : source_sound option;        (** Sound card. *)
+   s_disks : source_disk list;           (** Disk images. *)
+   s_removables : source_removable list; (** CDROMs etc. *)
+   s_nics : source_nic list;             (** NICs. *)
+@@ -80,9 +81,17 @@ and s_display_listen =
+   | LAddress of string             (** Listen address. *)
+   | LNetwork of string             (** Listen network. *)
+ 
++and source_sound = {
++  s_sound_model : source_sound_model; (** Sound model. *)
++}
++and source_sound_model =
++  AC97 | ES1370 | ICH6 | ICH9 | PCSpeaker | SB16 | USBAudio
++
+ val string_of_source : source -> string
+ val string_of_source_disk : source_disk -> string
+ 
++val string_of_source_sound_model : source_sound_model -> string
++
+ type overlay = {
+   ov_overlay_file : string;  (** Local overlay file (qcow2 format). *)
+   ov_sd : string;            (** "sda", "sdb" etc - canonical device name. *)
+diff --git a/v2v/utils.ml b/v2v/utils.ml
+index 7757be5..26a3976 100644
+--- a/v2v/utils.ml
++++ b/v2v/utils.ml
+@@ -72,6 +72,17 @@ let kvm_arch = function
+   | "unknown" -> "x86_64" (* most likely *)
+   | arch -> arch
+ 
++(* Does qemu support the given sound card? *)
++let qemu_supports_sound_card = function
++  | AC97
++  | ES1370
++  | ICH6
++  | ICH9
++  | PCSpeaker
++  | SB16
++  | USBAudio
++    -> true
++
+ let compare_app2_versions app1 app2 =
+   let i = compare app1.Guestfs.app2_epoch app2.Guestfs.app2_epoch in
+   if i <> 0 then i
+-- 
+1.8.3.1
+

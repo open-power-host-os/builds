@@ -1,0 +1,33 @@
+From 04f1f9879843e6e3005cfe13805856621aca6bcd Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Sun, 28 Sep 2014 19:14:43 +0100
+Subject: [PATCH] RHEL 7: v2v: Select correct qemu binary for -o qemu mode
+ (RHBZ#1147313).
+
+RHEL 7 does not have qemu-system-x86_64 (etc), and in addition the
+qemu binary is located in /usr/libexec.  Encode the path to this
+binary directly in the script.
+
+Note that we don't support people running qemu directly like this.
+It's just for quick testing of converted VMs, and to help us with
+support cases.
+---
+ v2v/output_qemu.ml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/v2v/output_qemu.ml b/v2v/output_qemu.ml
+index 75644c2..9c17121 100644
+--- a/v2v/output_qemu.ml
++++ b/v2v/output_qemu.ml
+@@ -48,7 +48,7 @@ object
+     let nl = " \\\n\t" in
+     fpf "#!/bin/sh -\n";
+     fpf "\n";
+-    fpf "qemu-system-%s" guestcaps.gcaps_arch;
++    fpf "/usr/libexec/qemu-kvm";
+     fpf "%s-no-user-config -nodefaults" nl;
+     fpf "%s-name %s" nl (quote source.s_name);
+     fpf "%s-machine accel=kvm:tcg" nl;
+-- 
+1.8.3.1
+

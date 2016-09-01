@@ -1,0 +1,137 @@
+From 9a303cb6aaa775f2eed1c8433541d9cddb199f36 Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Wed, 1 Jul 2015 14:35:31 +0200
+Subject: [PATCH] mllib: add and use last_part_of
+
+Collect this small snippet to get the part of a string after the last
+occurrency of a character; replace with it the current snippets doing
+the same.
+
+Should be just code motion.
+
+(cherry picked from commit a614f3451d1e2cc4f29b1bc7f0d88519c432b2c8)
+---
+ customize/password.ml                     |  5 +++--
+ mllib/common_utils.ml                     |  7 +++++++
+ mllib/common_utils.mli                    |  3 +++
+ sysprep/sysprep_operation_user_account.ml |  5 +++--
+ v2v/convert_linux.ml                      | 10 +++-------
+ v2v/utils.ml                              | 16 ++++++++++------
+ 6 files changed, 29 insertions(+), 17 deletions(-)
+
+diff --git a/customize/password.ml b/customize/password.ml
+index 2bbfbbc..c6a155d 100644
+--- a/customize/password.ml
++++ b/customize/password.ml
+@@ -99,8 +99,9 @@ let rec set_linux_passwords ~prog ?password_crypto (g : Guestfs.guestfs) root pa
+   List.iter (
+     fun userpath ->
+       let user =
+-        let i = String.rindex userpath '/' in
+-        String.sub userpath (i+1) (String.length userpath -i-1) in
++        match last_part_of userpath '/' with
++        | Some x -> x
++        | None -> error ~prog "password: missing '/' in %s" userpath in
+       try
+         (* Each line is: "user:[!!]password:..."
+          * !! at the front of the password field means the account is locked.
+diff --git a/mllib/common_utils.ml b/mllib/common_utils.ml
+index 5c46994..8f0f065 100644
+--- a/mllib/common_utils.ml
++++ b/mllib/common_utils.ml
+@@ -608,3 +608,10 @@ let guest_arch_compatible guest_arch =
+   | x, y when x = y -> true
+   | "x86_64", ("i386"|"i486"|"i586"|"i686") -> true
+   | _ -> false
++
++(** Return the last part of a string, after the specified separator. *)
++let last_part_of str sep =
++  try
++    let i = String.rindex str sep in
++    Some (String.sub str (i+1) (String.length str - (i+1)))
++  with Not_found -> None
+diff --git a/mllib/common_utils.mli b/mllib/common_utils.mli
+index 391a216..ad2b4c7 100644
+--- a/mllib/common_utils.mli
++++ b/mllib/common_utils.mli
+@@ -136,3 +136,6 @@ val absolute_path : string -> string
+ val guest_arch_compatible : string -> bool
+ (** Are guest arch and host_cpu compatible, in terms of being able
+     to run commands in the libguestfs appliance? *)
++
++val last_part_of : string -> char -> string option
++(** Return the last part of a string, after the specified separator. *)
+diff --git a/sysprep/sysprep_operation_user_account.ml b/sysprep/sysprep_operation_user_account.ml
+index 2d231cd..d479a89 100644
+--- a/sysprep/sysprep_operation_user_account.ml
++++ b/sysprep/sysprep_operation_user_account.ml
+@@ -68,8 +68,9 @@ let user_account_perform ~verbose ~quiet g root side_effects =
+         let uid = g#aug_get uid in
+         let uid = int_of_string uid in
+         let username =
+-          let i = String.rindex userpath '/' in
+-          String.sub userpath (i+1) (String.length userpath -i-1) in
++          match last_part_of userpath '/' with
++          | Some x -> x
++          | None -> error ~prog "user-accounts: missing '/' in %s" userpath in
+         if uid >= uid_min && uid <= uid_max
+            && check_remove_user username then (
+           (* Get the home before removing the passwd entry. *)
+diff --git a/v2v/convert_linux.ml b/v2v/convert_linux.ml
+index a1f5550..8264e80 100644
+--- a/v2v/convert_linux.ml
++++ b/v2v/convert_linux.ml
+@@ -790,13 +790,9 @@ let rec convert ~verbose ~keep_serial_console (g : G.guestfs) inspect source =
+        *)
+       let mkinitrd_kv =
+         let modpath = kernel.ki_modpath in
+-        let len = String.length modpath in
+-        try
+-          let i = String.rindex modpath '/' in
+-          String.sub modpath (i+1) (len - (i+1))
+-        with
+-          Not_found ->
+-            invalid_arg (sprintf "invalid module path: %s" modpath) in
++        match last_part_of modpath '/' with
++        | Some x -> x
++        | None -> invalid_arg (sprintf "invalid module path: %s" modpath) in
+ 
+       if g#is_file ~followsymlinks:true "/sbin/dracut" then (
+         (* Dracut. *)
+diff --git a/v2v/utils.ml b/v2v/utils.ml
+index e49c47b..0e06913 100644
+--- a/v2v/utils.ml
++++ b/v2v/utils.ml
+@@ -175,9 +175,11 @@ let find_virtio_win_drivers ~verbose virtio_win =
+         let paths = List.filter (g#is_file ~followsymlinks:false) paths in
+         List.map (
+           fun path ->
+-            let i = String.rindex path '/' in
+-            let len = String.length path in
+-            let basename = String.sub path (i+1) (len - (i+1)) in
++            let basename =
++              match last_part_of path '/' with
++              | Some x -> x
++              | None ->
++                error "v2v/find_virtio_win_drivers: missing '/' in %s" path in
+             (path, sprintf "%s:%s" virtio_win path,
+              basename,
+              fun () -> g#read_file path)
+@@ -198,9 +200,11 @@ let find_virtio_win_drivers ~verbose virtio_win =
+           let lc_basename = String.lowercase basename in
+ 
+           let extension =
+-            let i = String.rindex lc_basename '.' in
+-            let len = String.length lc_basename in
+-            String.sub lc_basename (i+1) (len - (i+1)) in
++            match last_part_of lc_basename '.' with
++            | Some x -> x
++            | None ->
++              error "v2v/find_virtio_win_drivers: missing '.' in %s"
++                lc_basename in
+ 
+           (* Skip files without specific extensions. *)
+           if extension <> "cat" && extension <> "inf" &&
+-- 
+1.8.3.1
+

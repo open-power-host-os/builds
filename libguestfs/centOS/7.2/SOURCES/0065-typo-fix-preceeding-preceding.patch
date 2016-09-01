@@ -1,0 +1,27 @@
+From 59dcbd1cfbd98a289aae5aa357195eb7fab18257 Mon Sep 17 00:00:00 2001
+From: Hu Tao <hutao@cn.fujitsu.com>
+Date: Wed, 26 Nov 2014 18:10:06 +0800
+Subject: [PATCH] typo fix: preceeding -> preceding
+
+Signed-off-by: Hu Tao <hutao@cn.fujitsu.com>
+(cherry picked from commit b6f6454678d8d4ae567259985e079feac56384ea)
+---
+ daemon/available.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/daemon/available.c b/daemon/available.c
+index 7a8ede0..54c6b9b 100644
+--- a/daemon/available.c
++++ b/daemon/available.c
+@@ -166,7 +166,7 @@ do_filesystem_available (const char *filesystem)
+   r = filesystem_available (filesystem);
+   if (r == -1) {
+     reply_with_error ("error testing for filesystem availability; "
+-                      "enable verbose mode and look at preceeding output");
++                      "enable verbose mode and look at preceding output");
+     return -1;
+   }
+ 
+-- 
+1.8.3.1
+

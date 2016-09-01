@@ -1,0 +1,87 @@
+From a6839ba3d1fec25f7c3de3770ff68645351d015a Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 1 Jul 2015 11:14:23 +0100
+Subject: [PATCH] v2v: Match any non-"Client" variant, instead of just "Server"
+ (RHBZ#1234351, RHBZ#1237869).
+
+When checking if a Windows variant is a server variant, assume it is a
+server variant unless the i_product_variant field is "Client".
+
+Windows 2008 and Windows 2008R2 does not have an InstallationType key
+in the registry at all, so for these the product variant is returned
+as "unknown".
+
+Windows "Core" would have, according to the reference below,
+"Server Core".
+
+https://msdn.microsoft.com/en-us/library/ee391629%28v=vs.85%29.aspx
+
+This fixes commit 47b5f245bec908f803f0a89c3b1e3166cfe33aad.
+
+(cherry picked from commit 9f0036a0265417bc7fd6e6d2010f185a4a92d225)
+---
+ v2v/convert_windows.ml |  2 +-
+ v2v/utils.ml           | 12 ++++++------
+ 2 files changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/v2v/convert_windows.ml b/v2v/convert_windows.ml
+index c11e838..dc67040 100644
+--- a/v2v/convert_windows.ml
++++ b/v2v/convert_windows.ml
+@@ -248,7 +248,7 @@ echo uninstalling Xen PV driver
+         os_minor = inspect.i_minor_version &&
+         (match os_variant with
+          | Vwd_client -> inspect.i_product_variant = "Client"
+-         | Vwd_server -> inspect.i_product_variant = "Server"
++         | Vwd_not_client -> inspect.i_product_variant <> "Client"
+          | Vwd_any_variant -> true)
+       ) drivers in
+ 
+diff --git a/v2v/utils.ml b/v2v/utils.ml
+index 000ec12..e49c47b 100644
+--- a/v2v/utils.ml
++++ b/v2v/utils.ml
+@@ -128,14 +128,14 @@ type virtio_win_driver_file = {
+   (* Original source of file (for debugging only). *)
+   vwd_original_source : string;
+ }
+-and vwd_os_variant = Vwd_client | Vwd_server | Vwd_any_variant
++and vwd_os_variant = Vwd_client | Vwd_not_client | Vwd_any_variant
+ 
+ let print_virtio_win_driver_file vwd =
+   printf "%s [%d,%d,%s,%s,%s] from %s\n"
+          vwd.vwd_filename
+          vwd.vwd_os_major vwd.vwd_os_minor
+          (match vwd.vwd_os_variant with
+-          | Vwd_client -> "client" | Vwd_server -> "server"
++          | Vwd_client -> "client" | Vwd_not_client -> "not-client"
+           | Vwd_any_variant -> "any")
+          vwd.vwd_os_arch
+          vwd.vwd_extension
+@@ -226,19 +226,19 @@ let find_virtio_win_drivers ~verbose virtio_win =
+             else if pathelem "vista" then
+               (6, 0, Vwd_client)
+             else if pathelem "2k8" || pathelem "win2008" then
+-              (6, 0, Vwd_server)
++              (6, 0, Vwd_not_client)
+             else if pathelem "w7" || pathelem "win7" then
+               (6, 1, Vwd_client)
+             else if pathelem "2k8r2" || pathelem "win2008r2" then
+-              (6, 1, Vwd_server)
++              (6, 1, Vwd_not_client)
+             else if pathelem "w8" || pathelem "win8" then
+               (6, 2, Vwd_client)
+             else if pathelem "2k12" || pathelem "win2012" then
+-              (6, 2, Vwd_server)
++              (6, 2, Vwd_not_client)
+             else if pathelem "w8.1" || pathelem "win8.1" then
+               (6, 3, Vwd_client)
+             else if pathelem "2k12r2" || pathelem "win2012r2" then
+-              (6, 3, Vwd_server)
++              (6, 3, Vwd_not_client)
+             else if pathelem "w10" || pathelem "win10" then
+               (10, 0, Vwd_client)
+             else
+-- 
+1.8.3.1
+

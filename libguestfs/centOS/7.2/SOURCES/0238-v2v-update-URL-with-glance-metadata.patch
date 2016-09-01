@@ -1,0 +1,26 @@
+From e423737f2b70c4bc709e75344985e7b1f6691bd4 Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Tue, 16 Feb 2016 14:42:44 +0100
+Subject: [PATCH] v2v: update URL with glance metadata
+
+(cherry picked from commit 967e887e43cea3ffb6572b24cc995a0bb893e80f)
+---
+ v2v/output_glance.ml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/v2v/output_glance.ml b/v2v/output_glance.ml
+index f120cfa..f8c8806 100644
+--- a/v2v/output_glance.ml
++++ b/v2v/output_glance.ml
+@@ -94,7 +94,7 @@ object
+       "os_type", inspect.i_type;
+       "os_distro",
+       (match inspect.i_distro with
+-      (* http://docs.openstack.org/grizzly/openstack-compute/admin/content/image-metadata.html *)
++      (* http://docs.openstack.org/cli-reference/glance.html#image-service-property-keys *)
+       | "archlinux" -> "arch"
+       | "sles" -> "sled"
+       | x -> x (* everything else is the same in libguestfs and OpenStack *)
+-- 
+1.8.3.1
+

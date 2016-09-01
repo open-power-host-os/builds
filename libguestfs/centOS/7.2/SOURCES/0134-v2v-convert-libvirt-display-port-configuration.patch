@@ -1,0 +1,129 @@
+From bbafb02ae131fbe920886e7685ccd2b156af87e9 Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Tue, 14 Apr 2015 13:22:10 +0200
+Subject: [PATCH] v2v: convert libvirt display port configuration
+
+Read the port configuration from the XML of libvirt domains, restoring
+it when writing new libvirt XMLs instead of always setting the
+"autoport" option.
+
+(cherry picked from commit 1db249a0cc21c65e0d3192567b6016745cea7e58)
+---
+ v2v/input_disk.ml       |  2 +-
+ v2v/input_libvirtxml.ml | 13 +++++++++++--
+ v2v/output_libvirt.ml   |  8 +++++++-
+ v2v/output_qemu.ml      |  3 ++-
+ v2v/types.ml            |  1 +
+ v2v/types.mli           |  1 +
+ 6 files changed, 23 insertions(+), 5 deletions(-)
+
+diff --git a/v2v/input_disk.ml b/v2v/input_disk.ml
+index e5a07b4..54e0bbe 100644
+--- a/v2v/input_disk.ml
++++ b/v2v/input_disk.ml
+@@ -87,7 +87,7 @@ class input_disk verbose input_format disk = object
+       s_features = [ "acpi"; "apic"; "pae" ];
+       s_display =
+         Some { s_display_type = Window; s_keymap = None; s_password = None;
+-               s_listen = LNone };
++               s_listen = LNone; s_port = None };
+       s_disks = [disk];
+       s_removables = [];
+       s_nics = [network];
+diff --git a/v2v/input_libvirtxml.ml b/v2v/input_libvirtxml.ml
+index 037405c..34f1bd1 100644
+--- a/v2v/input_libvirtxml.ml
++++ b/v2v/input_libvirtxml.ml
+@@ -115,14 +115,23 @@ let parse_libvirt_xml ~verbose xml =
+             warning ~prog (f_"<listen type='%s'> in the input libvirt XML was ignored") t;
+             LNone
+         ) in
++      let port =
++        match xpath_to_string "@autoport" "yes" with
++        | "no" ->
++          let port = xpath_to_int "@port" (-1) in
++          if port >= 0 then Some port
++          else None
++        | _ -> None in
+       match xpath_to_string "@type" "" with
+       | "" -> None
+       | "vnc" ->
+         Some { s_display_type = VNC;
+-               s_keymap = keymap; s_password = password; s_listen = listen }
++               s_keymap = keymap; s_password = password; s_listen = listen;
++               s_port = port }
+       | "spice" ->
+         Some { s_display_type = Spice;
+-               s_keymap = keymap; s_password = password; s_listen = listen }
++               s_keymap = keymap; s_password = password; s_listen = listen;
++               s_port = port }
+       | "sdl"|"desktop" as t ->
+         warning ~prog (f_"virt-v2v does not support local displays, so <graphics type='%s'> in the input libvirt XML was ignored") t;
+         None
+diff --git a/v2v/output_libvirt.ml b/v2v/output_libvirt.ml
+index 118d4a4..dee432d 100644
+--- a/v2v/output_libvirt.ml
++++ b/v2v/output_libvirt.ml
+@@ -230,7 +230,6 @@ let create_libvirt_xml ?pool source targets guestcaps target_features =
+ 
+     append_attr ("heads", "1") video;
+ 
+-    append_attr ("autoport", "yes") graphics;
+     (match source.s_display with
+     | Some { s_keymap = Some km } -> append_attr ("keymap", km) graphics
+     | _ -> ());
+@@ -248,6 +247,13 @@ let create_libvirt_xml ?pool source targets guestcaps target_features =
+         append_child sub graphics
+       | LNone -> ())
+     | _ -> ());
++    (match source.s_display with
++    | Some { s_port = Some p } ->
++      append_attr ("autoport", "no") graphics;
++      append_attr ("port", string_of_int p) graphics
++    | _ ->
++      append_attr ("autoport", "yes") graphics;
++      append_attr ("port", "-1") graphics);
+ 
+     video, graphics in
+ 
+diff --git a/v2v/output_qemu.ml b/v2v/output_qemu.ml
+index 4b1d69a..860e1bf 100644
+--- a/v2v/output_qemu.ml
++++ b/v2v/output_qemu.ml
+@@ -95,7 +95,8 @@ object
+       | VNC ->
+         fpf "%s-display vnc=:0" nl
+       | Spice ->
+-        fpf "%s-spice port=5900,addr=127.0.0.1" nl
++        fpf "%s-spice port=%d,addr=127.0.0.1" nl
++        (match display.s_port with None -> 5900 | Some p -> p)
+       );
+       fpf "%s-vga %s" nl
+         (match guestcaps.gcaps_video with Cirrus -> "cirrus" | QXL -> "qxl")
+diff --git a/v2v/types.ml b/v2v/types.ml
+index e8ee288..bbe679a 100644
+--- a/v2v/types.ml
++++ b/v2v/types.ml
+@@ -56,6 +56,7 @@ and source_display = {
+   s_keymap : string option;
+   s_password : string option;
+   s_listen : s_display_listen;
++  s_port : int option;
+ }
+ and s_display_type = Window | VNC | Spice
+ and s_display_listen =
+diff --git a/v2v/types.mli b/v2v/types.mli
+index e1aa6f9..5925c97 100644
+--- a/v2v/types.mli
++++ b/v2v/types.mli
+@@ -72,6 +72,7 @@ and source_display = {
+   s_password : string option;      (** If required, password to access
+                                        the display. *)
+   s_listen : s_display_listen;     (** Listen address. *)
++  s_port : int option;             (** Display port. *)
+ }
+ and s_display_type = Window | VNC | Spice
+ and s_display_listen =
+-- 
+1.8.3.1
+

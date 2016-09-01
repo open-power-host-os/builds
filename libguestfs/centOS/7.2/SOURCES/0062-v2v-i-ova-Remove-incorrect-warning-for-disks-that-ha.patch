@@ -1,0 +1,62 @@
+From 73eba667462773247bdfdcaaaaffcb140353c491 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 24 Nov 2014 15:59:36 +0000
+Subject: [PATCH] v2v: -i ova: Remove incorrect warning for disks that have no
+ parent controller (RHBZ#1167302).
+
+Don't assume every disk <Item> has a <Parent> field.  For floppy disks
+this is not the case.
+
+Thanks: Junqin Zhou
+(cherry picked from commit 79fb3debc42b02a7104041f3279ab81bfff03b90)
+---
+ v2v/input_ova.ml | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/v2v/input_ova.ml b/v2v/input_ova.ml
+index fe71039..43e1499 100644
+--- a/v2v/input_ova.ml
++++ b/v2v/input_ova.ml
+@@ -187,14 +187,17 @@ object
+       for i = 0 to nr_nodes-1 do
+         let n = Xml.xpathobj_node doc obj i in
+         Xml.xpathctx_set_current_context xpathctx n;
+-        let parent_id = xpath_to_int "rasd:Parent/text()" 0 in
+ 
+         (* XXX We assume the OVF lists these in order.
+         let address = xpath_to_int "rasd:AddressOnParent/text()" 0 in
+         *)
+ 
+         (* Find the parent controller. *)
+-        let controller = parent_controller parent_id in
++        let parent_id = xpath_to_int "rasd:Parent/text()" 0 in
++        let controller =
++          match parent_id with
++          | 0 -> None
++          | id -> parent_controller id in
+ 
+         Xml.xpathctx_set_current_context xpathctx n;
+         let file_id = xpath_to_string "rasd:HostResource/text()" "" in
+@@ -255,14 +258,17 @@ object
+         Xml.xpathctx_set_current_context xpathctx n;
+         let id = xpath_to_int "rasd:ResourceType/text()" 0 in
+         assert (id = 14 || id = 15 || id = 16);
+-        let parent_id = xpath_to_int "rasd:Parent/text()" 0 in
+ 
+         (* XXX We assume the OVF lists these in order.
+         let address = xpath_to_int "rasd:AddressOnParent/text()" 0 in
+         *)
+ 
+         (* Find the parent controller. *)
+-        let controller = parent_controller parent_id in
++        let parent_id = xpath_to_int "rasd:Parent/text()" 0 in
++        let controller =
++          match parent_id with
++          | 0 -> None
++          | id -> parent_controller id in
+ 
+         let typ =
+           match id with
+-- 
+1.8.3.1
+

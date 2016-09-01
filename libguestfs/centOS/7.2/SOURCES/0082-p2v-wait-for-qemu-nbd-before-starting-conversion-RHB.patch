@@ -1,0 +1,133 @@
+From 770be29b68b151964aff988de606963eaf04dbe3 Mon Sep 17 00:00:00 2001
+From: John Eckersberg <jeckersb@redhat.com>
+Date: Fri, 5 Dec 2014 16:58:13 -0500
+Subject: [PATCH] p2v: wait for qemu-nbd before starting conversion
+ (RHBZ#1167774)
+
+Wait up to 10 seconds for qemu-nbd to start up and respond to clients.
+Otherwise the conversion server may attempt to connect before qemu-nbd
+is ready to serve it.
+
+(cherry picked from commit 33098d23020bd3824a2954823a0dbaff751c814d)
+---
+ p2v/conversion.c | 76 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 76 insertions(+)
+
+diff --git a/p2v/conversion.c b/p2v/conversion.c
+index cb2deed..9f5a3ad 100644
+--- a/p2v/conversion.c
++++ b/p2v/conversion.c
+@@ -31,6 +31,8 @@
+ #include <libintl.h>
+ #include <sys/types.h>
+ #include <sys/wait.h>
++#include <arpa/inet.h>
++#include <netinet/in.h>
+ 
+ #include <glib.h>
+ 
+@@ -39,6 +41,9 @@
+ #include "miniexpect.h"
+ #include "p2v.h"
+ 
++/* How long to wait for qemu-nbd to start (seconds). */
++#define WAIT_QEMU_NBD_TIMEOUT 10
++
+ /* Data per NBD connection / physical disk. */
+ struct data_conn {
+   mexp_h *h;                /* miniexpect handle to ssh */
+@@ -49,6 +54,7 @@ struct data_conn {
+ 
+ static int send_quoted (mexp_h *, const char *s);
+ static pid_t start_qemu_nbd (int nbd_local_port, const char *device);
++static int wait_qemu_nbd (int nbd_local_port, int timeout_seconds);
+ static void cleanup_data_conns (struct data_conn *data_conns, size_t nr);
+ static char *generate_libvirt_xml (struct config *, struct data_conn *);
+ static const char *map_interface_to_network (struct config *, const char *interface);
+@@ -156,6 +162,11 @@ start_conversion (struct config *config,
+     if (data_conns[i].nbd_pid == 0)
+       goto out;
+ 
++    /* Wait for qemu-nbd to listen */
++    if (wait_qemu_nbd (data_conns[i].nbd_local_port,
++                       WAIT_QEMU_NBD_TIMEOUT) == -1)
++      goto out;
++
+ #if DEBUG_STDERR
+     fprintf (stderr,
+              "%s: data connection for %s: SSH remote port %d, local port %d\n",
+@@ -371,6 +382,71 @@ start_qemu_nbd (int port, const char *device)
+   return pid;
+ }
+ 
++static int
++wait_qemu_nbd (int nbd_local_port, int timeout_seconds)
++{
++  int sockfd;
++  int result = -1;
++  struct sockaddr_in addr;
++  time_t start_t, now_t;
++  struct timeval timeout = { .tv_usec = 0 };
++  char magic[8]; /* NBDMAGIC */
++  size_t bytes_read = 0;
++  ssize_t recvd;
++
++  time (&start_t);
++
++  sockfd = socket (AF_INET, SOCK_STREAM, 0);
++  if (sockfd == -1) {
++    perror ("socket");
++    return -1;
++  }
++
++  memset (&addr, 0, sizeof addr);
++  addr.sin_family = AF_INET;
++  addr.sin_port = htons (nbd_local_port);
++  inet_pton (AF_INET, "localhost", &addr.sin_addr);
++
++  for (;;) {
++    time (&now_t);
++
++    if (now_t - start_t >= timeout_seconds) {
++      set_conversion_error ("waiting for qemu-nbd to start: connect: %m");
++      goto cleanup;
++    }
++
++    if (connect (sockfd, (struct sockaddr *) &addr, sizeof addr) == 0)
++      break;
++  }
++
++  time (&now_t);
++  timeout.tv_sec = (start_t + timeout_seconds) - now_t;
++  setsockopt (sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout);
++
++  do {
++    recvd = recv (sockfd, magic, sizeof magic - bytes_read, 0);
++
++    if (recvd == -1) {
++      set_conversion_error ("waiting for qemu-nbd to start: recv: %m");
++      goto cleanup;
++    }
++
++    bytes_read += recvd;
++  } while (bytes_read < sizeof magic);
++
++  if (memcmp (magic, "NBDMAGIC", sizeof magic) != 0) {
++    set_conversion_error ("waiting for qemu-nbd to start: "
++                          "'NBDMAGIC' was not received from qemu-nbd");
++    goto cleanup;
++  }
++
++  result = 0;
++cleanup:
++  close (sockfd);
++
++  return result;
++}
++
+ static void
+ cleanup_data_conns (struct data_conn *data_conns, size_t nr)
+ {
+-- 
+1.8.3.1
+

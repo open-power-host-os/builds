@@ -1,0 +1,28 @@
+From 2bbaa881d67ddaafb7c111ef8ad1f93c9879c52d Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 2 Oct 2014 16:44:04 +0100
+Subject: [PATCH] RHEL 7: Revert "appliance: Change example ping lines to ping
+ 8.8.8.8."
+
+This reverts commit 07c0926b588db5c86214917b609c2f477c817c0e.
+---
+ appliance/init | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/appliance/init b/appliance/init
+index 3d704ba..f719a72 100755
+--- a/appliance/init
++++ b/appliance/init
+@@ -114,7 +114,8 @@ if grep -sq guestfs_verbose=1 /proc/cmdline; then
+     date
+     echo -n "clocksource: "
+     cat /sys/devices/system/clocksource/clocksource0/current_clocksource
+-    #ping -n -v -c 5 8.8.8.8
++    #ping -n -v -c 5 10.0.2.2
++    #ping -n -v -c 5 10.0.2.4
+ 
+     echo -n "uptime: "; cat /proc/uptime
+ fi
+-- 
+1.8.3.1
+

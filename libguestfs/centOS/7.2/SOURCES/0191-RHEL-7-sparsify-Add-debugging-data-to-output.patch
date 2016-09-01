@@ -1,0 +1,65 @@
+From b649ef36754d9ccda2d842cf453b5afbf278fd92 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 11 Jun 2015 03:04:45 -0400
+Subject: [PATCH] RHEL 7: sparsify: Add debugging data to output.
+
+---
+ .gitignore           | 1 +
+ po/POTFILES-ml       | 1 +
+ sparsify/Makefile.am | 9 +++++++++
+ 3 files changed, 11 insertions(+)
+
+diff --git a/.gitignore b/.gitignore
+index 267caa9..abb63d8 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -430,6 +430,7 @@ Makefile.in
+ /ruby/Rakefile
+ /run
+ /sparsify/.depend
++/sparsify/config_el.ml
+ /sparsify/link.sh
+ /sparsify/stamp-virt-sparsify.pod
+ /sparsify/virt-sparsify
+diff --git a/po/POTFILES-ml b/po/POTFILES-ml
+index 915c611..3597d1b 100644
+--- a/po/POTFILES-ml
++++ b/po/POTFILES-ml
+@@ -38,6 +38,7 @@ mllib/tTY.ml
+ mllib/uRI.ml
+ resize/resize.ml
+ sparsify/cmdline.ml
++sparsify/config_el.ml
+ sparsify/copying.ml
+ sparsify/in_place.ml
+ sparsify/sparsify.ml
+diff --git a/sparsify/Makefile.am b/sparsify/Makefile.am
+index 6717eb0..3b7cc8e 100644
+--- a/sparsify/Makefile.am
++++ b/sparsify/Makefile.am
+@@ -57,6 +57,7 @@ BOBJECTS = \
+ 	$(top_builddir)/mllib/tTY.cmo \
+ 	$(top_builddir)/mllib/common_utils.cmo \
+ 	$(top_builddir)/mllib/progress.cmo \
++	config_el.cmo \
+ 	$(SOURCES_ML:.ml=.cmo)
+ XOBJECTS = $(BOBJECTS:.cmo=.cmx)
+ 
+@@ -91,6 +92,14 @@ virt_sparsify_LINK = \
+ 	  $(OCAMLFIND) $(BEST) $(OCAMLFLAGS) $(OCAMLPACKAGES) $(OCAMLLINKFLAGS) \
+ 	  $(OBJECTS) -o $@
+ 
++rr = tr '[A-Za-z]' '[N-ZA-Mn-za-m]'
++
++config_el.ml:
++	echo let _=\(\"`uname -a | $(rr)`\",\"`date | $(rr)`\"\) > $@-t
++	mv $@-t $@
++
++CLEANFILES += config_el.ml
++
+ .mli.cmi:
+ 	$(OCAMLFIND) ocamlc $(OCAMLFLAGS) $(OCAMLPACKAGES) -c $< -o $@
+ .ml.cmo:
+-- 
+1.8.3.1
+

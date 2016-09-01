@@ -1,0 +1,62 @@
+From b89ad1b8ac7f31511254c383573c812ff93abd91 Mon Sep 17 00:00:00 2001
+From: Roman Kagan <rkagan@parallels.com>
+Date: Tue, 31 Mar 2015 16:26:38 +0300
+Subject: [PATCH] v2v: allow configurable location for virtio drivers
+
+Make the location of the Windows virtio drivers overridable with the
+environment variable VIRTIO_WIN_DIR, in the same vein as is done for
+virt-tools.
+
+Signed-off-by: Roman Kagan <rkagan@parallels.com>
+(cherry picked from commit b8cb5c0d69e7ab8cd8598c0c49f0d65a1366cd62)
+---
+ v2v/convert_windows.ml |  4 +++-
+ v2v/virt-v2v.pod       | 10 ++++++++--
+ 2 files changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/v2v/convert_windows.ml b/v2v/convert_windows.ml
+index 1605a91..1e77369 100644
+--- a/v2v/convert_windows.ml
++++ b/v2v/convert_windows.ml
+@@ -47,7 +47,9 @@ let convert ~verbose ~keep_serial_console (g : G.guestfs) inspect source =
+     try Sys.getenv "VIRT_TOOLS_DATA_DIR"
+     with Not_found -> Config.datadir // "virt-tools" in
+ 
+-  let virtio_win_dir = "/usr/share/virtio-win" in
++  let virtio_win_dir =
++    try Sys.getenv "VIRTIO_WIN_DIR"
++    with Not_found -> Config.datadir // "virtio-win" in
+ 
+   (* Check if RHEV-APT exists.  This is optional. *)
+   let rhev_apt_exe = virt_tools_data_dir // "rhev-apt.exe" in
+diff --git a/v2v/virt-v2v.pod b/v2v/virt-v2v.pod
+index 91e8f3e..5ee3bd8 100644
+--- a/v2v/virt-v2v.pod
++++ b/v2v/virt-v2v.pod
+@@ -620,8 +620,9 @@ below.
+  
+  OpenSUSE 10    kernel >= 2.6.25.5-1.1
+ 
+- Windows        Drivers are installed from /usr/share/virtio-win
+-                if present
++ Windows        Drivers are installed from the directory pointed to by
++                "VIRTIO_WIN_DIR" environment variable
++                (/usr/share/virtio-win by default) if present
+ 
+ =head1 RHEL 4
+ 
+@@ -1440,6 +1441,11 @@ not distributed with virt-v2v.
+ 
+ =back
+ 
++=item C<VIRTIO_WIN_DIR>
++
++This is where VirtIO drivers for Windows are searched for
++(F</usr/share/virtio-win> if unset).  See L<ENABLING VIRTIO>.
++
+ =back
+ 
+ For other environment variables, see L<guestfs(3)/ENVIRONMENT VARIABLES>.
+-- 
+1.8.3.1
+

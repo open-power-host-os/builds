@@ -1,0 +1,172 @@
+From 525a1da911aaccb8587ec4d1b095b2be30f63f90 Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Tue, 14 Apr 2015 11:07:57 +0200
+Subject: [PATCH] filearch: support gzip/xz-compressed files
+
+Extract them to find out the architecture of the data they hold.
+Useful to detect the architecture of e.g. compressed Linux modules.
+
+Provide in the test.iso two samples (compressing existing test data) of
+binaries compressed with gzip and xz.
+
+(cherry picked from commit 7291b226d1b08c762ae2f2715a2ac9ed7b8d5d14)
+---
+ .gitignore             |  2 ++
+ generator/actions.ml   |  4 ++++
+ src/filearch.c         | 64 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ tests/data/Makefile.am | 12 ++++++++++
+ 4 files changed, 82 insertions(+)
+
+diff --git a/.gitignore b/.gitignore
+index 269d735..267caa9 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -502,12 +502,14 @@ Makefile.in
+ /tests/data/100krandom
+ /tests/data/10klines
+ /tests/data/abssymlink
++/tests/data/bin-x86_64-dynamic.gz
+ /tests/data/blank-disk-*
+ /tests/data/blank-disk-*
+ /tests/data/hello.b64
+ /tests/data/initrd
+ /tests/data/initrd-x86_64.img
+ /tests/data/initrd-x86_64.img.gz
++/tests/data/lib-i586.so.xz
+ /tests/data/test-grep.txt.gz
+ /tests/data/test.iso
+ /tests/disks/test-qemu-drive-libvirt.xml
+diff --git a/generator/actions.ml b/generator/actions.ml
+index c7a1777..ca0208b 100644
+--- a/generator/actions.ml
++++ b/generator/actions.ml
+@@ -813,6 +813,10 @@ to specify the QEMU interface emulation to use at run time." };
+         [["file_architecture"; "/initrd-x86_64.img"]], "x86_64"), [];
+       InitISOFS, Always, TestResultString (
+         [["file_architecture"; "/initrd-x86_64.img.gz"]], "x86_64"), [];
++      InitISOFS, Always, TestResultString (
++        [["file_architecture"; "/bin-x86_64-dynamic.gz"]], "x86_64"), [];
++      InitISOFS, Always, TestResultString (
++        [["file_architecture"; "/lib-i586.so.xz"]], "i386"), [];
+     ];
+     shortdesc = "detect the architecture of a binary file";
+     longdesc = "\
+diff --git a/src/filearch.c b/src/filearch.c
+index e851279..40e2225 100644
+--- a/src/filearch.c
++++ b/src/filearch.c
+@@ -278,6 +278,66 @@ cpio_arch (guestfs_h *g, const char *file, const char *path)
+   return ret;
+ }
+ 
++static char *
++compressed_file_arch (guestfs_h *g, const char *path, const char *method)
++{
++  CLEANUP_FREE char *tmpdir = guestfs_get_tmpdir (g), *dir = NULL;
++  CLEANUP_FREE char *tempfile = NULL, *tempfile_extracted = NULL;
++  CLEANUP_CMD_CLOSE struct command *cmd = guestfs_int_new_command (g);
++  char *ret = NULL;
++  int64_t size;
++  int r;
++  bool matched;
++
++  if (asprintf (&dir, "%s/libguestfsXXXXXX", tmpdir) == -1) {
++    perrorf (g, "asprintf");
++    return NULL;
++  }
++
++  /* Security: Refuse to download file if it is huge. */
++  size = guestfs_filesize (g, path);
++  if (size == -1 || size > 10000000) {
++    error (g, _("size of %s unreasonable (%" PRIi64 " bytes)"),
++           path, size);
++    goto out;
++  }
++
++  if (mkdtemp (dir) == NULL) {
++    perrorf (g, "mkdtemp");
++    goto out;
++  }
++
++  tempfile = safe_asprintf (g, "%s/file", dir);
++  if (guestfs_download (g, path, tempfile) == -1)
++    goto out;
++
++  tempfile_extracted = safe_asprintf (g, "%s/file_extracted", dir);
++
++  /* Construct a command to extract named binaries from the initrd file. */
++  guestfs_int_cmd_add_string_unquoted (cmd, method);
++  guestfs_int_cmd_add_string_unquoted (cmd, " ");
++  guestfs_int_cmd_add_string_quoted (cmd, tempfile);
++  guestfs_int_cmd_add_string_unquoted (cmd, " > ");
++  guestfs_int_cmd_add_string_quoted (cmd, tempfile_extracted);
++
++  r = guestfs_int_cmd_run (cmd);
++  if (r == -1)
++    goto out;
++  if (!WIFEXITED (r) || WEXITSTATUS (r) != 0) {
++    guestfs_int_external_command_failed (g, r, method, path);
++    goto out;
++  }
++
++  ret = magic_for_file (g, tempfile_extracted, NULL, &matched);
++  if (!matched)
++    error (g, "file_architecture: could not determine architecture of compressed file");
++
++ out:
++  guestfs_int_recursive_remove_dir (g, dir);
++
++  return ret;
++}
++
+ char *
+ guestfs__file_architecture (guestfs_h *g, const char *path)
+ {
+@@ -300,6 +360,10 @@ guestfs__file_architecture (guestfs_h *g, const char *path)
+     ret = safe_strdup (g, "x86_64");
+   else if (strstr (file, "cpio archive"))
+     ret = cpio_arch (g, file, path);
++  else if (strstr (file, "gzip compressed data"))
++    ret = compressed_file_arch (g, path, "zcat");
++  else if (strstr (file, "XZ compressed data"))
++    ret = compressed_file_arch (g, path, "xzcat");
+   else
+     error (g, "file_architecture: unknown architecture: %s", path);
+ 
+diff --git a/tests/data/Makefile.am b/tests/data/Makefile.am
+index 3127787..7e0d66a 100644
+--- a/tests/data/Makefile.am
++++ b/tests/data/Makefile.am
+@@ -76,6 +76,7 @@ images_files_build = \
+ 	100kallspaces \
+ 	100krandom \
+ 	10klines \
++	bin-x86_64-dynamic.gz \
+ 	blank-disk-1s.raw \
+ 	blank-disk-1s.qcow2 \
+ 	blank-disk-1K.raw \
+@@ -87,6 +88,7 @@ images_files_build = \
+ 	initrd \
+ 	initrd-x86_64.img \
+ 	initrd-x86_64.img.gz \
++	lib-i586.so.xz \
+ 	test-grep.txt.gz
+ 
+ check_DATA = $(images_files_build) test.iso
+@@ -193,3 +195,13 @@ test-grep.txt.gz: test-grep.txt
+ 	rm -f $@ $@-t
+ 	gzip --best -c $< > $@-t
+ 	mv $@-t $@
++
++bin-x86_64-dynamic.gz: bin-x86_64-dynamic
++	rm -f $@ $@-t
++	gzip --best -c $< > $@-t
++	mv $@-t $@
++
++lib-i586.so.xz: lib-i586.so
++	rm -f $@ $@-t
++	xz -c $< > $@-t
++	mv $@-t $@
+-- 
+1.8.3.1
+

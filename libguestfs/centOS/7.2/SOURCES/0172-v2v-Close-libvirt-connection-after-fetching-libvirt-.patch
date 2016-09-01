@@ -1,0 +1,31 @@
+From e4405a97c967e3e259c987d5fd05283e729f2634 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 12 May 2015 22:19:08 +0100
+Subject: [PATCH] v2v: Close libvirt connection after fetching libvirt
+ capabilities.
+
+Memory leak found by valgrind.
+
+This fixes commit e7833a5eea350ca3579d1f9e6702e116b45572fc.
+
+(cherry picked from commit 85347e32e02a412b8b17100b7eb5d39d1e83b66d)
+---
+ v2v/domainxml-c.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/v2v/domainxml-c.c b/v2v/domainxml-c.c
+index ea93c41..7750772 100644
+--- a/v2v/domainxml-c.c
++++ b/v2v/domainxml-c.c
+@@ -413,6 +413,8 @@ v2v_capabilities (value connv, value unitv)
+   capabilitiesv = caml_copy_string (capabilities);
+   free (capabilities);
+ 
++  virConnectClose (conn);
++
+   CAMLreturn (capabilitiesv);
+ }
+ 
+-- 
+1.8.3.1
+

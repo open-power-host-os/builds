@@ -1,0 +1,31 @@
+From c341b85dd47b4442d5c7377d6e34f5a4189eac4f Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 20 Nov 2014 16:01:09 +0000
+Subject: [PATCH] p2v: Disable "Cancel Conversion" button after the conversion
+ (RHBZ#1165569).
+
+Actually this bug does nothing and remains cancelled all the
+way through.  The next commit makes it function.
+
+(cherry picked from commit 98dd01728f61bd810f6c65a6b9e52d78365b96bd)
+---
+ p2v/gui.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/p2v/gui.c b/p2v/gui.c
+index 72838ea..523b028 100644
+--- a/p2v/gui.c
++++ b/p2v/gui.c
+@@ -1324,6 +1324,9 @@ start_conversion_thread (void *data)
+     gtk_widget_destroy (dlg);
+   }
+ 
++  /* Disable the cancel button. */
++  gtk_widget_set_sensitive (cancel_button, FALSE);
++
+   /* Enable the reboot button. */
+   gtk_widget_set_sensitive (reboot_button, TRUE);
+ 
+-- 
+1.8.3.1
+

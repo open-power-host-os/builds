@@ -1,0 +1,45 @@
+From 77107d9bc262ebae54dec9cff788ff1b7504c7d6 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 20 Nov 2014 16:10:08 +0000
+Subject: [PATCH] p2v: Remove --fullscreen option.
+
+It did nothing and was left over from an earlier attempt to add
+fullscreen mode.  That is not needed any longer since we now run
+virt-p2v under the matchbox window manager.
+
+(cherry picked from commit 11347db5762441cd97791367d3cdf7e0c5a0ddc5)
+---
+ p2v/main.c | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/p2v/main.c b/p2v/main.c
+index 9c34413c..a93ca1c 100644
+--- a/p2v/main.c
++++ b/p2v/main.c
+@@ -37,7 +37,6 @@
+ 
+ #include "p2v.h"
+ 
+-int fullscreen;
+ char **all_disks;
+ char **all_removable;
+ char **all_interfaces;
+@@ -54,7 +53,6 @@ static const struct option long_options[] = {
+   { "help", 0, 0, HELP_OPTION },
+   { "cmdline", 1, 0, 0 },
+   { "long-options", 0, 0, 0 },
+-  { "fullscreen", 0, 0, 0 },
+   { "verbose", 0, 0, 'v' },
+   { "version", 0, 0, 'V' },
+   { 0, 0, 0, 0 }
+@@ -75,7 +73,6 @@ usage (int status)
+              "Options:\n"
+              "  --help                 Display brief help\n"
+              " --cmdline=CMDLINE       Used to debug command line parsing\n"
+-             " --fullscreen            Run virt-p2v in full screen mode\n"
+              "  -v|--verbose           Verbose messages\n"
+              "  -V|--version           Display version and exit\n"
+              "For more information, see the manpage %s(1).\n"),
+-- 
+1.8.3.1
+

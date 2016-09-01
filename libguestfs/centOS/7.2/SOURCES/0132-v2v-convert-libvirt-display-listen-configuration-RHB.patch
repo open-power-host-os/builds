@@ -1,0 +1,156 @@
+From 04426a61a5dc72dbaaee666c94398371bd385f76 Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Tue, 14 Apr 2015 10:38:54 +0200
+Subject: [PATCH] v2v: convert libvirt display listen configuration
+ (RHBZ#1174073)
+
+Read the listen configuration from the XML of libvirt domains, restoring
+it when writing new libvirt XMLs.
+
+(cherry picked from commit 9360675dc244a8762e07a8a4289e7a30ca3e1eef)
+---
+ v2v/input_disk.ml       |  3 ++-
+ v2v/input_libvirtxml.ml | 26 ++++++++++++++++++++++++--
+ v2v/output_libvirt.ml   | 11 +++++++++++
+ v2v/types.ml            | 15 +++++++++++++--
+ v2v/types.mli           |  5 +++++
+ 5 files changed, 55 insertions(+), 5 deletions(-)
+
+diff --git a/v2v/input_disk.ml b/v2v/input_disk.ml
+index 98b321c..e5a07b4 100644
+--- a/v2v/input_disk.ml
++++ b/v2v/input_disk.ml
+@@ -86,7 +86,8 @@ class input_disk verbose input_format disk = object
+       s_vcpu = 1;                         (* 1 vCPU is a safe default *)
+       s_features = [ "acpi"; "apic"; "pae" ];
+       s_display =
+-        Some { s_display_type = Window; s_keymap = None; s_password = None };
++        Some { s_display_type = Window; s_keymap = None; s_password = None;
++               s_listen = LNone };
+       s_disks = [disk];
+       s_removables = [];
+       s_nics = [network];
+diff --git a/v2v/input_libvirtxml.ml b/v2v/input_libvirtxml.ml
+index 8057a00..037405c 100644
+--- a/v2v/input_libvirtxml.ml
++++ b/v2v/input_libvirtxml.ml
+@@ -93,14 +93,36 @@ let parse_libvirt_xml ~verbose xml =
+         match xpath_to_string "@keymap" "" with "" -> None | k -> Some k in
+       let password =
+         match xpath_to_string "@passwd" "" with "" -> None | pw -> Some pw in
++      let listen =
++        let obj = Xml.xpath_eval_expression xpathctx "listen" in
++        let nr_nodes = Xml.xpathobj_nr_nodes obj in
++        if nr_nodes < 1 then LNone
++        else (
++          (* Use only the first <listen> configuration. *)
++          match xpath_to_string "listen[1]/@type" "" with
++          | "" -> LNone
++          | "address" ->
++            (match xpath_to_string "listen[1]/@address" "" with
++            | "" -> LNone
++            | a -> LAddress a
++            )
++          | "network" ->
++            (match xpath_to_string "listen[1]/@network" "" with
++            | "" -> LNone
++            | n -> LNetwork n
++            )
++          | t ->
++            warning ~prog (f_"<listen type='%s'> in the input libvirt XML was ignored") t;
++            LNone
++        ) in
+       match xpath_to_string "@type" "" with
+       | "" -> None
+       | "vnc" ->
+         Some { s_display_type = VNC;
+-               s_keymap = keymap; s_password = password }
++               s_keymap = keymap; s_password = password; s_listen = listen }
+       | "spice" ->
+         Some { s_display_type = Spice;
+-               s_keymap = keymap; s_password = password }
++               s_keymap = keymap; s_password = password; s_listen = listen }
+       | "sdl"|"desktop" as t ->
+         warning ~prog (f_"virt-v2v does not support local displays, so <graphics type='%s'> in the input libvirt XML was ignored") t;
+         None
+diff --git a/v2v/output_libvirt.ml b/v2v/output_libvirt.ml
+index f4e480a..118d4a4 100644
+--- a/v2v/output_libvirt.ml
++++ b/v2v/output_libvirt.ml
+@@ -237,6 +237,17 @@ let create_libvirt_xml ?pool source targets guestcaps target_features =
+     (match source.s_display with
+     | Some { s_password = Some pw } -> append_attr ("passwd", pw) graphics
+     | _ -> ());
++    (match source.s_display with
++    | Some { s_listen = listen } ->
++      (match listen with
++      | LAddress a ->
++        let sub = e "listen" [ "type", "address"; "address", a ] [] in
++        append_child sub graphics
++      | LNetwork n ->
++        let sub = e "listen" [ "type", "network"; "network", n ] [] in
++        append_child sub graphics
++      | LNone -> ())
++    | _ -> ());
+ 
+     video, graphics in
+ 
+diff --git a/v2v/types.ml b/v2v/types.ml
+index 97120c2..e8ee288 100644
+--- a/v2v/types.ml
++++ b/v2v/types.ml
+@@ -55,8 +55,13 @@ and source_display = {
+   s_display_type : s_display_type;
+   s_keymap : string option;
+   s_password : string option;
++  s_listen : s_display_listen;
+ }
+ and s_display_type = Window | VNC | Spice
++and s_display_listen =
++  | LNone
++  | LAddress of string
++  | LNetwork of string
+ 
+ let rec string_of_source s =
+   sprintf "    source name: %s
+@@ -117,11 +122,17 @@ and string_of_source_nic { s_mac = mac; s_vnet = vnet; s_vnet_type = typ } =
+     | Some mac -> " mac: " ^ mac)
+ 
+ and string_of_source_display { s_display_type = typ;
+-                               s_keymap = keymap; s_password = password } =
+-  sprintf "%s%s%s"
++                               s_keymap = keymap; s_password = password;
++                               s_listen = listen } =
++  sprintf "%s%s%s%s"
+     (match typ with Window -> "window" | VNC -> "vnc" | Spice -> "spice")
+     (match keymap with None -> "" | Some km -> " " ^ km)
+     (match password with None -> "" | Some _ -> " with password")
++    (match listen with
++    | LNone -> ""
++    | LAddress a -> sprintf " listening on address %s" a
++    | LNetwork n -> sprintf " listening on network %s" n
++    )
+ 
+ type overlay = {
+   ov_overlay_file : string;
+diff --git a/v2v/types.mli b/v2v/types.mli
+index 3d65596..e1aa6f9 100644
+--- a/v2v/types.mli
++++ b/v2v/types.mli
+@@ -71,8 +71,13 @@ and source_display = {
+   s_keymap : string option;        (** Guest keymap. *)
+   s_password : string option;      (** If required, password to access
+                                        the display. *)
++  s_listen : s_display_listen;     (** Listen address. *)
+ }
+ and s_display_type = Window | VNC | Spice
++and s_display_listen =
++  | LNone
++  | LAddress of string             (** Listen address. *)
++  | LNetwork of string             (** Listen network. *)
+ 
+ val string_of_source : source -> string
+ val string_of_source_disk : source_disk -> string
+-- 
+1.8.3.1
+

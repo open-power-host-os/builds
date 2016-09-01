@@ -1,0 +1,85 @@
+From 3da2c223701e870e76eb6815527bd880028253d6 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 30 Apr 2015 14:09:46 +0100
+Subject: [PATCH] v2v: efi: Detect if the guest could boot with UEFI.
+
+Use a heuristic to detect if the guest could boot with UEFI.
+
+This is only used where we have missing metadata (in the
+source.s_firmware == UnknownFirmware case).  Currently that only
+applies for `-i disk' and `-i libvirt/libvirtxml'.
+
+Eventually we'll be able to get this information from the libvirt
+metadata (RHBZ#1217444), so it'll only be used for `-i disk'.
+
+(cherry picked from commit 6a76d6d780a8a833c9762195a79515bbc65704a0)
+---
+ v2v/types.ml  |  1 +
+ v2v/types.mli |  1 +
+ v2v/v2v.ml    | 19 ++++++++++++++++++-
+ 3 files changed, 20 insertions(+), 1 deletion(-)
+
+diff --git a/v2v/types.ml b/v2v/types.ml
+index d173c91..9dbdac0 100644
+--- a/v2v/types.ml
++++ b/v2v/types.ml
+@@ -230,6 +230,7 @@ type inspect = {
+   i_mountpoints : (string * string) list;
+   i_apps : Guestfs.application2 list;
+   i_apps_map : Guestfs.application2 list StringMap.t;
++  i_uefi : bool;
+ }
+ 
+ type mpstat = {
+diff --git a/v2v/types.mli b/v2v/types.mli
+index ade1edb..16f5808 100644
+--- a/v2v/types.mli
++++ b/v2v/types.mli
+@@ -150,6 +150,7 @@ type inspect = {
+     (** This is a map from the app name to the application object.
+         Since RPM allows multiple packages with the same name to be
+         installed, the value is a list. *)
++  i_uefi : bool;        (** True if the guest could boot with UEFI. *)
+ }
+ (** Inspection information. *)
+ 
+diff --git a/v2v/v2v.ml b/v2v/v2v.ml
+index 1ab6a24..3c0c4aa 100644
+--- a/v2v/v2v.ml
++++ b/v2v/v2v.ml
+@@ -522,6 +522,22 @@ and inspect_source g root_choice =
+       StringMap.add name (app :: vs) map
+   ) StringMap.empty apps in
+ 
++  (* See if this guest could use UEFI to boot.  It should use GPT and
++   * it should have an EFI System Partition (ESP).
++   *)
++  let uefi =
++    let rec uefi_ESP_guid = "C12A7328-F81F-11D2-BA4B-00A0C93EC93B"
++    and is_uefi_ESP dev { G.part_num = partnum } =
++      g#part_get_gpt_type dev (Int32.to_int partnum) = uefi_ESP_guid
++    and is_uefi_bootable_device dev =
++      g#part_get_parttype dev = "gpt" && (
++        let partitions = Array.to_list (g#part_list dev) in
++        List.exists (is_uefi_ESP dev) partitions
++      )
++    in
++    let devices = Array.to_list (g#list_devices ()) in
++    List.exists is_uefi_bootable_device devices in
++
+   { i_root = root;
+     i_type = g#inspect_get_type root;
+     i_distro = g#inspect_get_distro root;
+@@ -534,7 +550,8 @@ and inspect_source g root_choice =
+     i_product_variant = g#inspect_get_product_variant root;
+     i_mountpoints = mps;
+     i_apps = apps;
+-    i_apps_map = apps_map; }
++    i_apps_map = apps_map;
++    i_uefi = uefi; }
+ 
+ (* Conversion can fail if there is no space on the guest filesystems
+  * (RHBZ#1139543).  To avoid this situation, check there is some
+-- 
+1.8.3.1
+

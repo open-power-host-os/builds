@@ -1,0 +1,152 @@
+From b361a8a13b4cea045315a018a79374e0203ad1fc Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 17 Dec 2014 12:34:53 +0000
+Subject: [PATCH] fish: Move 'is_true' function to library utilities.
+
+The 'is_true' function can be useful elsewhere, not just for parsing
+guestfish command parameters.
+
+This is just code motion.
+
+(cherry picked from commit bdcd2fabe9a5ba6f61e662986fcd92e352f203c0)
+---
+ fish/fish.c                     | 26 --------------------------
+ generator/fish.ml               | 21 ++++++++++++++++-----
+ src/guestfs-internal-frontend.h |  1 +
+ src/utils.c                     | 23 +++++++++++++++++++++++
+ 4 files changed, 40 insertions(+), 31 deletions(-)
+
+diff --git a/fish/fish.c b/fish/fish.c
+index 981a7d4..6d07f36 100644
+--- a/fish/fish.c
++++ b/fish/fish.c
+@@ -1293,32 +1293,6 @@ print_table (char *const *argv)
+     printf ("%s: %s\n", argv[i], argv[i+1]);
+ }
+ 
+-int
+-is_true (const char *str)
+-{
+-  /* Similar to Tcl_GetBoolean. */
+-
+-  if (STREQ (str, "1") ||
+-      STRCASEEQ (str, "true") ||
+-      STRCASEEQ (str, "t") ||
+-      STRCASEEQ (str, "yes") ||
+-      STRCASEEQ (str, "y") ||
+-      STRCASEEQ (str, "on"))
+-    return 1;
+-
+-  if (STREQ (str, "0") ||
+-      STRCASEEQ (str, "false") ||
+-      STRCASEEQ (str, "f") ||
+-      STRCASEEQ (str, "no") ||
+-      STRCASEEQ (str, "n") ||
+-      STRCASEEQ (str, "off"))
+-    return 0;
+-
+-  fprintf (stderr, _("%s: '%s': invalid boolean value, use 'true' or 'false'\n"),
+-           program_name, str);
+-  return -1;
+-}
+-
+ /* Free strings from a non-NULL terminated char** */
+ static void
+ free_n_strings (char **str, size_t len)
+diff --git a/generator/fish.ml b/generator/fish.ml
+index 3f53ffa..6d6802a 100644
+--- a/generator/fish.ml
++++ b/generator/fish.ml
+@@ -84,12 +84,15 @@ let generate_fish_cmds () =
+   pr "#include <string.h>\n";
+   pr "#include <inttypes.h>\n";
+   pr "#include <libintl.h>\n";
++  pr "#include <errno.h>\n";
+   pr "\n";
+   pr "#include \"c-ctype.h\"\n";
+   pr "#include \"full-write.h\"\n";
+   pr "#include \"xstrtol.h\"\n";
+   pr "\n";
+-  pr "#include <guestfs.h>\n";
++  pr "#include \"guestfs.h\"\n";
++  pr "#include \"guestfs-internal-frontend.h\"\n";
++  pr "\n";
+   pr "#include \"fish.h\"\n";
+   pr "#include \"fish-cmds.h\"\n";
+   pr "#include \"options.h\"\n";
+@@ -479,8 +482,12 @@ Guestfish will prompt for these separately."
+             pr "    input_lineno++;\n";
+             pr "  if (%s == NULL) goto out_%s;\n" name name
+         | Bool name ->
+-            pr "  switch (is_true (argv[i++])) {\n";
+-            pr "    case -1: goto out_%s;\n" name;
++            pr "  switch (guestfs___is_true (argv[i++])) {\n";
++            pr "    case -1:\n";
++            pr "      fprintf (stderr,\n";
++            pr "               _(\"%%s: '%%s': invalid boolean value, use 'true' or 'false'\\n\"),\n";
++            pr "               program_name, argv[i-1]);\n";
++            pr "      goto out_%s;\n" name;
+             pr "    case 0:  %s = 0; break;\n" name;
+             pr "    default: %s = 1;\n" name;
+             pr "  }\n"
+@@ -518,8 +525,12 @@ Guestfish will prompt for these separately."
+             pr "if (STRPREFIX (argv[i], \"%s:\")) {\n" n;
+             (match argt with
+              | OBool n ->
+-                 pr "      switch (is_true (&argv[i][%d])) {\n" (len+1);
+-                 pr "        case -1: goto out;\n";
++                 pr "      switch (guestfs___is_true (&argv[i][%d])) {\n" (len+1);
++                 pr "        case -1:\n";
++                 pr "          fprintf (stderr,\n";
++                 pr "                   _(\"%%s: '%%s': invalid boolean value, use 'true' or 'false'\\n\"),\n";
++                 pr "                   program_name, &argv[i][%d]);\n" (len+1);
++                 pr "          goto out;\n";
+                  pr "        case 0:  optargs_s.%s = 0; break;\n" n;
+                  pr "        default: optargs_s.%s = 1;\n" n;
+                  pr "      }\n"
+diff --git a/src/guestfs-internal-frontend.h b/src/guestfs-internal-frontend.h
+index 5c5d957..ba3ddde 100644
+--- a/src/guestfs-internal-frontend.h
++++ b/src/guestfs-internal-frontend.h
+@@ -105,6 +105,7 @@ extern char **guestfs___split_string (char sep, const char *);
+ extern char *guestfs___exit_status_to_string (int status, const char *cmd_name, char *buffer, size_t buflen);
+ extern int guestfs___random_string (char *ret, size_t len);
+ extern char *guestfs___drive_name (size_t index, char *ret);
++extern int guestfs___is_true (const char *str);
+ 
+ /* These functions are used internally by the CLEANUP_* macros.
+  * Don't call them directly.
+diff --git a/src/utils.c b/src/utils.c
+index be7f643..11c6953 100644
+--- a/src/utils.c
++++ b/src/utils.c
+@@ -270,3 +270,26 @@ guestfs___drive_name (size_t index, char *ret)
+   *ret = '\0';
+   return ret;
+ }
++
++/* Similar to Tcl_GetBoolean. */
++int
++guestfs___is_true (const char *str)
++{
++  if (STREQ (str, "1") ||
++      STRCASEEQ (str, "true") ||
++      STRCASEEQ (str, "t") ||
++      STRCASEEQ (str, "yes") ||
++      STRCASEEQ (str, "y") ||
++      STRCASEEQ (str, "on"))
++    return 1;
++
++  if (STREQ (str, "0") ||
++      STRCASEEQ (str, "false") ||
++      STRCASEEQ (str, "f") ||
++      STRCASEEQ (str, "no") ||
++      STRCASEEQ (str, "n") ||
++      STRCASEEQ (str, "off"))
++    return 0;
++
++  return -1;
++}
+-- 
+1.8.3.1
+

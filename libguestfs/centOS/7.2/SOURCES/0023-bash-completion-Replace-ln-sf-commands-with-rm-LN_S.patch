@@ -1,0 +1,68 @@
+From 8b486425c13d558742df915092d4b2c3a96a95b8 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Fri, 24 Oct 2014 09:12:56 +0100
+Subject: [PATCH] bash-completion: Replace 'ln -sf' commands with rm; $(LN_S).
+
+(cherry picked from commit 68ac0afc8d578bede4a80ebaab07bc54a535a4ef)
+---
+ bash/Makefile.am | 33 ++++++++++++++++++++++-----------
+ 1 file changed, 22 insertions(+), 11 deletions(-)
+
+diff --git a/bash/Makefile.am b/bash/Makefile.am
+index 2da6726..e8c33d4 100644
+--- a/bash/Makefile.am
++++ b/bash/Makefile.am
+@@ -41,28 +41,39 @@ EXTRA_DIST = \
+ 
+ # Some of the scripts are simply symbolic links.
+ virt-cat:
+-	ln -sf virt-alignment-scan $@
++	rm -f $@
++	$(LN_S) virt-alignment-scan $@
+ virt-df:
+-	ln -sf virt-alignment-scan $@
++	rm -f $@
++	$(LN_S) virt-alignment-scan $@
+ virt-edit:
+-	ln -sf virt-alignment-scan $@
++	rm -f $@
++	$(LN_S) virt-alignment-scan $@
+ virt-filesystems:
+-	ln -sf virt-alignment-scan $@
++	rm -f $@
++	$(LN_S) virt-alignment-scan $@
+ virt-format:
+-	ln -sf virt-alignment-scan $@
++	rm -f $@
++	$(LN_S) virt-alignment-scan $@
+ virt-inspector:
+-	ln -sf virt-alignment-scan $@
++	rm -f $@
++	$(LN_S) virt-alignment-scan $@
+ virt-log:
+-	ln -sf virt-alignment-scan $@
++	rm -f $@
++	$(LN_S) virt-alignment-scan $@
+ virt-ls:
+-	ln -sf virt-alignment-scan $@
++	rm -f $@
++	$(LN_S) virt-alignment-scan $@
+ virt-sysprep:
+-	ln -sf virt-alignment-scan $@
++	rm -f $@
++	$(LN_S) virt-alignment-scan $@
+ 
+ virt-builder:
+-	ln -sf virt-resize $@
++	rm -f $@
++	$(LN_S) virt-resize $@
+ virt-sparsify:
+-	ln -sf virt-resize $@
++	rm -f $@
++	$(LN_S) virt-resize $@
+ 
+ if HAVE_BASH_COMPLETION
+ 
+-- 
+1.8.3.1
+

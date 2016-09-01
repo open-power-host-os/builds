@@ -1,0 +1,208 @@
+From eb3c98e28ad33606f70602834e455d7e0789153e Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 21 Jan 2015 05:10:37 -0500
+Subject: [PATCH] aarch64: appliance: Use AAVMF (UEFI) if available for running
+ the appliance.
+
+AAVMF is an open source UEFI implementation for aarch64 based on OVMF.
+As aarch64 is heading for requiring UEFI even inside guests, if the
+AAVMF firmware is installed on the host, use it as a hint that we
+should boot the guest using AAVMF instead of the default "empty
+machine".
+
+Note this requires very recent AAVMF, libvirt, qemu.  However that's
+OK since it's only applicable to aarch64.  On non-aarch64, this patch
+does nothing.
+
+Thanks: Laszlo Ersek for a lot of help getting this right.
+(cherry picked from commit 7dc837c7be84936690f4f613fea82dba4787ceec)
+---
+ src/appliance.c        | 66 +++++++++++++++++++++++++++++++++++++++++++++++++-
+ src/guestfs-internal.h |  1 +
+ src/launch-direct.c    | 14 +++++++++++
+ src/launch-libvirt.c   | 25 +++++++++++++++++++
+ 4 files changed, 105 insertions(+), 1 deletion(-)
+
+diff --git a/src/appliance.c b/src/appliance.c
+index d7aa6b1..5fa47f2 100644
+--- a/src/appliance.c
++++ b/src/appliance.c
+@@ -1,5 +1,5 @@
+ /* libguestfs
+- * Copyright (C) 2010-2012 Red Hat Inc.
++ * Copyright (C) 2010-2014 Red Hat Inc.
+  *
+  * This library is free software; you can redistribute it and/or
+  * modify it under the terms of the GNU Lesser General Public
+@@ -459,3 +459,67 @@ dir_contains_files (const char *dir, ...)
+   va_end (args);
+   return 1;
+ }
++
++#ifdef __aarch64__
++
++#define AAVMF_DIR "/usr/share/AAVMF"
++
++/* Return the location of firmware needed to boot the appliance.  This
++ * is aarch64 only currently, since that's the only architecture where
++ * UEFI is mandatory (and that only for RHEL).
++ *
++ * '*code' is initialized with the path to the read-only UEFI code
++ * file.  '*vars' is initialized with the path to a copy of the UEFI
++ * vars file (which is cleaned up automatically on exit).
++ *
++ * If *code == *vars == NULL then no UEFI firmware is available.
++ *
++ * '*code' and '*vars' should be freed by the caller.
++ *
++ * If the function returns -1 then there was a real error which should
++ * cause appliance building to fail (no UEFI firmware is not an
++ * error).
++ */
++int
++guestfs___get_uefi (guestfs_h *g, char **code, char **vars)
++{
++  if (access (AAVMF_DIR "/AAVMF_CODE.fd", R_OK) == 0 &&
++      access (AAVMF_DIR "/AAVMF_VARS.fd", R_OK) == 0) {
++    CLEANUP_CMD_CLOSE struct command *copycmd = guestfs___new_command (g);
++    char *varst;
++    int r;
++
++    /* Make a copy of AAVMF_VARS.fd.  You can't just map it into the
++     * address space read-only as that triggers a different path
++     * inside UEFI.
++     */
++    varst = safe_asprintf (g, "%s/AAVMF_VARS.fd.%d", g->tmpdir, ++g->unique);
++    guestfs___cmd_add_arg (copycmd, "cp");
++    guestfs___cmd_add_arg (copycmd, AAVMF_DIR "/AAVMF_VARS.fd");
++    guestfs___cmd_add_arg (copycmd, varst);
++    r = guestfs___cmd_run (copycmd);
++    if (r == -1 || !WIFEXITED (r) || WEXITSTATUS (r) != 0) {
++      free (varst);
++      return -1;
++    }
++
++    /* Caller frees. */
++    *code = safe_strdup (g, AAVMF_DIR "/AAVMF_CODE.fd");
++    *vars = varst;
++    return 0;
++  }
++
++  *code = *vars = NULL;
++  return 0;
++}
++
++#else /* !__aarch64__ */
++
++int
++guestfs___get_uefi (guestfs_h *g, char **code, char **vars)
++{
++  *code = *vars = NULL;
++  return 0;
++}
++
++#endif /* !__aarch64__ */
+diff --git a/src/guestfs-internal.h b/src/guestfs-internal.h
+index fd0c4a1..d5de345 100644
+--- a/src/guestfs-internal.h
++++ b/src/guestfs-internal.h
+@@ -725,6 +725,7 @@ extern const char *guestfs___drive_protocol_to_string (enum drive_protocol proto
+ 
+ /* appliance.c */
+ extern int guestfs___build_appliance (guestfs_h *g, char **kernel, char **dtb, char **initrd, char **appliance);
++extern int guestfs___get_uefi (guestfs_h *g, char **code, char **vars);
+ 
+ /* launch.c */
+ extern int64_t guestfs___timeval_diff (const struct timeval *x, const struct timeval *y);
+diff --git a/src/launch-direct.c b/src/launch-direct.c
+index 5301176..2834967 100644
+--- a/src/launch-direct.c
++++ b/src/launch-direct.c
+@@ -267,6 +267,7 @@ launch_direct (guestfs_h *g, void *datav, const char *arg)
+   int sv[2];
+   char guestfsd_sock[256];
+   struct sockaddr_un addr;
++  CLEANUP_FREE char *uefi_code = NULL, *uefi_vars = NULL;
+   CLEANUP_FREE char *kernel = NULL, *dtb = NULL,
+     *initrd = NULL, *appliance = NULL;
+   int has_appliance_drive;
+@@ -474,6 +475,19 @@ launch_direct (guestfs_h *g, void *datav, const char *arg)
+     ADD_CMDLINE ("kvm-pit.lost_tick_policy=discard");
+   }
+ 
++  /* UEFI (firmware) if required. */
++  if (guestfs___get_uefi (g, &uefi_code, &uefi_vars) == -1)
++    goto cleanup0;
++  if (uefi_code) {
++    ADD_CMDLINE ("-drive");
++    ADD_CMDLINE_PRINTF ("if=pflash,format=raw,file=%s,readonly", uefi_code);
++    if (uefi_vars) {
++      ADD_CMDLINE ("-drive");
++      ADD_CMDLINE_PRINTF ("if=pflash,format=raw,file=%s", uefi_vars);
++    }
++  }
++
++  /* Kernel, DTB and initrd. */
+   ADD_CMDLINE ("-kernel");
+   ADD_CMDLINE (kernel);
+   if (dtb) {
+diff --git a/src/launch-libvirt.c b/src/launch-libvirt.c
+index f8f818a..e6899ac 100644
+--- a/src/launch-libvirt.c
++++ b/src/launch-libvirt.c
+@@ -109,6 +109,8 @@ struct backend_libvirt_data {
+   char name[DOMAIN_NAME_LEN];   /* random name */
+   bool is_kvm;                  /* false = qemu, true = kvm (from capabilities)*/
+   unsigned long qemu_version;   /* qemu version (from libvirt) */
++  char *uefi_code;		/* UEFI (firmware) code and variables. */
++  char *uefi_vars;
+ };
+ 
+ /* Parameters passed to construct_libvirt_xml and subfunctions.  We
+@@ -318,6 +320,10 @@ launch_libvirt (guestfs_h *g, void *datav, const char *libvirt_uri)
+   if (parse_capabilities (g, capabilities_xml, data) == -1)
+     goto cleanup;
+ 
++  /* UEFI code and variables, on architectures where that is required. */
++  if (guestfs___get_uefi (g, &data->uefi_code, &data->uefi_vars) == -1)
++    goto cleanup;
++
+   /* Misc backend settings. */
+   guestfs_push_error_handler (g, NULL, NULL);
+   data->selinux_label =
+@@ -1095,6 +1101,20 @@ construct_libvirt_xml_boot (guestfs_h *g,
+       string ("hvm");
+     } end_element ();
+ 
++    if (params->data->uefi_code) {
++      start_element ("loader") {
++	attribute ("readonly", "yes");
++	attribute ("type", "pflash");
++	string (params->data->uefi_code);
++      } end_element ();
++
++      if (params->data->uefi_vars) {
++	start_element ("nvram") {
++	  string (params->data->uefi_vars);
++	} end_element ();
++      }
++    }
++
+     start_element ("kernel") {
+       string (params->kernel);
+     } end_element ();
+@@ -1709,6 +1729,11 @@ shutdown_libvirt (guestfs_h *g, void *datav, int check_for_errors)
+   free (data->network_bridge);
+   data->network_bridge = NULL;
+ 
++  free (data->uefi_code);
++  data->uefi_code = NULL;
++  free (data->uefi_vars);
++  data->uefi_vars = NULL;
++
+   return ret;
+ }
+ 
+-- 
+1.8.3.1
+

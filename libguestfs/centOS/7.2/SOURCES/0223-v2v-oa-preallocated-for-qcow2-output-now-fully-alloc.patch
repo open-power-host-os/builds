@@ -1,0 +1,127 @@
+From d82301351a501167389b839dda8b87ffbe40d2f5 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 12 Aug 2015 16:47:22 +0100
+Subject: [PATCH] v2v: -oa preallocated for qcow2 output now fully allocates
+ the file (RHBZ#1251909).
+
+When the output format is qcow2 and -oa preallocated is used,
+previously it would only allocate the metadata.  That was a regression
+over previous behaviour of virt-v2v 0.9.  Change it so it allocates
+the full file size in this case.
+
+(cherry picked from commit 42b6bb12dcbc5103044a9099d71f17a82009e7de)
+---
+ v2v/Makefile.am           |  1 +
+ v2v/test-v2v-oa-option.sh | 70 +++++++++++++++++++++++++++++++++++++++++++++++
+ v2v/v2v.ml                |  6 ++--
+ 3 files changed, 73 insertions(+), 4 deletions(-)
+ create mode 100755 v2v/test-v2v-oa-option.sh
+
+diff --git a/v2v/Makefile.am b/v2v/Makefile.am
+index 98e54de..87e3c3b 100644
+--- a/v2v/Makefile.am
++++ b/v2v/Makefile.am
+@@ -242,6 +242,7 @@ TESTS += \
+ 	test-v2v-o-qemu.sh \
+ 	test-v2v-o-rhev.sh \
+ 	test-v2v-o-vdsm-options.sh \
++	test-v2v-oa-option.sh \
+ 	test-v2v-of-option.sh \
+ 	test-v2v-on-option.sh \
+ 	test-v2v-print-source.sh \
+diff --git a/v2v/test-v2v-oa-option.sh b/v2v/test-v2v-oa-option.sh
+new file mode 100755
+index 0000000..c1a555a
+--- /dev/null
++++ b/v2v/test-v2v-oa-option.sh
+@@ -0,0 +1,70 @@
++#!/bin/bash -
++# libguestfs virt-v2v test script
++# Copyright (C) 2014-2015 Red Hat Inc.
++#
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 2 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++
++# Test virt-v2v -oa (sparse/preallocated) option.
++
++unset CDPATH
++export LANG=C
++set -e
++
++if [ -n "$SKIP_TEST_V2V_OA_OPTION_SH" ]; then
++    echo "$0: test skipped because environment variable is set"
++    exit 77
++fi
++
++if [ "$(guestfish get-backend)" = "uml" ]; then
++    echo "$0: test skipped because UML backend does not support network or qcow2"
++    exit 77
++fi
++
++abs_top_builddir="$(cd ..; pwd)"
++libvirt_uri="test://$abs_top_builddir/tests/guests/guests.xml"
++
++f=../tests/guests/windows.img
++if ! test -f $f || ! test -s $f; then
++    echo "$0: test skipped because phony Windows image was not created"
++    exit 77
++fi
++
++virt_tools_data_dir=${VIRT_TOOLS_DATA_DIR:-/usr/share/virt-tools}
++if ! test -r $virt_tools_data_dir/rhsrvany.exe; then
++    echo "$0: test skipped because rhsrvany.exe is not installed"
++    exit 77
++fi
++
++d=test-v2v-windows-conversion.d
++rm -rf $d
++mkdir $d
++
++$VG virt-v2v --debug-gc \
++    -i libvirt -ic "$libvirt_uri" windows \
++    -o local -os $d -oa preallocated -of qcow2
++
++# Test the disk is qcow2 format.
++if [ "$(guestfish disk-format $d/windows-sda)" != qcow2 ]; then
++    echo "$0: test failed: output is not qcow2"
++    exit 1
++fi
++
++# Test the disk is fully allocated.
++if [ "$(du -m $d/windows-sda | awk '{print $1}')" -lt 500 ]; then
++    echo "$0: test failed: output is not preallocated"
++    exit 1
++fi
++
++rm -r $d
+diff --git a/v2v/v2v.ml b/v2v/v2v.ml
+index c18039f..b79fd42 100644
+--- a/v2v/v2v.ml
++++ b/v2v/v2v.ml
+@@ -370,10 +370,8 @@ let rec main () =
+           (* What output preallocation mode should we use? *)
+           let preallocation =
+             match t.target_format, output_alloc with
+-            | "raw", `Sparse -> Some "sparse"
+-            | "raw", `Preallocated -> Some "full"
+-            | "qcow2", `Sparse -> Some "off" (* ? *)
+-            | "qcow2", `Preallocated -> Some "metadata"
++            | ("raw"|"qcow2"), `Sparse -> Some "sparse"
++            | ("raw"|"qcow2"), `Preallocated -> Some "full"
+             | _ -> None (* ignore -oa flag for other formats *) in
+           let compat =
+             match t.target_format with "qcow2" -> Some "1.1" | _ -> None in
+-- 
+1.8.3.1
+

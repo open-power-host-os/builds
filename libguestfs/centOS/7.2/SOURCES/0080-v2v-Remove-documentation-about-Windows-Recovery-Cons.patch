@@ -1,0 +1,43 @@
+From b8b1840641e271969eb588684ffc602aa522a93f Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Fri, 5 Dec 2014 14:29:26 +0000
+Subject: [PATCH] v2v: Remove documentation about Windows Recovery Console not
+ supported.
+
+We have now successfully converted guests using WRC, so this statement
+is no longer necessary.
+
+(cherry picked from commit a5423897677ff813baf708e28a53347ecfda33d2)
+---
+ v2v/virt-v2v.pod | 15 ---------------
+ 1 file changed, 15 deletions(-)
+
+diff --git a/v2v/virt-v2v.pod b/v2v/virt-v2v.pod
+index edfa5a0..5c97984 100644
+--- a/v2v/virt-v2v.pod
++++ b/v2v/virt-v2v.pod
+@@ -1070,21 +1070,6 @@ B<N.B.> Take care not to interrupt the automatic driver installation
+ process when logging in to the guest for the first time, as this may
+ prevent the guest from subsequently booting correctly.
+ 
+-=head2 Windows Recovery Console
+-
+-Virt-v2v does not support conversion of the Windows Recovery Console.
+-If a guest has a recovery console installed and VirtIO was enabled
+-during conversion, attempting to boot the recovery console will result
+-in a BSOD.
+-
+-Windows XP x86 does not support the Windows Recovery Console on VirtIO
+-systems, so there is no resolution to this.  However, on Windows XP
+-AMD64 and Windows 2003 (x86 and AMD64), the recovery console can be
+-re-installed after conversion.  The re-installation procedure is the
+-same as the initial installation procedure.  It is not necessary to
+-remove the recovery console first.  Following re-installation, the
+-recovery console will work as intended.
+-
+ =head1 FREE SPACE FOR CONVERSION
+ 
+ Virt-v2v checks there is sufficient free space in the guest filesystem
+-- 
+1.8.3.1
+

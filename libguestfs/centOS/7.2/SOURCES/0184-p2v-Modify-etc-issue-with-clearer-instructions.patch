@@ -1,0 +1,38 @@
+From 002b680bb763e62b083055721c62dd374f974693 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 9 Jun 2015 15:27:25 +0100
+Subject: [PATCH] p2v: Modify /etc/issue with clearer instructions.
+
+(cherry picked from commit 154251b3f0312864c460533ae28a09483fb70051)
+---
+ p2v/issue | 13 ++++++++-----
+ 1 file changed, 8 insertions(+), 5 deletions(-)
+
+diff --git a/p2v/issue b/p2v/issue
+index ae0930f..d4f2b1f 100644
+--- a/p2v/issue
++++ b/p2v/issue
+@@ -3,12 +3,15 @@ virt-p2v - Convert a physical machine to use KVM.
+ ***
+ The root password is "p2v" (without quotes).
+ 
+-If virt-p2v is not running, you can start it by typing:
+-
+-                launch-virt-p2v
+-
+-If virt-p2v didn't start automatically, look for logs:
++To see/follow the status of virt-p2v, do:
+ 
+                 systemctl status p2v -l
++                journalctl -u p2v --follow
++
++Virt-p2v may take some time to start up.  If virt-p2v is not running
++after a few minutes, you can start it by typing:
++
++                launch-virt-p2v
++
+ ***
+ 
+-- 
+1.8.3.1
+

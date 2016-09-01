@@ -1,0 +1,39 @@
+From 3ed08c2dbe46cf084b4865a5029b79fddcdcd780 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Sat, 29 Nov 2014 18:20:00 +0000
+Subject: [PATCH] p2v: Mention sshd_config setting in the manual page.
+
+The precise sshd configuration has confused some users of virt-p2v.
+Only one setting (AllowTcpForwarding=yes) is required, so document it.
+
+(cherry picked from commit 1b52139339caaf8cdc347f05b559128b08fcee39)
+---
+ p2v/virt-p2v.pod | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/p2v/virt-p2v.pod b/p2v/virt-p2v.pod
+index 6e7a77d..1ff1130 100644
+--- a/p2v/virt-p2v.pod
++++ b/p2v/virt-p2v.pod
+@@ -53,7 +53,8 @@ during the conversion process.
+ 
+ The reverse port forwarding feature of ssh (ie. C<ssh -R>) is required
+ by virt-p2v, and it will not work if this is disabled on the
+-conversion server.
++conversion server.  (C<AllowTcpForwarding> must be C<yes> in the
++L<sshd_config(5)> file on the conversion server).
+ 
+ The conversion server does not need to be a physical machine.  It
+ could be a virtual machine, as long as it has sufficient memory and
+@@ -586,6 +587,8 @@ L<virt-p2v-make-kickstart(1)>,
+ L<virt-v2v(1)>,
+ L<qemu-nbd(1)>,
+ L<ssh(1)>,
++L<sshd(8)>,
++L<sshd_config(5)>,
+ L<http://libguestfs.org/>.
+ 
+ =head1 AUTHORS
+-- 
+1.8.3.1
+

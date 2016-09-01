@@ -1,0 +1,43 @@
+From 574481cdd1ccef9e2cba8d8f44a26a538158803b Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 10 Dec 2014 13:03:55 +0000
+Subject: [PATCH] v2v: linux: Fix modifications to default kernel for legacy
+ grub.
+
+This didn't work at all because the regular expression did not match
+the returned Augeas path.
+
+In future if the regular expression doesn't match, this will give an
+internal error instead of continuing with a bogus value.
+
+Thanks: Junqin Zhou for providing the test case and debug information.
+(cherry picked from commit e1fd9615cc4a9ceb68f4a47a289712fc31a0af5e)
+---
+ v2v/convert_linux.ml | 11 +++++------
+ 1 file changed, 5 insertions(+), 6 deletions(-)
+
+diff --git a/v2v/convert_linux.ml b/v2v/convert_linux.ml
+index a4897ca..709b4b9 100644
+--- a/v2v/convert_linux.ml
++++ b/v2v/convert_linux.ml
+@@ -786,12 +786,11 @@ let rec convert ~verbose ~keep_serial_console (g : G.guestfs) inspect source =
+       if paths = [] then
+         error (f_"didn't find grub entry for kernel %s") kernel.ki_vmlinuz;
+       let path = List.hd paths in
+-      let rex = Str.regexp "/title\\[\\([1-9][0-9]*\\)\\]/kernel" in
+-      let index =
+-        if Str.string_match rex path 0 then
+-          (int_of_string (Str.matched_group 1 path) - 1)
+-        else
+-          0 in
++      let rex = Str.regexp ".*/title\\[\\([1-9][0-9]*\\)\\]/kernel" in
++      if not (Str.string_match rex path 0) then
++        error (f_"internal error: regular expression did not match '%s'")
++          path;
++      let index = int_of_string (Str.matched_group 1 path) - 1 in
+       g#aug_set (sprintf "/files%s/default" grub_config) (string_of_int index);
+       g#aug_save ()
+ 
+-- 
+1.8.3.1
+

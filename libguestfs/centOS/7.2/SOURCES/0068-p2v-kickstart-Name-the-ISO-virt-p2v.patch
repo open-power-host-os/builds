@@ -1,0 +1,26 @@
+From 3b116d205d47388844ebc3cc1facfc5d91255b54 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 28 Oct 2014 08:55:46 +0000
+Subject: [PATCH] p2v: kickstart: Name the ISO 'virt-p2v'.
+
+(cherry picked from commit 439bf5e42ac5396eed8911e2d2698ceb4603f0a8)
+---
+ p2v/virt-p2v-make-kickstart.pod | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/p2v/virt-p2v-make-kickstart.pod b/p2v/virt-p2v-make-kickstart.pod
+index 8517313..a17c34c 100644
+--- a/p2v/virt-p2v-make-kickstart.pod
++++ b/p2v/virt-p2v-make-kickstart.pod
+@@ -74,7 +74,7 @@ out usually, even to Fedora packagers.  However assuming you have been
+ given these permissions (or have your own Koji instance, I guess),
+ then you can do:
+ 
+- koji spin-livecd [--scratch] p2v 1.XX.YY rawhide x86_64 p2v.ks
++ koji spin-livecd [--scratch] virt-p2v 1.XX.YY rawhide x86_64 p2v.ks
+ 
+ =over 4
+ 
+-- 
+1.8.3.1
+

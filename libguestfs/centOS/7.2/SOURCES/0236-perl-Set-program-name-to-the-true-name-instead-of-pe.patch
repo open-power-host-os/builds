@@ -1,0 +1,33 @@
+From e673618a8710922593fde2db8fda740a698d82cf Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Sun, 13 Sep 2015 13:45:32 +0100
+Subject: [PATCH] perl: Set program name to the true name instead of 'perl'.
+
+Currently any Perl program has the handle program name field set
+to 'perl'.  Set it to the true name (derived from $0).
+
+(cherry picked from commit e102bcf3cfcbcb2b47ad88334f03d5abf636f1e5)
+---
+ generator/perl.ml | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/generator/perl.ml b/generator/perl.ml
+index 29d9ccc..f664594 100644
+--- a/generator/perl.ml
++++ b/generator/perl.ml
+@@ -753,6 +753,12 @@ sub new {
+   my $g = Sys::Guestfs::_create ($flags);
+   my $self = { _g => $g, _flags => $flags };
+   bless $self, $class;
++
++  # If we don't do this, the program name is always set to 'perl'.
++  my $program = $0;
++  $program =~ s{.*/}{};
++  $self->set_program ($program);
++
+   return $self;
+ }
+ 
+-- 
+1.8.3.1
+

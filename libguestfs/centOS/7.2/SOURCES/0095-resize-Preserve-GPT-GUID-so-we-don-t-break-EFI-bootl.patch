@@ -1,0 +1,82 @@
+From 2149aa86bc0b0484e2144c9c441926eab52bd102 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 5 Feb 2015 08:13:05 +0000
+Subject: [PATCH] resize: Preserve GPT GUID so we don't break EFI bootloaders
+ (RHBZ#1189284).
+
+When copying disks that use EFI, we created a new partition table,
+randomizing the GPT GUID of the first partition.  Since EFI may store
+the GUID in its NVRAM variables, this could make the guest unbootable.
+
+(cherry picked from commit f630677c14c7d5528e1ab39e4f805e0957b2ee3e)
+---
+ resize/resize.ml | 22 ++++++++++++++++++++--
+ 1 file changed, 20 insertions(+), 2 deletions(-)
+
+diff --git a/resize/resize.ml b/resize/resize.ml
+index 2090675..b581b39 100644
+--- a/resize/resize.ml
++++ b/resize/resize.ml
+@@ -50,6 +50,7 @@ type partition = {
+   p_id : partition_id;           (* Partition (MBR/GPT) ID. *)
+   p_type : partition_content;    (* Content type and content size. *)
+   p_label : string option;       (* Label/name. *)
++  p_guid : string option;        (* Partition GUID (GPT only). *)
+ 
+   (* What we're going to do: *)
+   mutable p_operation : partition_operation;
+@@ -93,6 +94,11 @@ let rec debug_partition p =
+     (match p.p_label with
+     | Some label -> label
+     | None -> "(none)"
++    );
++  printf "\tGUID: %s\n"
++    (match p.p_guid with
++    | Some guid -> guid
++    | None -> "(none)"
+     )
+ and string_of_partition_content = function
+   | ContentUnknown -> "unknown data"
+@@ -478,10 +484,16 @@ read the man page virt-resize(1).
+           let label =
+             try Some (g#part_get_name "/dev/sda" part_num)
+             with G.Error _ -> None in
++          let guid =
++            match parttype with
++            | MBR -> None
++            | GPT ->
++              try Some (g#part_get_gpt_guid "/dev/sda" part_num)
++              with G.Error _ -> None in
+ 
+           { p_name = name; p_part = part;
+             p_bootable = bootable; p_id = id; p_type = typ;
+-            p_label = label;
++            p_label = label; p_guid = guid;
+             p_operation = OpCopy; p_target_partnum = 0;
+             p_target_start = 0L; p_target_end = 0L }
+       ) parts in
+@@ -1068,7 +1080,7 @@ read the man page virt-resize(1).
+           p_part = { G.part_num = 0l; part_start = 0L; part_end = 0L;
+                      part_size = 0L };
+           p_bootable = false; p_id = No_ID; p_type = ContentUnknown;
+-          p_label = None;
++          p_label = None; p_guid = None;
+ 
+           (* Target information is meaningful. *)
+           p_operation = OpIgnore;
+@@ -1162,6 +1174,12 @@ read the man page virt-resize(1).
+       | None -> ()
+       );
+ 
++      (match p.p_guid with
++      | Some guid ->
++        g#part_set_gpt_guid "/dev/sdb" p.p_target_partnum guid;
++      | None -> ()
++      );
++
+       match parttype, p.p_id with
+       | GPT, GPT_Type gpt_type ->
+         g#part_set_gpt_type "/dev/sdb" p.p_target_partnum gpt_type
+-- 
+1.8.3.1
+

@@ -1,0 +1,31 @@
+From 99e1e58e719e14daa3023feee068ee1d97f09d51 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Fri, 24 Oct 2014 09:53:21 +0100
+Subject: [PATCH] inspector: Document that -a option can take a URI for remote
+ storage (RHBZ#1156301).
+
+(cherry picked from commit 62c84c6a551cccd2dfe6b1ca393504c5fea4b435)
+---
+ inspector/virt-inspector.pod | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/inspector/virt-inspector.pod b/inspector/virt-inspector.pod
+index f8744b1..1282608 100644
+--- a/inspector/virt-inspector.pod
++++ b/inspector/virt-inspector.pod
+@@ -68,6 +68,12 @@ them with separate I<-a> options.
+ The format of the disk image is auto-detected.  To override this and
+ force a particular format use the I<--format=..> option.
+ 
++=item B<-a> URI
++
++=item B<--add> URI
++
++Add a remote disk.  See L<guestfish(1)/ADDING REMOTE STORAGE>.
++
+ =item B<-c URI>
+ 
+ =item B<--connect URI>
+-- 
+1.8.3.1
+

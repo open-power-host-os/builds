@@ -1,0 +1,46 @@
+From 89bef8662be9ec004fd0c71f863025b2c9e0ee8c Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 20 Nov 2014 15:37:44 +0000
+Subject: [PATCH] p2v: gui: Get the correct button for cancel_button.
+
+I was fetching cancel_button from the wrong dialog (conv_dlg, not
+run_dlg), and therefore getting the wrong button.
+
+This explains why the back button on the conversion dialog was always
+insensitive.  It's because cancel_button was assigned to this button,
+and then I was setting cancel_button to insensitive.
+
+(cherry picked from commit 5d695d37a56a01b8f72a086eaa3bc9de94f6fe3c)
+---
+ p2v/gui.c | 2 +-
+ v2v/TODO  | 1 -
+ 2 files changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/p2v/gui.c b/p2v/gui.c
+index 9a004b5..aa483db 100644
+--- a/p2v/gui.c
++++ b/p2v/gui.c
+@@ -1093,7 +1093,7 @@ create_running_dialog (void)
+   gtk_dialog_add_buttons (GTK_DIALOG (run_dlg),
+                           _("Cancel conversion"), 1,
+                           NULL);
+-  cancel_button = gtk_dialog_get_widget_for_response (GTK_DIALOG (conv_dlg), 1);
++  cancel_button = gtk_dialog_get_widget_for_response (GTK_DIALOG (run_dlg), 1);
+   gtk_widget_set_sensitive (cancel_button, FALSE);
+ 
+   /* Signals. */
+diff --git a/v2v/TODO b/v2v/TODO
+index b2d3fbd..54a3610 100644
+--- a/v2v/TODO
++++ b/v2v/TODO
+@@ -11,7 +11,6 @@ Proper progress bars when copying.
+ p2v:
+ 
+  - network dialog and network configuration
+- - why is the Back button insensitive?
+ 
+ p2v/main.c:/* XXX Copied from fish/options.c. */
+ v2v/convert_linux.ml:           (* Get/construct the version.  XXX Read this fro
+-- 
+1.8.3.1
+

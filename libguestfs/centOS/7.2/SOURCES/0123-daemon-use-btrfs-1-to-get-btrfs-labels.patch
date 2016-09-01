@@ -1,0 +1,100 @@
+From d16202fa66f981949fc49573030721cda35705dc Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Wed, 14 Jan 2015 18:55:13 +0100
+Subject: [PATCH] daemon: use btrfs(1) to get btrfs labels
+
+blkid(1) (or actually, libblkid) seems to handle filesystem labels up
+to 127 characters. Considering that btrfs labels can be up to 255
+characters, this means long labels are not read correctly (i.e. get
+truncated) by blkid.
+
+Get the filesystem type, and if btrfs is available invoke
+`btrfs filesystem` to get the label of btrfs filesystems.
+
+Related to RHBZ#1164708.
+
+(cherry picked from commit 6db3c100e7c18820ff9ecc22415940eb5fedc64e)
+---
+ daemon/blkid.c  |  8 ++++++++
+ daemon/btrfs.c  | 24 ++++++++++++++++++++++++
+ daemon/daemon.h |  3 +++
+ 3 files changed, 35 insertions(+)
+
+diff --git a/daemon/blkid.c b/daemon/blkid.c
+index b98c155..e8e7b58 100644
+--- a/daemon/blkid.c
++++ b/daemon/blkid.c
+@@ -26,6 +26,7 @@
+ 
+ #include "daemon.h"
+ #include "actions.h"
++#include "optgroups.h"
+ 
+ GUESTFSD_EXT_CMD(str_blkid, blkid);
+ 
+@@ -76,6 +77,13 @@ do_vfs_type (const mountable_t *mountable)
+ char *
+ do_vfs_label (const mountable_t *mountable)
+ {
++  CLEANUP_FREE char *type = do_vfs_type (mountable);
++
++  if (type) {
++    if (STREQ (type, "btrfs") && optgroup_btrfs_available ())
++      return btrfs_get_label (mountable->device);
++  }
++
+   return get_blkid_tag (mountable->device, "LABEL");
+ }
+ 
+diff --git a/daemon/btrfs.c b/daemon/btrfs.c
+index 7a4d43d..86bad36 100644
+--- a/daemon/btrfs.c
++++ b/daemon/btrfs.c
+@@ -42,6 +42,30 @@ optgroup_btrfs_available (void)
+   return prog_exists (str_btrfs) && filesystem_available ("btrfs") > 0;
+ }
+ 
++char *
++btrfs_get_label (const char *device)
++{
++  int r;
++  CLEANUP_FREE char *err = NULL;
++  char *out = NULL;
++  size_t len;
++
++  r = command (&out, &err, str_btrfs, "filesystem", "label",
++               device, NULL);
++  if (r == -1) {
++    reply_with_error ("%s", err);
++    free (out);
++    return NULL;
++  }
++
++  /* Trim trailing \n if present. */
++  len = strlen (out);
++  if (len > 0 && out[len-1] == '\n')
++    out[len-1] = '\0';
++
++  return out;
++}
++
+ /* Takes optional arguments, consult optargs_bitmask. */
+ int
+ do_btrfs_filesystem_resize (const char *filesystem, int64_t size)
+diff --git a/daemon/daemon.h b/daemon/daemon.h
+index f442efd..24ee46a 100644
+--- a/daemon/daemon.h
++++ b/daemon/daemon.h
+@@ -257,6 +257,9 @@ extern int copy_xattrs (const char *src, const char *dest);
+ /* Documented in xfs_admin(8). */
+ #define XFS_LABEL_MAX 12
+ 
++/*-- in btrfs.c --*/
++extern char *btrfs_get_label (const char *device);
++
+ /* ordinary daemon functions use these to indicate errors
+  * NB: you don't need to prefix the string with the current command,
+  * it is added automatically by the client-side RPC stubs.
+-- 
+1.8.3.1
+

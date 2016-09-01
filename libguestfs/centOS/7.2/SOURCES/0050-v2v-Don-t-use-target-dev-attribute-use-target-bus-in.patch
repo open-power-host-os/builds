@@ -1,0 +1,472 @@
+From 645d7534bdd8947e22126f6033dbd329f1f9c59e Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 18 Nov 2014 13:07:42 +0000
+Subject: [PATCH] v2v: Don't use <target dev> attribute, use <target bus>
+ instead.
+
+The <target dev> attribute in libvirt isn't very informative.  What we
+really want to know is whether the source disk used IDE or SCSI, as
+that allows us to remap block devices accurately during conversion.
+For example, if the source was IDE and RHEL 5, and after conversion
+virtio will be supported, then we know that we need to remap
+"/dev/hda" to "/dev/vda".
+
+Drop the s_target_dev and s_removable_target_dev fields and replace
+them with s_controller and s_removable_controller.
+
+For -i libvirt, use the <target bus> attribute to get this information.
+
+For -i ova, use the OVF disk controller's ResourceType.
+(http://blogs.vmware.com/vapp/2009/11/virtual-hardware-in-ovf-part-1.html)
+
+(cherry picked from commit 9ebc12572317efe5c1ae83fcb61c7767dec40203)
+---
+ p2v/conversion.c                      |  1 +
+ v2v/convert_linux.ml                  | 43 ++++++++++++++++------------
+ v2v/input_disk.ml                     |  2 +-
+ v2v/input_libvirtxml.ml               | 34 ++++++++++++++--------
+ v2v/input_ova.ml                      | 54 +++++++++++++++++++----------------
+ v2v/output_libvirt.ml                 |  2 +-
+ v2v/test-v2v-i-ova-gz.expected        |  4 +--
+ v2v/test-v2v-i-ova-two-disks.expected |  6 ++--
+ v2v/test-v2v-i-ova-zip.expected       |  4 +--
+ v2v/test-v2v-print-source.sh          |  2 +-
+ v2v/types.ml                          | 22 ++++++++------
+ v2v/types.mli                         | 11 +++++--
+ 12 files changed, 111 insertions(+), 74 deletions(-)
+
+diff --git a/p2v/conversion.c b/p2v/conversion.c
+index 26074b6..6f414de 100644
+--- a/p2v/conversion.c
++++ b/p2v/conversion.c
+@@ -561,6 +561,7 @@ generate_libvirt_xml (struct config *config, struct data_conn *data_conns)
+           } end_element ();
+           start_element ("target") {
+             attribute ("dev", target_dev);
++            /* XXX Need to set bus to "ide" or "scsi" here. */
+           } end_element ();
+         } end_element ();
+       }
+diff --git a/v2v/convert_linux.ml b/v2v/convert_linux.ml
+index b6335d9..48f351c 100644
+--- a/v2v/convert_linux.ml
++++ b/v2v/convert_linux.ml
+@@ -1219,26 +1219,33 @@ let rec convert ~verbose ~keep_serial_console (g : G.guestfs) inspect source =
+      * particular it assumes all non-removable source disks will be
+      * added to the target in the order they appear in the libvirt XML.
+      *)
+-    let block_prefix =
+-      if virtio then "vd"
+-      else
+-        match family, inspect.i_major_version with
+-        | `RHEL_family, v when v < 5 ->
+-          (* RHEL < 5 used old ide driver *) "hd"
+-        | `RHEL_family, 5 ->
+-          (* RHEL 5 uses libata, but udev still uses: *) "hd"
+-        | `SUSE_family, _ ->
+-          (* SUSE uses libata, but still presents IDE disks as: *) "hd"
+-        | _, _ ->
+-          (* All modern distros use libata: *) "sd" in
++    let ide_block_prefix =
++      match family, inspect.i_major_version with
++      | `RHEL_family, v when v < 5 ->
++        (* RHEL < 5 used old ide driver *) "hd"
++      | `RHEL_family, 5 ->
++        (* RHEL 5 uses libata, but udev still uses: *) "hd"
++      | `SUSE_family, _ ->
++        (* SUSE uses libata, but still presents IDE disks as: *) "hd"
++      | _, _ ->
++        (* All modern distros use libata: *) "sd" in
++
++    let block_prefix_after_conversion =
++      if virtio then "vd" else ide_block_prefix in
++
+     let map =
+       mapi (
+         fun i disk ->
+-          let source_dev =
+-            match disk.s_target_dev with (* target/@dev in _source_ HV *)
+-            | Some dev -> dev
+-            | None -> (* ummm, what? *) block_prefix ^ drive_name i in
+-          let target_dev = block_prefix ^ drive_name i in
++          let block_prefix_before_conversion =
++            match disk.s_controller with
++            | Some `IDE -> ide_block_prefix
++            | Some `SCSI -> "sd"
++            | Some `Virtio_blk -> "vd"
++            | None ->
++              (* This is basically a guess.  It assumes the source used IDE. *)
++              ide_block_prefix in
++          let source_dev = block_prefix_before_conversion ^ drive_name i in
++          let target_dev = block_prefix_after_conversion ^ drive_name i in
+           source_dev, target_dev
+       ) source.s_disks in
+ 
+@@ -1253,7 +1260,7 @@ let rec convert ~verbose ~keep_serial_console (g : G.guestfs) inspect source =
+     let map = map @
+       mapi (
+         fun i disk ->
+-          "xvd" ^ drive_name i, block_prefix ^ drive_name i
++          "xvd" ^ drive_name i, block_prefix_after_conversion ^ drive_name i
+       ) source.s_disks in
+ 
+     (* Possible Augeas paths to search for device names. *)
+diff --git a/v2v/input_disk.ml b/v2v/input_disk.ml
+index ef28b43..8393786 100644
+--- a/v2v/input_disk.ml
++++ b/v2v/input_disk.ml
+@@ -69,7 +69,7 @@ class input_disk verbose input_format disk = object
+       s_disk_id = 0;
+       s_qemu_uri = disk_absolute;
+       s_format = Some format;
+-      s_target_dev = None;
++      s_controller = None;
+     } in
+ 
+     (* Give the guest a simple generic network interface. *)
+diff --git a/v2v/input_libvirtxml.ml b/v2v/input_libvirtxml.ml
+index f302b2c..d1146f9 100644
+--- a/v2v/input_libvirtxml.ml
++++ b/v2v/input_libvirtxml.ml
+@@ -114,12 +114,12 @@ let parse_libvirt_xml ~verbose xml =
+     let get_disks, add_disk =
+       let disks = ref [] and i = ref 0 in
+       let get_disks () = List.rev !disks in
+-      let add_disk qemu_uri format target_dev p_source =
++      let add_disk qemu_uri format controller p_source =
+         incr i;
+         disks :=
+           { p_source_disk = { s_disk_id = !i;
+                               s_qemu_uri = qemu_uri; s_format = format;
+-                              s_target_dev = target_dev };
++                              s_controller = controller };
+             p_source = p_source } :: !disks
+       in
+       get_disks, add_disk
+@@ -134,9 +134,14 @@ let parse_libvirt_xml ~verbose xml =
+       let node = Xml.xpathobj_node doc obj i in
+       Xml.xpathctx_set_current_context xpathctx node;
+ 
+-      let target_dev =
+-        let target_dev = xpath_to_string "target/@dev" "" in
+-        if target_dev <> "" then Some target_dev else None in
++      let controller =
++        let target_bus = xpath_to_string "target/@bus" "" in
++        match target_bus with
++        | "" -> None
++        | "ide" -> Some `IDE
++        | "scsi" -> Some `SCSI
++        | "virtio" -> Some `Virtio_blk
++        | _ -> None in
+ 
+       let format =
+         match xpath_to_string "driver/@type" "" with
+@@ -151,11 +156,11 @@ let parse_libvirt_xml ~verbose xml =
+       | "block" ->
+         let path = xpath_to_string "source/@dev" "" in
+         if path <> "" then
+-          add_disk path format target_dev (P_source_dev path)
++          add_disk path format controller (P_source_dev path)
+       | "file" ->
+         let path = xpath_to_string "source/@file" "" in
+         if path <> "" then
+-          add_disk path format target_dev (P_source_file path)
++          add_disk path format controller (P_source_file path)
+       | "network" ->
+         (* We only handle <source protocol="nbd"> here, and that is
+          * intended only for virt-p2v.  Any other network disk is
+@@ -170,7 +175,7 @@ let parse_libvirt_xml ~verbose xml =
+              * XXX Quoting, although it's not needed for virt-p2v.
+              *)
+             let path = sprintf "nbd:%s:%d" host port in
+-            add_disk path format target_dev P_dont_rewrite
++            add_disk path format controller P_dont_rewrite
+           )
+         | "" -> ()
+         | protocol ->
+@@ -193,9 +198,14 @@ let parse_libvirt_xml ~verbose xml =
+       let node = Xml.xpathobj_node doc obj i in
+       Xml.xpathctx_set_current_context xpathctx node;
+ 
+-      let target_dev =
+-        let target_dev = xpath_to_string "target/@dev" "" in
+-        if target_dev <> "" then Some target_dev else None in
++      let controller =
++        let target_bus = xpath_to_string "target/@bus" "" in
++        match target_bus with
++        | "" -> None
++        | "ide" -> Some `IDE
++        | "scsi" -> Some `SCSI
++        | "virtio" -> Some `Virtio_blk
++        | _ -> None in
+ 
+       let typ =
+         match xpath_to_string "@device" "" with
+@@ -204,7 +214,7 @@ let parse_libvirt_xml ~verbose xml =
+         | _ -> assert false (* libxml2 error? *) in
+ 
+       let disk =
+-        { s_removable_type = typ; s_removable_target_dev = target_dev } in
++        { s_removable_type = typ; s_removable_controller = controller } in
+       disks := disk :: !disks
+     done;
+     List.rev !disks in
+diff --git a/v2v/input_ova.ml b/v2v/input_ova.ml
+index 836b24e..fe71039 100644
+--- a/v2v/input_ova.ml
++++ b/v2v/input_ova.ml
+@@ -160,6 +160,24 @@ object
+     (* Search for number of vCPUs. *)
+     let vcpu = xpath_to_int "/ovf:Envelope/ovf:VirtualSystem/ovf:VirtualHardwareSection/ovf:Item[rasd:ResourceType/text()=3]/rasd:VirtualQuantity/text()" 1 in
+ 
++    (* Helper function to return the parent controller of a disk. *)
++    let parent_controller id =
++      let expr = sprintf "/ovf:Envelope/ovf:VirtualSystem/ovf:VirtualHardwareSection/ovf:Item[rasd:InstanceID/text()=%d]/rasd:ResourceType/text()" id in
++      let controller = xpath_to_int expr 0 in
++
++      (* 6: iscsi controller, 5: ide *)
++      match controller with
++      | 6 -> Some `SCSI
++      | 5 -> Some `IDE
++      | 0 ->
++        warning ~prog (f_"ova hard disk has no parent controller, please report this as a bug supplying the *.ovf file extracted from the ova");
++        None
++      | _ ->
++        warning ~prog (f_"ova hard disk has an unknown VMware controller type (%d), please report this as a bug supplying the *.ovf file extracted from the ova")
++          controller;
++        None
++    in
++
+     (* Hard disks (ResourceType = 17). *)
+     let disks = ref [] in
+     let () =
+@@ -169,20 +187,14 @@ object
+       for i = 0 to nr_nodes-1 do
+         let n = Xml.xpathobj_node doc obj i in
+         Xml.xpathctx_set_current_context xpathctx n;
+-        let address = xpath_to_int "rasd:AddressOnParent/text()" 0 in
+         let parent_id = xpath_to_int "rasd:Parent/text()" 0 in
+ 
++        (* XXX We assume the OVF lists these in order.
++        let address = xpath_to_int "rasd:AddressOnParent/text()" 0 in
++        *)
++
+         (* Find the parent controller. *)
+-        let expr = sprintf "/ovf:Envelope/ovf:VirtualSystem/ovf:VirtualHardwareSection/ovf:Item[rasd:InstanceID/text()=%d]/rasd:ResourceType/text()" parent_id in
+-        let controller = xpath_to_int expr 0 in
+-
+-        (* 6: iscsi controller, 5: ide. assuming scsi or ide *)
+-        let target_dev =
+-          match controller with
+-          | 6 -> "sd"
+-          | 0 | 5 | _ (* XXX floppy should be 'fd'? *) -> "hd" in
+-
+-        let target_dev = target_dev ^ drive_name address in
++        let controller = parent_controller parent_id in
+ 
+         Xml.xpathctx_set_current_context xpathctx n;
+         let file_id = xpath_to_string "rasd:HostResource/text()" "" in
+@@ -220,7 +232,7 @@ object
+             s_disk_id = i;
+             s_qemu_uri = filename;
+             s_format = Some "vmdk";
+-            s_target_dev = Some target_dev;
++            s_controller = controller;
+           } in
+           disks := disk :: !disks;
+         ) else
+@@ -243,20 +255,14 @@ object
+         Xml.xpathctx_set_current_context xpathctx n;
+         let id = xpath_to_int "rasd:ResourceType/text()" 0 in
+         assert (id = 14 || id = 15 || id = 16);
+-        let address = xpath_to_int "rasd:AddressOnParent/text()" 0 in
+         let parent_id = xpath_to_int "rasd:Parent/text()" 0 in
+ 
++        (* XXX We assume the OVF lists these in order.
++        let address = xpath_to_int "rasd:AddressOnParent/text()" 0 in
++        *)
++
+         (* Find the parent controller. *)
+-        let expr = sprintf "/ovf:Envelope/ovf:VirtualSystem/ovf:VirtualHardwareSection/ovf:Item[rasd:InstanceID/text()=%d]/rasd:ResourceType/text()" parent_id in
+-        let controller = xpath_to_int expr 0 in
+-
+-        (* 6: iscsi controller, 5: ide. assuming scsi or ide *)
+-        let target_dev =
+-          match controller with
+-          | 6 -> "sd"
+-          | 0 | 5 | _ (* XXX floppy should be 'fd'? *) -> "hd" in
+-
+-        let target_dev = target_dev ^ drive_name address in
++        let controller = parent_controller parent_id in
+ 
+         let typ =
+           match id with
+@@ -265,7 +271,7 @@ object
+             | _ -> assert false in
+         let disk = {
+           s_removable_type = typ;
+-          s_removable_target_dev = Some target_dev
++          s_removable_controller = controller;
+         } in
+         removables := disk :: !removables;
+       done in
+diff --git a/v2v/output_libvirt.ml b/v2v/output_libvirt.ml
+index 386d777..a27d3e5 100644
+--- a/v2v/output_libvirt.ml
++++ b/v2v/output_libvirt.ml
+@@ -146,7 +146,7 @@ let create_libvirt_xml ?pool source targets guestcaps target_features =
+   let removables =
+     (* CDs will be added as IDE devices if we're using virtio, else
+      * they will be added as the same as the disk bus.  The original
+-     * s_removable_target_dev is ignored (same as old virt-v2v).
++     * s_removable_controller is ignored (same as old virt-v2v).
+      *)
+     let cdrom_bus, cdrom_block_prefix, cdrom_index =
+       match guestcaps.gcaps_block_bus with
+diff --git a/v2v/test-v2v-i-ova-gz.expected b/v2v/test-v2v-i-ova-gz.expected
+index 7631534..e605afa 100644
+--- a/v2v/test-v2v-i-ova-gz.expected
++++ b/v2v/test-v2v-i-ova-gz.expected
+@@ -7,9 +7,9 @@ hypervisor type: vmware
+    CPU features: 
+         display: 
+ disks:
+-	.vmdk (vmdk) [hda]
++	.vmdk (vmdk) [scsi]
+ removable media:
+-	CD-ROM [hda]
++	CD-ROM [ide]
+ NICs:
+ 	Network "Network adapter 1"
+ 
+diff --git a/v2v/test-v2v-i-ova-two-disks.expected b/v2v/test-v2v-i-ova-two-disks.expected
+index f2200d7..cd31898 100644
+--- a/v2v/test-v2v-i-ova-two-disks.expected
++++ b/v2v/test-v2v-i-ova-two-disks.expected
+@@ -7,10 +7,10 @@ hypervisor type: vmware
+    CPU features: 
+         display: 
+ disks:
+-	disk1.vmdk (vmdk) [hda]
+-	disk2.vmdk (vmdk) [hdb]
++	disk1.vmdk (vmdk) [scsi]
++	disk2.vmdk (vmdk) [scsi]
+ removable media:
+-	CD-ROM [hda]
++	CD-ROM [ide]
+ NICs:
+ 	Network "Network adapter 1"
+ 
+diff --git a/v2v/test-v2v-i-ova-zip.expected b/v2v/test-v2v-i-ova-zip.expected
+index a835f00..8b3d62c 100644
+--- a/v2v/test-v2v-i-ova-zip.expected
++++ b/v2v/test-v2v-i-ova-zip.expected
+@@ -7,9 +7,9 @@ hypervisor type: vmware
+    CPU features: 
+         display: 
+ disks:
+-	disk1.vmdk (vmdk) [hda]
++	disk1.vmdk (vmdk) [scsi]
+ removable media:
+-	CD-ROM [hda]
++	CD-ROM [ide]
+ NICs:
+ 	Network "Network adapter 1"
+ 
+diff --git a/v2v/test-v2v-print-source.sh b/v2v/test-v2v-print-source.sh
+index 82b2550..cd32db9 100755
+--- a/v2v/test-v2v-print-source.sh
++++ b/v2v/test-v2v-print-source.sh
+@@ -60,7 +60,7 @@ hypervisor type: test
+    CPU features: 
+         display: 
+ disks:
+-	/windows.img (raw) [vda]
++	/windows.img (raw) [virtio]
+ removable media:
+ NICs:" ]; then
+     echo "$0: unexpected output from test:"
+diff --git a/v2v/types.ml b/v2v/types.ml
+index c5a05f6..28d62fc 100644
+--- a/v2v/types.ml
++++ b/v2v/types.ml
+@@ -36,11 +36,12 @@ and source_disk = {
+   s_disk_id : int;
+   s_qemu_uri : string;
+   s_format : string option;
+-  s_target_dev : string option;
++  s_controller : s_controller option;
+ }
++and s_controller = [`IDE | `SCSI | `Virtio_blk]
+ and source_removable = {
+   s_removable_type : [`CDROM|`Floppy];
+-  s_removable_target_dev : string option;
++  s_removable_controller : s_controller option;
+ }
+ and source_nic = {
+   s_mac : string option;
+@@ -82,23 +83,28 @@ NICs:
+     (String.concat "\n" (List.map string_of_source_nic s.s_nics))
+ 
+ and string_of_source_disk { s_qemu_uri = qemu_uri; s_format = format;
+-                            s_target_dev = target_dev } =
++                            s_controller = controller } =
+   sprintf "\t%s%s%s"
+     qemu_uri
+     (match format with
+     | None -> ""
+     | Some format -> " (" ^ format ^ ")")
+-    (match target_dev with
++    (match controller with
+     | None -> ""
+-    | Some target_dev -> " [" ^ target_dev ^ "]")
++    | Some controller -> " [" ^ string_of_controller controller ^ "]")
++
++and string_of_controller = function
++  | `IDE -> "ide"
++  | `SCSI -> "scsi"
++  | `Virtio_blk -> "virtio"
+ 
+ and string_of_source_removable { s_removable_type = typ;
+-                                 s_removable_target_dev = target_dev } =
++                                 s_removable_controller = controller } =
+   sprintf "\t%s%s"
+     (match typ with `CDROM -> "CD-ROM" | `Floppy -> "Floppy")
+-    (match target_dev with
++    (match controller with
+     | None -> ""
+-    | Some target_dev -> " [" ^ target_dev ^ "]")
++    | Some controller -> " [" ^ string_of_controller controller ^ "]")
+ 
+ and string_of_source_nic { s_mac = mac; s_vnet = vnet; s_vnet_type = typ } =
+   sprintf "\t%s \"%s\"%s"
+diff --git a/v2v/types.mli b/v2v/types.mli
+index 2123a41..07eec98 100644
+--- a/v2v/types.mli
++++ b/v2v/types.mli
+@@ -38,13 +38,20 @@ and source_disk = {
+   s_disk_id : int;                      (** A unique ID for each source disk. *)
+   s_qemu_uri : string;                  (** QEMU URI of source disk. *)
+   s_format : string option;             (** Format. *)
+-  s_target_dev : string option;         (** Target @dev from libvirt XML. *)
++  s_controller : s_controller option;   (** Controller, eg. IDE, SCSI. *)
+ }
+ (** A source disk. *)
+ 
++and s_controller = [`IDE | `SCSI | `Virtio_blk]
++(** Source disk controller.
++
++    For the purposes of this field, we can treat virtio-scsi as
++    [`SCSI].  However we don't support conversions from virtio in any
++    case so virtio is here only to make it work for testing. *)
++
+ and source_removable = {
+   s_removable_type : [`CDROM|`Floppy];  (** Type.  *)
+-  s_removable_target_dev : string option; (** Target @dev from libvirt XML. *)
++  s_removable_controller : s_controller option; (** Controller, eg. IDE, SCSI.*)
+ }
+ (** Removable media. *)
+ 
+-- 
+1.8.3.1
+

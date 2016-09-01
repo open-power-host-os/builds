@@ -1,0 +1,228 @@
+From 6cf100edb097dda74619e65b50d312a9c5eb8d5d Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 10 Sep 2015 12:07:31 +0100
+Subject: [PATCH] v2v: Add --dcpath parameter to allow dcPath to be overridden
+ (RHBZ#1256823).
+
+It's currently impossible to correctly predict the dcPath parameter
+from the data that libvirt gives us.  So allow the user to override
+--dcpath themselves.
+
+Eventually we will get better support in libvirt for this, and this
+option will no longer be needed:
+
+  https://www.redhat.com/archives/libvir-list/2015-September/thread.html#00201
+
+This enhances commit 51bc573d0c4e78104a682e7c42d63d701aedd093
+and commit 20f1eb400b13be8733b6586769c4845b99a70722.
+
+(cherry picked from commit 0ed38550981fdde0a5fa5393b42b35c4131eea6f)
+---
+ v2v/cmdline.ml                      |  8 +++++++-
+ v2v/input_libvirt.ml                |  4 ++--
+ v2v/input_libvirt.mli               |  4 ++--
+ v2v/input_libvirt_vcenter_https.ml  | 22 ++++++++++++++++------
+ v2v/input_libvirt_vcenter_https.mli |  2 +-
+ v2v/virt-v2v.pod                    | 23 +++++++++++++----------
+ 6 files changed, 41 insertions(+), 22 deletions(-)
+
+diff --git a/v2v/cmdline.ml b/v2v/cmdline.ml
+index 30155a5..634d5ff 100644
+--- a/v2v/cmdline.ml
++++ b/v2v/cmdline.ml
+@@ -42,6 +42,7 @@ let parse_cmdline () =
+   let verbose = ref false in
+   let trace = ref false in
+ 
++  let dcpath = ref None in
+   let input_conn = ref None in
+   let input_format = ref None in
+   let output_conn = ref None in
+@@ -155,6 +156,10 @@ let parse_cmdline () =
+     "-b",        Arg.String add_bridge,     "in:out " ^ s_"Map bridge 'in' to 'out'";
+     "--bridge",  Arg.String add_bridge,     "in:out " ^ ditto;
+     "--debug-gc",Arg.Set debug_gc,          " " ^ s_"Debug GC and memory allocations";
++    "--dcpath",  Arg.String (set_string_option_once "--dcpath" dcpath),
++                                            "path " ^ s_"Override dcPath (for vCenter)";
++    "--dcPath",  Arg.String (set_string_option_once "--dcPath" dcpath),
++                                            "path " ^ ditto;
+     "--debug-overlay",Arg.Set debug_overlays,
+     " " ^ s_"Save overlay files";
+     "--debug-overlays",Arg.Set debug_overlays,
+@@ -232,6 +237,7 @@ read the man page virt-v2v(1).
+   (* Dereference the arguments. *)
+   let args = List.rev !args in
+   let debug_gc = !debug_gc in
++  let dcpath = !dcpath in
+   let debug_overlays = !debug_overlays in
+   let do_copy = !do_copy in
+   let input_conn = !input_conn in
+@@ -308,7 +314,7 @@ read the man page virt-v2v(1).
+         | [guest] -> guest
+         | _ ->
+           error (f_"expecting a libvirt guest name on the command line") in
+-      Input_libvirt.input_libvirt verbose password input_conn guest
++      Input_libvirt.input_libvirt verbose dcpath password input_conn guest
+ 
+     | `LibvirtXML ->
+       (* -i libvirtxml: Expecting a filename (XML file). *)
+diff --git a/v2v/input_libvirt.ml b/v2v/input_libvirt.ml
+index aff97ac..b27f0ab 100644
+--- a/v2v/input_libvirt.ml
++++ b/v2v/input_libvirt.ml
+@@ -27,7 +27,7 @@ open Types
+ open Utils
+ 
+ (* Choose the right subclass based on the URI. *)
+-let input_libvirt verbose password libvirt_uri guest =
++let input_libvirt verbose dcpath password libvirt_uri guest =
+   match libvirt_uri with
+   | None ->
+     Input_libvirt_other.input_libvirt_other verbose password libvirt_uri guest
+@@ -49,7 +49,7 @@ let input_libvirt verbose password libvirt_uri guest =
+ 
+     | Some server, Some ("esx"|"gsx"|"vpx" as scheme) -> (* vCenter over https *)
+       Input_libvirt_vcenter_https.input_libvirt_vcenter_https
+-        verbose password libvirt_uri parsed_uri scheme server guest
++        verbose dcpath password libvirt_uri parsed_uri scheme server guest
+ 
+     | Some server, Some ("xen+ssh" as scheme) -> (* Xen over SSH *)
+       Input_libvirt_xen_ssh.input_libvirt_xen_ssh
+diff --git a/v2v/input_libvirt.mli b/v2v/input_libvirt.mli
+index bdd40b6..b3df444 100644
+--- a/v2v/input_libvirt.mli
++++ b/v2v/input_libvirt.mli
+@@ -18,7 +18,7 @@
+ 
+ (** [-i libvirt] source. *)
+ 
+-val input_libvirt : bool -> string option -> string option -> string -> Types.input
+-(** [input_libvirt verbose password libvirt_uri guest] creates and returns a
++val input_libvirt : bool -> string option -> string option -> string option -> string -> Types.input
++(** [input_libvirt verbose dcpath password libvirt_uri guest] creates and returns a
+     new {!Types.input} object specialized for reading input from
+     libvirt sources. *)
+diff --git a/v2v/input_libvirt_vcenter_https.ml b/v2v/input_libvirt_vcenter_https.ml
+index dd02feb..684a7e4 100644
+--- a/v2v/input_libvirt_vcenter_https.ml
++++ b/v2v/input_libvirt_vcenter_https.ml
+@@ -110,7 +110,7 @@ let rec get_session_cookie =
+ 
+       if status = "404" then (
+         dump_response stderr;
+-        error (f_"vcenter: URL not found: %s") url
++        error (f_"vcenter: URL not found: %s\n\nThe '--dcpath' parameter may be useful.  See the explanation in the virt-v2v(1) man page OPTIONS section.") url
+       );
+ 
+       if status <> "200" then (
+@@ -235,7 +235,7 @@ let get_dcPath uri scheme =
+  *)
+ let source_re = Str.regexp "^\\[\\(.*\\)\\] \\(.*\\)\\.vmdk$"
+ 
+-let map_source_to_uri ?readahead verbose password uri scheme server path =
++let map_source_to_uri ?readahead verbose dcPath password uri scheme server path =
+   if not (Str.string_match source_re path 0) then
+     path
+   else (
+@@ -243,7 +243,17 @@ let map_source_to_uri ?readahead verbose password uri scheme server path =
+     and path = Str.matched_group 2 path in
+ 
+     (* Get the dcPath. *)
+-    let dcPath = get_dcPath uri scheme in
++    let dcPath =
++      match dcPath with
++      | None ->
++         let dcPath = get_dcPath uri scheme in
++         if verbose then
++           printf "vcenter: calculated dcPath as: %s\n" dcPath;
++         dcPath
++      | Some dcPath ->
++         if verbose then
++           printf "vcenter: using --dcpath from the command line: %s\n" dcPath;
++         dcPath in
+ 
+     let port =
+       match uri.uri_port with
+@@ -307,7 +317,7 @@ let map_source_to_uri ?readahead verbose password uri scheme server path =
+ 
+ (* Subclass specialized for handling VMware vCenter over https. *)
+ class input_libvirt_vcenter_https
+-  verbose password libvirt_uri parsed_uri scheme server guest =
++  verbose dcPath password libvirt_uri parsed_uri scheme server guest =
+ object
+   inherit input_libvirt verbose password libvirt_uri guest
+ 
+@@ -347,7 +357,7 @@ object
+       | { p_source_disk = disk; p_source = P_dont_rewrite } -> disk
+       | { p_source_disk = disk; p_source = P_source_file path } ->
+         let qemu_uri = map_source_to_uri ?readahead
+-	  verbose password parsed_uri scheme server path in
++	  verbose dcPath password parsed_uri scheme server path in
+ 
+         (* The libvirt ESX driver doesn't normally specify a format, but
+          * the format of the -flat file is *always* raw, so force it here.
+@@ -368,7 +378,7 @@ object
+       let readahead = readahead_for_copying in
+       let backing_qemu_uri =
+         map_source_to_uri ?readahead
+-          verbose password parsed_uri scheme server orig_path in
++          verbose dcPath password parsed_uri scheme server orig_path in
+ 
+       (* Rebase the qcow2 overlay to adjust the readahead parameter. *)
+       let cmd =
+diff --git a/v2v/input_libvirt_vcenter_https.mli b/v2v/input_libvirt_vcenter_https.mli
+index 800c6ab..d6da89a 100644
+--- a/v2v/input_libvirt_vcenter_https.mli
++++ b/v2v/input_libvirt_vcenter_https.mli
+@@ -18,4 +18,4 @@
+ 
+ (** [-i libvirt] when the source is VMware vCenter *)
+ 
+-val input_libvirt_vcenter_https : bool -> string option -> string option -> Xml.uri -> string -> string -> string -> Types.input
++val input_libvirt_vcenter_https : bool -> string option -> string option -> string option -> Xml.uri -> string -> string -> string -> Types.input
+diff --git a/v2v/virt-v2v.pod b/v2v/virt-v2v.pod
+index eb7ee38..2e257de 100644
+--- a/v2v/virt-v2v.pod
++++ b/v2v/virt-v2v.pod
+@@ -153,6 +153,16 @@ Display help.
+ 
+ See I<--network> below.
+ 
++=item B<--dcpath> Folder/Datacenter
++
++For VMware vCenter, override the C<dcPath=...> parameter used to
++select the datacenter.  Virt-v2v can usually calculate this from the
++C<vpx://> URI, but if it gets it wrong, then you can override it using
++this setting.  Go to your vCenter web folder interface, eg.
++C<https://vcenter.example.com/folder> (I<without> a trailing slash),
++and examine the C<dcPath=> parameter in the URLs that appear on this
++page.
++
+ =item B<--debug-gc>
+ 
+ Debug garbage collection and memory allocation.  This is only useful
+@@ -835,18 +845,11 @@ added to the URI, eg:
+ 
+  vpx://user@server/Folder/Datacenter/esxi
+ 
+-If the deployment uses a cluster before the hostname, then you
+-may need to remove it, ie. change this:
+-
+- vpx://user@server/Folder/Datacenter/Cluster/esxi
+-
+-to this:
+-
+- vpx://user@server/Folder/Datacenter/esxi
+-
+ Virt-v2v needs to calculate the C<dcPath> parameter from the URI, and
+ it does this by removing the final C</esxi> element, so in the above
+-example C<dcPath=Folder/Datacenter>.
++example C<dcPath=Folder/Datacenter>.  As it is not always possible to
++correctly calculate C<dcPath> from the URI, you can override this
++using the I<--dcpath> parameter.
+ 
+ For full details of libvirt URIs, see: L<http://libvirt.org/drvesx.html>
+ 
+-- 
+1.8.3.1
+

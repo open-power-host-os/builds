@@ -1,0 +1,274 @@
+From a71e0ff19b9cbb8942fbeacecd317ba888452b16 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 24 Dec 2014 18:10:37 +0000
+Subject: [PATCH] v2v: Reduce use of polymorphic variants.
+
+Ordinary variants prevent coding errors.
+
+(cherry picked from commit 3a080c3fbffa5846f71528c6fd978be7853b33b8)
+---
+ v2v/convert_linux.ml    |  6 +++---
+ v2v/input_disk.ml       |  2 +-
+ v2v/input_libvirtxml.ml | 20 ++++++++++----------
+ v2v/input_ova.ml        |  8 ++++----
+ v2v/output_libvirt.ml   |  4 ++--
+ v2v/output_qemu.ml      |  6 +++---
+ v2v/types.ml            | 18 ++++++++++--------
+ v2v/types.mli           | 13 ++++++++-----
+ 8 files changed, 41 insertions(+), 36 deletions(-)
+
+diff --git a/v2v/convert_linux.ml b/v2v/convert_linux.ml
+index 67de2b1..718ddaf 100644
+--- a/v2v/convert_linux.ml
++++ b/v2v/convert_linux.ml
+@@ -1269,9 +1269,9 @@ let rec convert ~verbose ~keep_serial_console (g : G.guestfs) inspect source =
+         fun i disk ->
+           let block_prefix_before_conversion =
+             match disk.s_controller with
+-            | Some `IDE -> ide_block_prefix
+-            | Some `SCSI -> "sd"
+-            | Some `Virtio_blk -> "vd"
++            | Some Source_IDE -> ide_block_prefix
++            | Some Source_SCSI -> "sd"
++            | Some Source_virtio_blk -> "vd"
+             | None ->
+               (* This is basically a guess.  It assumes the source used IDE. *)
+               ide_block_prefix in
+diff --git a/v2v/input_disk.ml b/v2v/input_disk.ml
+index 8393786..98b321c 100644
+--- a/v2v/input_disk.ml
++++ b/v2v/input_disk.ml
+@@ -86,7 +86,7 @@ class input_disk verbose input_format disk = object
+       s_vcpu = 1;                         (* 1 vCPU is a safe default *)
+       s_features = [ "acpi"; "apic"; "pae" ];
+       s_display =
+-        Some { s_display_type = `Window; s_keymap = None; s_password = None };
++        Some { s_display_type = Window; s_keymap = None; s_password = None };
+       s_disks = [disk];
+       s_removables = [];
+       s_nics = [network];
+diff --git a/v2v/input_libvirtxml.ml b/v2v/input_libvirtxml.ml
+index d1146f9..8057a00 100644
+--- a/v2v/input_libvirtxml.ml
++++ b/v2v/input_libvirtxml.ml
+@@ -96,10 +96,10 @@ let parse_libvirt_xml ~verbose xml =
+       match xpath_to_string "@type" "" with
+       | "" -> None
+       | "vnc" ->
+-        Some { s_display_type = `VNC;
++        Some { s_display_type = VNC;
+                s_keymap = keymap; s_password = password }
+       | "spice" ->
+-        Some { s_display_type = `Spice;
++        Some { s_display_type = Spice;
+                s_keymap = keymap; s_password = password }
+       | "sdl"|"desktop" as t ->
+         warning ~prog (f_"virt-v2v does not support local displays, so <graphics type='%s'> in the input libvirt XML was ignored") t;
+@@ -138,9 +138,9 @@ let parse_libvirt_xml ~verbose xml =
+         let target_bus = xpath_to_string "target/@bus" "" in
+         match target_bus with
+         | "" -> None
+-        | "ide" -> Some `IDE
+-        | "scsi" -> Some `SCSI
+-        | "virtio" -> Some `Virtio_blk
++        | "ide" -> Some Source_IDE
++        | "scsi" -> Some Source_SCSI
++        | "virtio" -> Some Source_virtio_blk
+         | _ -> None in
+ 
+       let format =
+@@ -202,15 +202,15 @@ let parse_libvirt_xml ~verbose xml =
+         let target_bus = xpath_to_string "target/@bus" "" in
+         match target_bus with
+         | "" -> None
+-        | "ide" -> Some `IDE
+-        | "scsi" -> Some `SCSI
+-        | "virtio" -> Some `Virtio_blk
++        | "ide" -> Some Source_IDE
++        | "scsi" -> Some Source_SCSI
++        | "virtio" -> Some Source_virtio_blk
+         | _ -> None in
+ 
+       let typ =
+         match xpath_to_string "@device" "" with
+-        | "cdrom" -> `CDROM
+-        | "floppy" -> `Floppy
++        | "cdrom" -> CDROM
++        | "floppy" -> Floppy
+         | _ -> assert false (* libxml2 error? *) in
+ 
+       let disk =
+diff --git a/v2v/input_ova.ml b/v2v/input_ova.ml
+index e2a1243..211db43 100644
+--- a/v2v/input_ova.ml
++++ b/v2v/input_ova.ml
+@@ -167,8 +167,8 @@ object
+ 
+       (* 6: iscsi controller, 5: ide *)
+       match controller with
+-      | 6 -> Some `SCSI
+-      | 5 -> Some `IDE
++      | 6 -> Some Source_SCSI
++      | 5 -> Some Source_IDE
+       | 0 ->
+         warning ~prog (f_"ova disk has no parent controller, please report this as a bug supplying the *.ovf file extracted from the ova");
+         None
+@@ -272,8 +272,8 @@ object
+ 
+         let typ =
+           match id with
+-            | 14 -> `Floppy
+-            | 15 | 16 -> `CDROM
++            | 14 -> Floppy
++            | 15 | 16 -> CDROM
+             | _ -> assert false in
+         let disk = {
+           s_removable_type = typ;
+diff --git a/v2v/output_libvirt.ml b/v2v/output_libvirt.ml
+index 7f9a3a0..f4e480a 100644
+--- a/v2v/output_libvirt.ml
++++ b/v2v/output_libvirt.ml
+@@ -164,7 +164,7 @@ let create_libvirt_xml ?pool source targets guestcaps target_features =
+ 
+     List.map (
+       function
+-      | { s_removable_type = `CDROM } ->
++      | { s_removable_type = CDROM } ->
+         let i = !cdrom_index in
+         incr cdrom_index;
+         let name = cdrom_block_prefix ^ drive_name i in
+@@ -173,7 +173,7 @@ let create_libvirt_xml ?pool source targets guestcaps target_features =
+           e "target" [ "dev", name; "bus", cdrom_bus ] []
+         ]
+ 
+-      | { s_removable_type = `Floppy } ->
++      | { s_removable_type = Floppy } ->
+         let i = !fd_index in
+         incr fd_index;
+         let name = "fd" ^ drive_name i in
+diff --git a/v2v/output_qemu.ml b/v2v/output_qemu.ml
+index 9c17121..4b1d69a 100644
+--- a/v2v/output_qemu.ml
++++ b/v2v/output_qemu.ml
+@@ -90,11 +90,11 @@ object
+     | None -> ()
+     | Some display ->
+       (match display.s_display_type with
+-      | `Window ->
++      | Window ->
+         fpf "%s-display gtk" nl
+-      | `VNC ->
++      | VNC ->
+         fpf "%s-display vnc=:0" nl
+-      | `Spice ->
++      | Spice ->
+         fpf "%s-spice port=5900,addr=127.0.0.1" nl
+       );
+       fpf "%s-vga %s" nl
+diff --git a/v2v/types.ml b/v2v/types.ml
+index 28d62fc..97120c2 100644
+--- a/v2v/types.ml
++++ b/v2v/types.ml
+@@ -38,11 +38,12 @@ and source_disk = {
+   s_format : string option;
+   s_controller : s_controller option;
+ }
+-and s_controller = [`IDE | `SCSI | `Virtio_blk]
++and s_controller = Source_IDE | Source_SCSI | Source_virtio_blk
+ and source_removable = {
+-  s_removable_type : [`CDROM|`Floppy];
++  s_removable_type : s_removable_type;
+   s_removable_controller : s_controller option;
+ }
++and s_removable_type = CDROM | Floppy
+ and source_nic = {
+   s_mac : string option;
+   s_vnet : string;
+@@ -51,10 +52,11 @@ and source_nic = {
+ }
+ and vnet_type = Bridge | Network
+ and source_display = {
+-  s_display_type : [`Window|`VNC|`Spice];
++  s_display_type : s_display_type;
+   s_keymap : string option;
+   s_password : string option;
+ }
++and s_display_type = Window | VNC | Spice
+ 
+ let rec string_of_source s =
+   sprintf "    source name: %s
+@@ -94,14 +96,14 @@ and string_of_source_disk { s_qemu_uri = qemu_uri; s_format = format;
+     | Some controller -> " [" ^ string_of_controller controller ^ "]")
+ 
+ and string_of_controller = function
+-  | `IDE -> "ide"
+-  | `SCSI -> "scsi"
+-  | `Virtio_blk -> "virtio"
++  | Source_IDE -> "ide"
++  | Source_SCSI -> "scsi"
++  | Source_virtio_blk -> "virtio"
+ 
+ and string_of_source_removable { s_removable_type = typ;
+                                  s_removable_controller = controller } =
+   sprintf "\t%s%s"
+-    (match typ with `CDROM -> "CD-ROM" | `Floppy -> "Floppy")
++    (match typ with CDROM -> "CD-ROM" | Floppy -> "Floppy")
+     (match controller with
+     | None -> ""
+     | Some controller -> " [" ^ string_of_controller controller ^ "]")
+@@ -117,7 +119,7 @@ and string_of_source_nic { s_mac = mac; s_vnet = vnet; s_vnet_type = typ } =
+ and string_of_source_display { s_display_type = typ;
+                                s_keymap = keymap; s_password = password } =
+   sprintf "%s%s%s"
+-    (match typ with `Window -> "window" | `VNC -> "vnc" | `Spice -> "spice")
++    (match typ with Window -> "window" | VNC -> "vnc" | Spice -> "spice")
+     (match keymap with None -> "" | Some km -> " " ^ km)
+     (match password with None -> "" | Some _ -> " with password")
+ 
+diff --git a/v2v/types.mli b/v2v/types.mli
+index 07eec98..3d65596 100644
+--- a/v2v/types.mli
++++ b/v2v/types.mli
+@@ -42,19 +42,21 @@ and source_disk = {
+ }
+ (** A source disk. *)
+ 
+-and s_controller = [`IDE | `SCSI | `Virtio_blk]
++and s_controller = Source_IDE | Source_SCSI | Source_virtio_blk
+ (** Source disk controller.
+ 
+     For the purposes of this field, we can treat virtio-scsi as
+-    [`SCSI].  However we don't support conversions from virtio in any
++    [SCSI].  However we don't support conversions from virtio in any
+     case so virtio is here only to make it work for testing. *)
+ 
+ and source_removable = {
+-  s_removable_type : [`CDROM|`Floppy];  (** Type.  *)
++  s_removable_type : s_removable_type;  (** Type.  *)
+   s_removable_controller : s_controller option; (** Controller, eg. IDE, SCSI.*)
+ }
+ (** Removable media. *)
+ 
++and s_removable_type = CDROM | Floppy
++
+ and source_nic = {
+   s_mac : string option;                (** MAC address. *)
+   s_vnet : string;                      (** Source network name. *)
+@@ -65,11 +67,12 @@ and source_nic = {
+ and vnet_type = Bridge | Network
+ 
+ and source_display = {
+-  s_display_type : [`Window|`VNC|`Spice]; (** Display type. *)
+-  s_keymap : string option;               (** Guest keymap. *)
++  s_display_type : s_display_type; (** Display type. *)
++  s_keymap : string option;        (** Guest keymap. *)
+   s_password : string option;      (** If required, password to access
+                                        the display. *)
+ }
++and s_display_type = Window | VNC | Spice
+ 
+ val string_of_source : source -> string
+ val string_of_source_disk : source_disk -> string
+-- 
+1.8.3.1
+

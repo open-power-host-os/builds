@@ -1,0 +1,31 @@
+From d80e43e17b37af214aa6e81904afc7b7b9c47247 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 13 Apr 2015 11:46:29 +0100
+Subject: [PATCH] v2v: Document that vCenter >= 5.0 is required (RHBZ#1174200).
+
+vCenter 5.0 was released in 2011.  We have not tested against any
+earlier versions, but it was reported that it does not work with
+vCenter 4.
+
+Thanks: Sokratis
+(cherry picked from commit abf23ece49972111e19147087664e7442d84fdfd)
+---
+ v2v/virt-v2v.pod | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/v2v/virt-v2v.pod b/v2v/virt-v2v.pod
+index 033040e..7de265b 100644
+--- a/v2v/virt-v2v.pod
++++ b/v2v/virt-v2v.pod
+@@ -744,6 +744,8 @@ I<--bridge> option instead.  For example:
+ 
+ Virt-v2v is able to import guests from VMware vCenter Server.
+ 
++vCenter E<ge> 5.0 is required.
++
+ Note that virt-v2v B<cannot> import guests directly from an ESXi
+ hypervisor.
+ 
+-- 
+1.8.3.1
+

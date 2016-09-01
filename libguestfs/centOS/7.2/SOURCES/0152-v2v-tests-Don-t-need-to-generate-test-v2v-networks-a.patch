@@ -1,0 +1,246 @@
+From b5b5ab4965b777e9f4e22739a0ecb1284a66db36 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 20 Apr 2015 21:06:15 +0100
+Subject: [PATCH] v2v: tests: Don't need to generate
+ test-v2v-networks-and-bridges.xml.
+
+virt-v2v understands relative paths in libvirt XML (even though they
+are not legal and libvirt itself wouldn't generate it).  We don't need
+to generate this file.
+
+(cherry picked from commit 3834a1064f866eef4c34440e6dd5023cc47ff7e1)
+---
+ configure.ac                             |  3 +-
+ v2v/Makefile.am                          |  7 +--
+ v2v/test-v2v-networks-and-bridges.xml    | 85 +++++++++++++++++++++++++++++++
+ v2v/test-v2v-networks-and-bridges.xml.in | 87 --------------------------------
+ 4 files changed, 87 insertions(+), 95 deletions(-)
+ create mode 100644 v2v/test-v2v-networks-and-bridges.xml
+ delete mode 100644 v2v/test-v2v-networks-and-bridges.xml.in
+
+diff --git a/configure.ac b/configure.ac
+index 74c72a1..98ea3eb 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1748,8 +1748,7 @@ AC_CONFIG_FILES([Makefile
+                  tests/xfs/Makefile
+                  tests/xml/Makefile
+                  tools/Makefile
+-                 v2v/Makefile
+-                 v2v/test-v2v-networks-and-bridges.xml])
++                 v2v/Makefile])
+ AC_OUTPUT
+ 
+ dnl Produce summary.
+diff --git a/v2v/Makefile.am b/v2v/Makefile.am
+index 731e51b..ab26baf 100644
+--- a/v2v/Makefile.am
++++ b/v2v/Makefile.am
+@@ -30,7 +30,7 @@ EXTRA_DIST = \
+ 	test-v2v-i-ova-two-disks.expected \
+ 	test-v2v-i-ova-two-disks.ovf \
+ 	test-v2v-networks-and-bridges-expected.xml \
+-	test-v2v-networks-and-bridges.xml.in \
++	test-v2v-networks-and-bridges.xml \
+ 	virt-v2v.pod
+ 
+ CLEANFILES = *~ *.cmi *.cmo *.cmx *.cmxa *.o virt-v2v
+@@ -247,11 +247,6 @@ TESTS += \
+ 	test-v2v-windows-conversion.sh
+ endif ENABLE_APPLIANCE
+ 
+-# This forces the file to be updated before running the tests, in case
+-# the .xml.in file has been changed.  Be nice if automake just did the
+-# right thing here.
+-check_DATA = test-v2v-networks-and-bridges.xml
+-
+ check-valgrind:
+ 	$(MAKE) VG="$(top_builddir)/run @VG@" check
+ 
+diff --git a/v2v/test-v2v-networks-and-bridges.xml b/v2v/test-v2v-networks-and-bridges.xml
+new file mode 100644
+index 0000000..33e244a
+--- /dev/null
++++ b/v2v/test-v2v-networks-and-bridges.xml
+@@ -0,0 +1,85 @@
++<!--
++libguestfs virt-v2v tool
++Copyright (C) 2009-2014 Red Hat Inc.
++
++This program is free software; you can redistribute it and/or modify
++it under the terms of the GNU General Public License as published by
++the Free Software Foundation; either version 2 of the License, or
++(at your option) any later version.
++
++This program is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++You should have received a copy of the GNU General Public License
++along with this program; if not, write to the Free Software
++Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++-->
++<node>
++  <domain type='test'>
++    <name>windows</name>
++    <memory>1048576</memory>
++    <os>
++      <type>hvm</type>
++      <boot dev='hd'/>
++    </os>
++    <devices>
++      <disk type='file' device='disk'>
++        <driver name='qemu' type='raw'/>
++        <source file='../tests/guests/windows.img'/>
++        <target dev='vda' bus='virtio'/>
++      </disk>
++
++      <!-- various different networks and bridges which should
++           be renamed by the test -->
++
++      <!-- standard ESX bridge -->
++      <interface type='bridge'>
++        <mac address='00:00:00:00:00:00'/>
++        <source bridge='VM Network'/>
++        <model type='e1000'/>
++      </interface>
++
++      <!-- another bridge to be remapped -->
++      <interface type='bridge'>
++        <mac address='52:54:00:01:02:03'/>
++        <source bridge='bob'/>
++        <model type='e1000'/>
++      </interface>
++
++      <!-- typical libvirt network -->
++      <interface type='network'>
++        <mac address='52:54:00:01:02:04'/>
++        <source network='default'/>
++        <model type='virtio'/>
++      </interface>
++
++      <!-- some more random networks to map -->
++      <interface type='network'>
++        <mac address='52:54:00:01:02:05'/>
++        <source network='john'/>
++        <model type='virtio'/>
++      </interface>
++
++      <interface type='network'>
++        <source network='paul'/>
++        <model type='virtio'/>
++        <mac address='52:54:00:01:02:06'/>
++      </interface>
++
++      <interface type='network'>
++        <model type='rtl8139'/>
++        <source network='george'/>
++        <mac address='52:54:00:01:02:07'/>
++      </interface>
++
++      <interface type='network'>
++        <mac address='52:54:00:01:02:08'/>
++        <model type='virtio'/>
++        <source network='ringo'/>
++      </interface>
++
++    </devices>
++  </domain>
++</node>
+diff --git a/v2v/test-v2v-networks-and-bridges.xml.in b/v2v/test-v2v-networks-and-bridges.xml.in
+deleted file mode 100644
+index 2142c08..0000000
+--- a/v2v/test-v2v-networks-and-bridges.xml.in
++++ /dev/null
+@@ -1,87 +0,0 @@
+-<!--
+-libguestfs virt-v2v tool
+-Copyright (C) 2009-2014 Red Hat Inc.
+-
+-This program is free software; you can redistribute it and/or modify
+-it under the terms of the GNU General Public License as published by
+-the Free Software Foundation; either version 2 of the License, or
+-(at your option) any later version.
+-
+-This program is distributed in the hope that it will be useful,
+-but WITHOUT ANY WARRANTY; without even the implied warranty of
+-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-GNU General Public License for more details.
+-
+-You should have received a copy of the GNU General Public License
+-along with this program; if not, write to the Free Software
+-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+-
+-@configure_input@
+--->
+-<node>
+-  <domain type='test'>
+-    <name>windows</name>
+-    <memory>1048576</memory>
+-    <os>
+-      <type>hvm</type>
+-      <boot dev='hd'/>
+-    </os>
+-    <devices>
+-      <disk type='file' device='disk'>
+-        <driver name='qemu' type='raw'/>
+-        <source file='@abs_top_builddir@/tests/guests/windows.img'/>
+-        <target dev='vda' bus='virtio'/>
+-      </disk>
+-
+-      <!-- various different networks and bridges which should
+-           be renamed by the test -->
+-
+-      <!-- standard ESX bridge -->
+-      <interface type='bridge'>
+-        <mac address='00:00:00:00:00:00'/>
+-        <source bridge='VM Network'/>
+-        <model type='e1000'/>
+-      </interface>
+-
+-      <!-- another bridge to be remapped -->
+-      <interface type='bridge'>
+-        <mac address='52:54:00:01:02:03'/>
+-        <source bridge='bob'/>
+-        <model type='e1000'/>
+-      </interface>
+-
+-      <!-- typical libvirt network -->
+-      <interface type='network'>
+-        <mac address='52:54:00:01:02:04'/>
+-        <source network='default'/>
+-        <model type='virtio'/>
+-      </interface>
+-
+-      <!-- some more random networks to map -->
+-      <interface type='network'>
+-        <mac address='52:54:00:01:02:05'/>
+-        <source network='john'/>
+-        <model type='virtio'/>
+-      </interface>
+-
+-      <interface type='network'>
+-        <source network='paul'/>
+-        <model type='virtio'/>
+-        <mac address='52:54:00:01:02:06'/>
+-      </interface>
+-
+-      <interface type='network'>
+-        <model type='rtl8139'/>
+-        <source network='george'/>
+-        <mac address='52:54:00:01:02:07'/>
+-      </interface>
+-
+-      <interface type='network'>
+-        <mac address='52:54:00:01:02:08'/>
+-        <model type='virtio'/>
+-        <source network='ringo'/>
+-      </interface>
+-
+-    </devices>
+-  </domain>
+-</node>
+-- 
+1.8.3.1
+

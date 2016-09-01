@@ -1,0 +1,145 @@
+From 1dc7e819286898b621dfb47b4ec2b9872b7df0db Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 10 Jun 2015 14:06:03 +0100
+Subject: [PATCH] p2v: Add proper test for command line parsing.
+
+This also adds a couple of deliberately undocumented (and unsupported)
+command line parameters to make testing simpler:
+
+p2v.skip_test_connection  - don't try to test the connection
+p2v.dump_config_and_exit  - after parsing command line, print it and exit
+
+This updates commit 716244c33718c866edce9e7ee8f21ee612f53337.
+
+(cherry picked from commit 54fe6d369d18680e53d3f60be3dbdb42356bd94f)
+---
+ p2v/Makefile.am              |  5 +++-
+ p2v/kernel.c                 | 20 +++++++++++----
+ p2v/test-virt-p2v-cmdline.sh | 59 ++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 78 insertions(+), 6 deletions(-)
+ create mode 100755 p2v/test-virt-p2v-cmdline.sh
+
+diff --git a/p2v/Makefile.am b/p2v/Makefile.am
+index cafe597..1cc32d7 100644
+--- a/p2v/Makefile.am
++++ b/p2v/Makefile.am
+@@ -140,8 +140,11 @@ stamp-virt-p2v-make-kickstart.pod: virt-p2v-make-kickstart.pod
+ 
+ TESTS_ENVIRONMENT = $(top_builddir)/run --test
+ 
+-if ENABLE_APPLIANCE
+ TESTS = \
++	test-virt-p2v-cmdline.sh
++
++if ENABLE_APPLIANCE
++TESTS += \
+ 	test-virt-p2v.sh
+ endif ENABLE_APPLIANCE
+ 
+diff --git a/p2v/kernel.c b/p2v/kernel.c
+index 397d19d..fd67921 100644
+--- a/p2v/kernel.c
++++ b/p2v/kernel.c
+@@ -79,12 +79,15 @@ kernel_configuration (struct config *config, char **cmdline, int cmdline_source)
+   /* We should now be able to connect and interrogate virt-v2v
+    * on the conversion server.
+    */
+-  if (test_connection (config) == -1) {
+-    const char *err = get_ssh_error ();
++  p = get_cmdline_key (cmdline, "p2v.skip_test_connection");
++  if (!p) {
++    if (test_connection (config) == -1) {
++      const char *err = get_ssh_error ();
+ 
+-    fprintf (stderr, "%s: error opening control connection to %s:%d: %s\n",
+-             guestfs_int_program_name, config->server, config->port, err);
+-    exit (EXIT_FAILURE);
++      fprintf (stderr, "%s: error opening control connection to %s:%d: %s\n",
++               guestfs_int_program_name, config->server, config->port, err);
++      exit (EXIT_FAILURE);
++    }
+   }
+ 
+   p = get_cmdline_key (cmdline, "p2v.name");
+@@ -196,6 +199,13 @@ kernel_configuration (struct config *config, char **cmdline, int cmdline_source)
+     config->output_storage = strdup (p);
+   }
+ 
++  /* Undocumented command line tool used for testing command line parsing. */
++  p = get_cmdline_key (cmdline, "p2v.dump_config_and_exit");
++  if (p) {
++    print_config (config, stdout);
++    exit (EXIT_SUCCESS);
++  }
++
+   /* Perform the conversion in text mode. */
+   if (start_conversion (config, notify_ui_callback) == -1) {
+     const char *err = get_conversion_error ();
+diff --git a/p2v/test-virt-p2v-cmdline.sh b/p2v/test-virt-p2v-cmdline.sh
+new file mode 100755
+index 0000000..bdd51d3
+--- /dev/null
++++ b/p2v/test-virt-p2v-cmdline.sh
+@@ -0,0 +1,59 @@
++#!/bin/bash -
++# libguestfs virt-p2v test script
++# Copyright (C) 2015 Red Hat Inc.
++#
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 2 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++
++# Test virt-p2v command line parsing in non-GUI mode.
++
++unset CDPATH
++export LANG=C
++set -e
++
++if [ -n "$SKIP_TEST_VIRT_P2V_CMDLINE_SH" ]; then
++    echo "$0: test skipped because environment variable is set"
++    exit 77
++fi
++
++out=test-virt-p2v-cmdline.out
++rm -f $out
++
++# The Linux kernel command line.
++virt-p2v --cmdline='p2v.pre="echo 1 2 3" p2v.server=localhost p2v.port=123 p2v.username=user p2v.password=secret p2v.skip_test_connection p2v.name=test p2v.vcpus=4 p2v.memory=1G p2v.disks=sda,sdb,sdc p2v.removable=sdd p2v.interfaces=eth0,eth1 p2v.o=local p2v.oa=sparse p2v.oc=qemu:///session p2v.of=raw p2v.os=/var/tmp p2v.network=em1:wired,other p2v.dump_config_and_exit' > $out
++
++# For debugging purposes.
++cat $out
++
++# Check the output contains what we expect.
++grep "^echo 1 2 3" $out
++grep "^1 2 3" $out
++grep "^conversion server.*localhost" $out
++grep "^port.*123" $out
++grep "^username.*user" $out
++grep "^sudo.*false" $out
++grep "^guest name.*test" $out
++grep "^vcpus.*4" $out
++grep "^memory.*"$((1024*1024*1024)) $out
++grep "^disks.*sda sdb sdc" $out
++grep "^removable.*sdd" $out
++grep "^interfaces.*eth0 eth1" $out
++grep "^network map.*em1:wired other" $out
++grep "^output.*local" $out
++grep "^output alloc.*sparse" $out
++grep "^output conn.*qemu:///session" $out
++grep "^output format.*raw" $out
++grep "^output storage.*/var/tmp" $out
++
++rm $out
+-- 
+1.8.3.1
+

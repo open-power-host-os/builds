@@ -1,0 +1,134 @@
+From 2837977b1ff0955a61c93593620f682a2473df0c Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Sat, 18 Oct 2014 18:41:43 +0100
+Subject: [PATCH] v2v: -i ova: Allow directories and ZIP files to be used as
+ input (RHBZ#1152998).
+
+OVA is not a particularly well-specified format.  The specification
+allows a directory to be an OVA, so enable that.  The spec doesn't
+mention that ZIP can be used in place of tar, but since we have seen
+these in the wild, allow that too.
+
+(cherry picked from commit 60405e5aa1b89ce4ad8b27efb992e82e38d6dbeb)
+---
+ README           |  2 ++
+ configure.ac     |  7 +++++++
+ v2v/input_ova.ml | 44 ++++++++++++++++++++++++++++++++++----------
+ 3 files changed, 43 insertions(+), 10 deletions(-)
+
+diff --git a/README b/README
+index b88a67d..30e241a 100644
+--- a/README
++++ b/README
+@@ -179,6 +179,8 @@ The full requirements are described below.
+ +--------------+-------------+---+-----------------------------------------+
+ | gtk2         |             | O | Used by virt-p2v user interface.        |
+ +--------------+-------------+---+-----------------------------------------+
++| zip, unzip   |             | O | Used by virt-v2v for OVA files.         |
+++--------------+-------------+---+-----------------------------------------+
+ | python-evtx  |             | O | Used by virt-log to parse Windows       |
+ |              |             |   | Event Log files.                        |
+ +--------------+-------------+---+-----------------------------------------+
+diff --git a/configure.ac b/configure.ac
+index e11739d..74c72a1 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -720,6 +720,13 @@ if test "x$YACC" = "xyacc"; then
+     AC_MSG_FAILURE([GNU 'bison' is required (yacc won't work).])
+ fi
+ 
++dnl zip/unzip, used by virt-v2v
++AC_PATH_PROGS([ZIP],[zip],[no])
++AC_DEFINE_UNQUOTED([ZIP],["$ZIP"],[Name of zip program.])
++AM_CONDITIONAL([HAVE_ZIP],[test "x$ZIP" != "xno"])
++AC_PATH_PROGS([UNZIP],[unzip],[no])
++AC_DEFINE_UNQUOTED([UNZIP],["$UNZIP"],[Name of unzip program.])
++
+ dnl Check for QEMU for running binaries on this $host_cpu, fall
+ dnl back to basic 'qemu'.  Allow the user to override it.
+ qemu_system="$(
+diff --git a/v2v/input_ova.ml b/v2v/input_ova.ml
+index 7088e32..4ad38a0 100644
+--- a/v2v/input_ova.ml
++++ b/v2v/input_ova.ml
+@@ -36,13 +36,37 @@ object
+   method as_options = "-i ova " ^ ova
+ 
+   method source () =
+-    (* Extract ova (tar) file. *)
+-    let cmd = sprintf "tar -xf %s -C %s" (quote ova) (quote tmpdir) in
+-    if verbose then printf "%s\n%!" cmd;
+-    if Sys.command cmd <> 0 then
+-      error (f_"error unpacking %s, see earlier error messages") ova;
++    (* Extract ova file. *)
++    let exploded =
++      (* The spec allows a directory to be specified as an ova.  This
++       * is also pretty convenient.
++       *)
++      if is_directory ova then ova
++      else (
++        match detect_file_type ova with
++        | `Tar ->
++          (* Normal ovas are tar file (not compressed). *)
++          let cmd = sprintf "tar -xf %s -C %s" (quote ova) (quote tmpdir) in
++          if verbose then printf "%s\n%!" cmd;
++          if Sys.command cmd <> 0 then
++            error (f_"error unpacking %s, see earlier error messages") ova;
++          tmpdir
++        | `Zip ->
++          (* However, although not permitted by the spec, people ship
++           * zip files as ova too.
++           *)
++          let cmd = sprintf "unzip%s -j -d %s %s"
++            (if verbose then "" else " -q")
++            (quote tmpdir) (quote ova) in
++          if verbose then printf "%s\n%!" cmd;
++          if Sys.command cmd <> 0 then
++            error (f_"error unpacking %s, see earlier error messages") ova;
++          tmpdir
++        | `GZip | `XZ | `Unknown ->
++          error (f_"%s: unsupported file format") ova
++      ) in
+ 
+-    let files = Sys.readdir tmpdir in
++    let files = Sys.readdir exploded in
+     let ovf = ref "" in
+     (* Search for the ovf file. *)
+     Array.iter (
+@@ -58,13 +82,13 @@ object
+     Array.iter (
+       fun mf ->
+         if Filename.check_suffix mf ".mf" then (
+-          let chan = open_in (tmpdir // mf) in
++          let chan = open_in (exploded // mf) in
+           let rec loop () =
+             let line = input_line chan in
+             if Str.string_match rex line 0 then (
+               let disk = Str.matched_group 1 line in
+               let expected = Str.matched_group 2 line in
+-              let cmd = sprintf "sha1sum %s" (quote (tmpdir // disk)) in
++              let cmd = sprintf "sha1sum %s" (quote (exploded // disk)) in
+               let out = external_command ~prog cmd in
+               match out with
+               | [] ->
+@@ -86,7 +110,7 @@ object
+     ) files;
+ 
+     (* Parse the ovf file. *)
+-    let xml = read_whole_file (tmpdir // ovf) in
++    let xml = read_whole_file (exploded // ovf) in
+     let doc = Xml.parse_memory xml in
+ 
+     (* Handle namespaces. *)
+@@ -164,7 +188,7 @@ object
+           let expr = sprintf "/ovf:Envelope/ovf:References/ovf:File[@ovf:id='%s']/@ovf:href" file_ref in
+           let file_name = xpath_to_string expr "" in
+           let disk = {
+-            s_qemu_uri= tmpdir // file_name;
++            s_qemu_uri= exploded // file_name;
+             s_format = Some "vmdk";
+             s_target_dev = Some target_dev;
+           } in
+-- 
+1.8.3.1
+

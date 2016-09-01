@@ -1,0 +1,30 @@
+From 99184a4b5e5ca7cabf10b410cfb5e1604a4e8cd3 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 16 Apr 2015 09:09:03 +0100
+Subject: [PATCH] filearch: Fix memory leak.
+
+Found by 'make check-valgrind'.
+
+This fixes commit 20acc1f124a3f3af365c27b7654bead5beb1ef4c.
+
+(cherry picked from commit 49867a22babfed9d274294aabb1f93941793a7de)
+---
+ src/filearch.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/filearch.c b/src/filearch.c
+index 40e2225..18f5918 100644
+--- a/src/filearch.c
++++ b/src/filearch.c
+@@ -143,7 +143,7 @@ magic_for_file (guestfs_h *g, const char *filename, bool *loading_ok,
+   int flags;
+   CLEANUP_MAGIC_T_FREE magic_t m = NULL;
+   const char *line;
+-  char *elf_arch;
++  CLEANUP_FREE char *elf_arch = NULL;
+ 
+   flags = g->verbose ? MAGIC_DEBUG : 0;
+   flags |= MAGIC_ERROR | MAGIC_RAW;
+-- 
+1.8.3.1
+

@@ -1,0 +1,144 @@
+From 3a937f3fac910fa7109f7edd0608388f52bec95e Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Fri, 9 Oct 2015 12:22:52 +0100
+Subject: [PATCH] v2v: Use libvirt-supplied <vmware:datacenterpath> if
+ available.
+
+In libvirt >= 1.2.20, the VMware libvirt driver supplies the correct
+dcPath to use via <vmware:datacenterpath> in the libvirt XML.  If
+libvirt passes us this element, use it.
+
+This code still allows the user to override dcPath using the --dcPath
+option on the command line, but that's mainly for safety so we can fix
+any problems in virt-v2v or libvirt in the field.  As we get more
+confident in libvirt and as libvirt 1.2.20 is more widely adopted, we
+will be able to deprecate this parameter entirely.
+
+Thanks: Matthias Bolte for adding the <vmware:datacenterpath> element
+to libvirt in
+https://libvirt.org/git/?p=libvirt.git;a=commit;h=636a99058758a0447482f3baad94de8de3ab1151
+
+(cherry picked from commit ffea9f97926efc45c894a113b65b2ff467d91b04)
+---
+ v2v/input_libvirt_vcenter_https.ml | 52 +++++++++++++++++++++++++-------------
+ v2v/virt-v2v.pod                   |  9 +++----
+ 2 files changed, 38 insertions(+), 23 deletions(-)
+
+diff --git a/v2v/input_libvirt_vcenter_https.ml b/v2v/input_libvirt_vcenter_https.ml
+index 684a7e4..25a8ee9 100644
+--- a/v2v/input_libvirt_vcenter_https.ml
++++ b/v2v/input_libvirt_vcenter_https.ml
+@@ -192,9 +192,7 @@ let get_dcPath uri scheme =
+        * However if there is a cluster involved then the URI may be
+        * /Folder/Datacenter/Cluster/esxi but dcPath=Folder/Datacenter/Cluster
+        * won't work.  In this case the user has to adjust the path to
+-       * remove the Cluster name (which still works in libvirt).  There
+-       * should be a way to ask the libvirt vpx driver for the correct
+-       * path, but there isn't. XXX  See also RHBZ#1256823.
++       * remove the Cluster name (which still works in libvirt).
+        *)
+       (* Collapse multiple slashes to single slash. *)
+       let path = Str.global_replace multiple_slash "/" path in
+@@ -242,19 +240,6 @@ let map_source_to_uri ?readahead verbose dcPath password uri scheme server path
+     let datastore = Str.matched_group 1 path
+     and path = Str.matched_group 2 path in
+ 
+-    (* Get the dcPath. *)
+-    let dcPath =
+-      match dcPath with
+-      | None ->
+-         let dcPath = get_dcPath uri scheme in
+-         if verbose then
+-           printf "vcenter: calculated dcPath as: %s\n" dcPath;
+-         dcPath
+-      | Some dcPath ->
+-         if verbose then
+-           printf "vcenter: using --dcpath from the command line: %s\n" dcPath;
+-         dcPath in
+-
+     let port =
+       match uri.uri_port with
+       | 443 -> ""
+@@ -317,11 +302,12 @@ let map_source_to_uri ?readahead verbose dcPath password uri scheme server path
+ 
+ (* Subclass specialized for handling VMware vCenter over https. *)
+ class input_libvirt_vcenter_https
+-  verbose dcPath password libvirt_uri parsed_uri scheme server guest =
++  verbose cmdline_dcPath password libvirt_uri parsed_uri scheme server guest =
+ object
+   inherit input_libvirt verbose password libvirt_uri guest
+ 
+   val saved_source_paths = Hashtbl.create 13
++  val mutable dcPath = ""
+ 
+   method source () =
+     if verbose then
+@@ -336,6 +322,38 @@ object
+     let xml = Domainxml.dumpxml ?password ?conn:libvirt_uri guest in
+     let source, disks = parse_libvirt_xml ?conn:libvirt_uri ~verbose xml in
+ 
++    (* Find the <vmware:datacenterpath> element from the XML, if it
++     * exists.  This was added in libvirt >= 1.2.20.
++     *)
++    let xml_dcPath =
++      let doc = Xml.parse_memory xml in
++      let xpathctx = Xml.xpath_new_context doc in
++      Xml.xpath_register_ns xpathctx
++        "vmware" "http://libvirt.org/schemas/domain/vmware/1.0";
++      let xpath_string = xpath_string xpathctx in
++      xpath_string "/domain/vmware:datacenterpath" in
++
++    (* Calculate the dcPath we're going to use. *)
++    dcPath <- (
++      match cmdline_dcPath, xml_dcPath with
++      (* Command line --dcpath parameter overrides everything, allowing
++       * users to correct any mistakes in v2v or libvirt.
++       *)
++      | Some p, (None|Some _) ->
++         if verbose then
++           printf "vcenter: using --dcpath from the command line: %s\n" p;
++         p
++      | None, Some p ->
++         if verbose then
++           printf "vcenter: using <vmware:datacenterpath> from libvirt: %s\n" p;
++         p
++      | None, None ->
++         let p = get_dcPath parsed_uri scheme in
++         if verbose then
++           printf "vcenter: guessed dcPath from URI: %s\n" p;
++         p
++    );
++
+     (* Save the original source paths, so that we can remap them again
+      * in [#adjust_overlay_parameters].
+      *)
+diff --git a/v2v/virt-v2v.pod b/v2v/virt-v2v.pod
+index 2e257de..b8caebc 100644
+--- a/v2v/virt-v2v.pod
++++ b/v2v/virt-v2v.pod
+@@ -155,6 +155,9 @@ See I<--network> below.
+ 
+ =item B<--dcpath> Folder/Datacenter
+ 
++B<NB:> You don't need to use this parameter if you have
++S<libvirt E<ge> 1.2.17-13.el7_2.4>.
++
+ For VMware vCenter, override the C<dcPath=...> parameter used to
+ select the datacenter.  Virt-v2v can usually calculate this from the
+ C<vpx://> URI, but if it gets it wrong, then you can override it using
+@@ -845,12 +848,6 @@ added to the URI, eg:
+ 
+  vpx://user@server/Folder/Datacenter/esxi
+ 
+-Virt-v2v needs to calculate the C<dcPath> parameter from the URI, and
+-it does this by removing the final C</esxi> element, so in the above
+-example C<dcPath=Folder/Datacenter>.  As it is not always possible to
+-correctly calculate C<dcPath> from the URI, you can override this
+-using the I<--dcpath> parameter.
+-
+ For full details of libvirt URIs, see: L<http://libvirt.org/drvesx.html>
+ 
+ Typical errors from libvirt / virsh when the URI is wrong include:
+-- 
+1.8.3.1
+

@@ -1,0 +1,27 @@
+From 9b26f208ea3baa08511a5b79d3a4cbd666a806ea Mon Sep 17 00:00:00 2001
+From: Hu Tao <hutao@cn.fujitsu.com>
+Date: Wed, 26 Nov 2014 18:10:07 +0800
+Subject: [PATCH] typo fix: commmand -> command
+
+Signed-off-by: Hu Tao <hutao@cn.fujitsu.com>
+(cherry picked from commit dc1f15aa3e1e9be57334b36c95600a3c3e0c2c62)
+---
+ daemon/guestfsd.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/daemon/guestfsd.c b/daemon/guestfsd.c
+index 3616f3a..181754d 100644
+--- a/daemon/guestfsd.c
++++ b/daemon/guestfsd.c
+@@ -220,7 +220,7 @@ main (int argc, char *argv[])
+ 
+   if (verbose) {
+     if (cmdline)
+-      printf ("linux commmand line: %s\n", cmdline);
++      printf ("linux command line: %s\n", cmdline);
+     else
+       printf ("could not read linux command line\n");
+   }
+-- 
+1.8.3.1
+

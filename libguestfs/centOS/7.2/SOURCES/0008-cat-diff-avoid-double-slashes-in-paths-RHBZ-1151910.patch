@@ -1,0 +1,42 @@
+From 970ac8e8d3b4add1c31086f211b8796365287bbc Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Mon, 13 Oct 2014 16:49:59 +0200
+Subject: [PATCH] cat, diff: avoid double slashes in paths (RHBZ#1151910).
+
+In full_path, skip the trailing slash in the base directory when
+different than "/", as the slash will eventually be added when building
+the resulting path.
+
+(cherry picked from commit 87941d183f4a96b4d936c2e94a79a60288f0dc74)
+---
+ cat/visit.c | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/cat/visit.c b/cat/visit.c
+index 963beb8..49b779e 100644
+--- a/cat/visit.c
++++ b/cat/visit.c
+@@ -138,13 +138,18 @@ full_path (const char *dir, const char *name)
+ {
+   int r;
+   char *path;
++  int len;
++
++  len = strlen (dir);
++  if (len > 0 && dir[len - 1] == '/')
++    --len;
+ 
+   if (STREQ (dir, "/"))
+     r = asprintf (&path, "/%s", name ? name : "");
+   else if (name)
+-    r = asprintf (&path, "%s/%s", dir, name);
++    r = asprintf (&path, "%.*s/%s", len, dir, name);
+   else
+-    r = asprintf (&path, "%s", dir);
++    r = asprintf (&path, "%.*s", len, dir);
+ 
+   if (r == -1) {
+     perror ("asprintf");
+-- 
+1.8.3.1
+

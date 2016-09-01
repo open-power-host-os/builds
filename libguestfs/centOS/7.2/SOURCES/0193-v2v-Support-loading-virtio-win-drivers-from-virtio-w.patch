@@ -1,0 +1,438 @@
+From e2a2ea5637b1689c904fe45838d3d58d556b54ea Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 22 Jun 2015 15:13:36 +0100
+Subject: [PATCH] v2v: Support loading virtio-win drivers from virtio-win.iso
+ (RHBZ#1234351).
+
+This makes several changes to the handling of virtio-win drivers:
+
+The VIRTIO_WIN_DIR environment variable has been renamed
+VIRTIO_WIN (but you can still use the old name).
+
+You can point the VIRTIO_WIN either at a RHEL virtio-win directory
+(ie. /usr/share/virtio-win), OR at a loopback-mounted virtio-win ISO,
+OR at the virtio-win.iso file itself.  In the latter case, libguestfs
+is used to open the ISO file and read drivers from it.
+
+The code is more flexible about the pathnames of drivers, because the
+paths in the ISO are completely different from the paths in RHEL
+/usr/share/virtio-win.
+
+(cherry picked from commit 47b5f245bec908f803f0a89c3b1e3166cfe33aad)
+
+Various fixes to make the code compile on RHEL 7.2.
+---
+ v2v/convert_windows.ml | 167 ++++++++++++++++++++++---------------------------
+ v2v/utils.ml           | 154 +++++++++++++++++++++++++++++++++++++++++++++
+ v2v/v2v.ml             |   8 +++
+ v2v/virt-v2v.pod       |   9 ++-
+ 4 files changed, 244 insertions(+), 94 deletions(-)
+
+diff --git a/v2v/convert_windows.ml b/v2v/convert_windows.ml
+index 1e77369..c11e838 100644
+--- a/v2v/convert_windows.ml
++++ b/v2v/convert_windows.ml
+@@ -47,9 +47,12 @@ let convert ~verbose ~keep_serial_console (g : G.guestfs) inspect source =
+     try Sys.getenv "VIRT_TOOLS_DATA_DIR"
+     with Not_found -> Config.datadir // "virt-tools" in
+ 
+-  let virtio_win_dir =
+-    try Sys.getenv "VIRTIO_WIN_DIR"
+-    with Not_found -> Config.datadir // "virtio-win" in
++  let virtio_win =
++    try Sys.getenv "VIRTIO_WIN"
++    with Not_found ->
++      try Sys.getenv "VIRTIO_WIN_DIR" (* old name for VIRTIO_WIN *)
++      with Not_found ->
++        Config.datadir // "virtio-win" in
+ 
+   (* Check if RHEV-APT exists.  This is optional. *)
+   let rhev_apt_exe = virt_tools_data_dir // "rhev-apt.exe" in
+@@ -231,101 +234,83 @@ echo uninstalling Xen PV driver
+     let driverdir = sprintf "%s/Drivers/VirtIO" systemroot in
+     g#mkdir_p driverdir;
+ 
+-    (* See if the drivers for this guest are available in virtio_win_dir. *)
+-    let path =
+-      match inspect.i_arch,
+-      inspect.i_major_version, inspect.i_minor_version,
+-      inspect.i_product_variant with
+-      | "i386", 5, 1, _ ->
+-        Some (virtio_win_dir // "drivers/i386/WinXP")
+-      | "i386", 5, 2, _ ->
+-        Some (virtio_win_dir // "drivers/i386/Win2003")
+-      | "i386", 6, 0, _ ->
+-        Some (virtio_win_dir // "drivers/i386/Win2008")
+-      | "i386", 6, 1, _ ->
+-        Some (virtio_win_dir // "drivers/i386/Win7")
+-      | "i386", 6, 2, _ ->
+-        Some (virtio_win_dir // "drivers/i386/Win8")
+-      | "i386", 6, 3, _ ->
+-        Some (virtio_win_dir // "drivers/i386/Win8.1")
++    (* Load the list of drivers available. *)
++    let drivers = find_virtio_win_drivers ~verbose virtio_win in
+ 
+-      | "x86_64", 5, 2, _ ->
+-        Some (virtio_win_dir // "drivers/amd64/Win2003")
+-      | "x86_64", 6, 0, _ ->
+-        Some (virtio_win_dir // "drivers/amd64/Win2008")
+-      | "x86_64", 6, 1, "Client" ->
+-        Some (virtio_win_dir // "drivers/amd64/Win7")
+-      | "x86_64", 6, 1, "Server" ->
+-        Some (virtio_win_dir // "drivers/amd64/Win2008R2")
+-      | "x86_64", 6, 2, "Client" ->
+-        Some (virtio_win_dir // "drivers/amd64/Win8")
+-      | "x86_64", 6, 2, "Server" ->
+-        Some (virtio_win_dir // "drivers/amd64/Win2012")
+-      | "x86_64", 6, 3, "Client" ->
+-        Some (virtio_win_dir // "drivers/amd64/Win8.1")
+-      | "x86_64", 6, 3, "Server" ->
+-        Some (virtio_win_dir // "drivers/amd64/Win2012R2")
++    (* Filter out only drivers matching the current guest. *)
++    let drivers =
++      List.filter (
++        fun { vwd_os_arch = arch;
++              vwd_os_major = os_major; vwd_os_minor = os_minor;
++              vwd_os_variant = os_variant } ->
++        arch = inspect.i_arch &&
++        os_major = inspect.i_major_version &&
++        os_minor = inspect.i_minor_version &&
++        (match os_variant with
++         | Vwd_client -> inspect.i_product_variant = "Client"
++         | Vwd_server -> inspect.i_product_variant = "Server"
++         | Vwd_any_variant -> true)
++      ) drivers in
+ 
+-      | _ ->
+-        None in
++    if verbose then (
++      printf "virtio-win driver files matching this guest:\n";
++      List.iter print_virtio_win_driver_file drivers;
++      flush stdout
++    );
+ 
+-    let path =
+-      match path with
+-      | None -> None
+-      | Some path ->
+-        if is_directory path then Some path else None in
++    match drivers with
++    | [] ->
++       warning ~prog (f_"there are no virtio drivers available for this version of Windows (%d.%d %s %s).  virt-v2v looks for drivers in %s\n\nThe guest will be configured to use slower emulated devices.")
++               inspect.i_major_version inspect.i_minor_version
++               inspect.i_arch inspect.i_product_variant
++               virtio_win;
++       ( IDE, RTL8139 )
+ 
+-    match path with
+-    | None ->
+-      warning ~prog (f_"there are no virtio drivers available for this version of Windows (%d.%d %s %s).  virt-v2v looks for drivers in %s\n\nThe guest will be configured to use slower emulated devices.")
+-        inspect.i_major_version inspect.i_minor_version
+-        inspect.i_arch inspect.i_product_variant
+-        virtio_win_dir;
+-      ( IDE, RTL8139 )
++    | drivers ->
++       (* Can we install the block driver? *)
++       let block : guestcaps_block_type =
++         try
++           let viostor_sys_file =
++             List.find
++               (fun { vwd_filename = filename } -> filename = "viostor.sys")
++               drivers in
++           (* Get the actual file contents of the .sys file. *)
++           let content = viostor_sys_file.vwd_get_contents () in
++           let target = sprintf "%s/system32/drivers/viostor.sys" systemroot in
++           let target = g#case_sensitive_path target in
++           g#write target content;
++           add_viostor_to_critical_device_database root current_cs;
++           Virtio_blk
++         with Not_found ->
++           warning ~prog (f_"there is no viostor (virtio block device) driver for this version of Windows (%d.%d %s).  virt-v2v looks for this driver in %s\n\nThe guest will be configured to use a slower emulated device.")
++                   inspect.i_major_version inspect.i_minor_version
++                   inspect.i_arch virtio_win;
++           IDE in
+ 
+-    | Some path ->
+-      (* Can we install the block driver? *)
+-      let block : guestcaps_block_type =
+-        let block_path = path // "viostor.sys" in
+-        if not (Sys.file_exists block_path) then (
+-          warning ~prog (f_"there is no viostor (virtio block device) driver for this version of Windows (%d.%d %s).  virt-v2v looks for this driver here: %s\n\nThe guest will be configured to use a slower emulated device.")
+-            inspect.i_major_version inspect.i_minor_version
+-            inspect.i_arch block_path;
+-          IDE
+-        )
+-        else (
+-          let target = sprintf "%s/system32/drivers/viostor.sys" systemroot in
+-          let target = g#case_sensitive_path target in
+-          g#upload block_path target;
+-          add_viostor_to_critical_device_database root current_cs;
+-          Virtio_blk
+-        ) in
++       (* Can we install the virtio-net driver? *)
++       let net : guestcaps_net_type =
++         if not (List.exists
++                   (fun { vwd_filename = filename } -> filename = "netkvm.inf")
++                   drivers) then (
++           warning ~prog (f_"there is no virtio network driver for this version of Windows (%d.%d %s).  virt-v2v looks for this driver in %s\n\nThe guest will be configured to use a slower emulated device.")
++                   inspect.i_major_version inspect.i_minor_version
++                   inspect.i_arch virtio_win;
++           RTL8139
++         )
++         else
++           (* It will be installed at firstboot. *)
++           Virtio_net in
+ 
+-      (* Can we install the virtio-net driver? *)
+-      let net : guestcaps_net_type =
+-        let net_path = path // "netkvm.inf" in
+-        if not (Sys.file_exists net_path) then (
+-          warning ~prog (f_"there is no virtio network driver for this version of Windows (%d.%d %s).  virt-v2v looks for this driver here: %s\n\nThe guest will be configured to use a slower emulated device.")
+-            inspect.i_major_version inspect.i_minor_version
+-            inspect.i_arch net_path;
+-          RTL8139
+-        )
+-        else
+-          (* It will be installed at firstboot. *)
+-          Virtio_net in
++       (* Copy all the drivers to the driverdir.  They will be
++        * installed at firstboot.
++        *)
++       List.iter (
++         fun driver ->
++           let content = driver.vwd_get_contents () in
++           g#write (driverdir // driver.vwd_filename) content
++       ) drivers;
+ 
+-      (* Copy the drivers to the driverdir.  They will be installed at
+-       * firstboot.
+-       *)
+-      let files = Sys.readdir path in
+-      let files = Array.to_list files in
+-      let files = List.sort compare files in
+-      List.iter (
+-        fun file ->
+-          g#upload (path // file) (driverdir // file)
+-      ) files;
+-
+-      (block, net)
++       (block, net)
+ 
+   and add_viostor_to_critical_device_database root current_cs =
+     (* See http://rwmj.wordpress.com/2010/04/30/tip-install-a-device-driver-in-a-windows-vm/
+diff --git a/v2v/utils.ml b/v2v/utils.ml
+index ebf799f..a301c56 100644
+--- a/v2v/utils.ml
++++ b/v2v/utils.ml
+@@ -106,6 +106,160 @@ let find_uefi_firmware guest_arch =
+   in
+   loop files
+ 
++(* Find virtio-win driver files from an unpacked or mounted virtio-win
++ * directory, or from a virtio-win.iso file. The location of drivers
++  varies between releases of virtio-win and also across Fedora and
++  RHEL so try to be robust to changes.
++ *)
++type virtio_win_driver_file = {
++  (* Base filename, eg. "netkvm.sys".  Always lowercase. *)
++  vwd_filename : string;
++  (* Return the contents of this file. *)
++  vwd_get_contents : unit -> string;
++
++  (* Various fields that classify this driver: *)
++
++  vwd_os_major : int;           (* Windows version. *)
++  vwd_os_minor : int;
++  vwd_os_variant : vwd_os_variant;
++  vwd_os_arch : string;         (* Architecture, eg "i386", "x86_64". *)
++  vwd_extension : string;       (* File extension (lowercase), eg. "sys" "inf"*)
++
++  (* Original source of file (for debugging only). *)
++  vwd_original_source : string;
++}
++and vwd_os_variant = Vwd_client | Vwd_server | Vwd_any_variant
++
++let print_virtio_win_driver_file vwd =
++  printf "%s [%d,%d,%s,%s,%s] from %s\n"
++         vwd.vwd_filename
++         vwd.vwd_os_major vwd.vwd_os_minor
++         (match vwd.vwd_os_variant with
++          | Vwd_client -> "client" | Vwd_server -> "server"
++          | Vwd_any_variant -> "any")
++         vwd.vwd_os_arch
++         vwd.vwd_extension
++         vwd.vwd_original_source
++
++let find_virtio_win_drivers ~verbose virtio_win =
++  let is_regular_file path = (* NB: follows symlinks. *)
++    try (Unix.stat path).Unix.st_kind = Unix.S_REG
++    with Unix.Unix_error _ -> false
++  in
++
++  let files =
++    if is_directory virtio_win then (
++      let cmd = sprintf "cd %s && find -type f" (quote virtio_win) in
++      let paths = external_command ~prog cmd in
++      List.map (
++        fun path ->
++          let abs_path = virtio_win // path in
++          (path, abs_path,
++           Filename.basename path,
++           fun () -> read_whole_file abs_path)
++      ) paths
++    )
++    else if is_regular_file virtio_win then (
++      try
++        let g = new Guestfs.guestfs () in
++        if verbose then (
++          g#set_trace true;
++          g#set_verbose true;
++        );
++        g#add_drive_opts virtio_win ~readonly:true;
++        g#launch ();
++        g#mount_ro "/dev/sda" "/";
++        let paths = g#find "/" in
++        let paths = Array.to_list paths in
++        let paths = List.map ((^) "/") paths in
++        let paths = List.filter (g#is_file ~followsymlinks:false) paths in
++        List.map (
++          fun path ->
++            let i = String.rindex path '/' in
++            let len = String.length path in
++            let basename = String.sub path (i+1) (len - (i+1)) in
++            (path, sprintf "%s:%s" virtio_win path,
++             basename,
++             fun () -> g#read_file path)
++        ) paths
++      with Guestfs.Error msg ->
++        error (f_"%s: cannot open virtio-win ISO file: %s") virtio_win msg
++    )
++    else [] in
++
++  let files =
++    filter_map (
++      fun (path, original_source, basename, get_contents) ->
++        try
++          (* Lowercased path, since the ISO may contain upper or lowercase
++           * path elements.  XXX This won't work if paths contain non-ASCII.
++           *)
++          let lc_path = String.lowercase path in
++          let lc_basename = String.lowercase basename in
++
++          let extension =
++            let i = String.rindex lc_basename '.' in
++            let len = String.length lc_basename in
++            String.sub lc_basename (i+1) (len - (i+1)) in
++
++          (* Skip files without specific extensions. *)
++          if extension <> "cat" && extension <> "inf" &&
++               extension <> "pdb" && extension <> "sys" then
++            raise Not_found;
++
++          (* Using the full path, work out what version of Windows
++           * this driver is for.  Paths can be things like:
++           * "NetKVM/2k12R2/amd64/netkvm.sys" or
++           * "./drivers/amd64/Win2012R2/netkvm.sys".
++           * Note we check lowercase paths.
++           *)
++          let pathelem elem = string_find lc_path ("/" ^ elem ^ "/") >= 0 in
++          let arch =
++            if pathelem "x86" || pathelem "i386" then "i386"
++            else if pathelem "amd64" then "x86_64"
++            else raise Not_found in
++          let os_major, os_minor, os_variant =
++            if pathelem "xp" || pathelem "winxp" then
++              (5, 1, Vwd_any_variant)
++            else if pathelem "2k3" || pathelem "win2003" then
++              (5, 2, Vwd_any_variant)
++            else if pathelem "vista" then
++              (6, 0, Vwd_client)
++            else if pathelem "2k8" || pathelem "win2008" then
++              (6, 0, Vwd_server)
++            else if pathelem "w7" || pathelem "win7" then
++              (6, 1, Vwd_client)
++            else if pathelem "2k8r2" || pathelem "win2008" then
++              (6, 1, Vwd_server)
++            else if pathelem "w8" || pathelem "win8" then
++              (6, 2, Vwd_client)
++            else if pathelem "2k12" || pathelem "win2012" then
++              (6, 2, Vwd_server)
++            else if pathelem "w8.1" || pathelem "win8.1" then
++              (6, 3, Vwd_client)
++            else if pathelem "2k12r2" || pathelem "win2012r2" then
++              (6, 3, Vwd_server)
++            else if pathelem "w10" || pathelem "win10" then
++              (10, 0, Vwd_client)
++            else
++              raise Not_found in
++
++          Some {
++            vwd_filename = lc_basename;
++            vwd_get_contents = get_contents;
++            vwd_os_major = os_major;
++            vwd_os_minor = os_minor;
++            vwd_os_variant = os_variant;
++            vwd_os_arch = arch;
++            vwd_extension = extension;
++            vwd_original_source = original_source;
++          }
++
++        with Not_found -> None
++    ) files in
++
++  files
++
+ let compare_app2_versions app1 app2 =
+   let i = compare app1.Guestfs.app2_epoch app2.Guestfs.app2_epoch in
+   if i <> 0 then i
+diff --git a/v2v/v2v.ml b/v2v/v2v.ml
+index 033d75b..d509a4c 100644
+--- a/v2v/v2v.ml
++++ b/v2v/v2v.ml
+@@ -308,6 +308,14 @@ let rec main () =
+   g#shutdown ();
+   g#close ();
+ 
++  (* Force a GC here, to ensure that we're using the minimum resources
++   * as we go into the copy stage.  The particular reason is that
++   * Windows conversion may have opened a second libguestfs handle
++   * pointing to the virtio-win ISO, which is only closed when the
++   * handle is GC'd.
++   *)
++  Gc.compact ();
++
+   let delete_target_on_exit = ref true in
+ 
+   let targets =
+diff --git a/v2v/virt-v2v.pod b/v2v/virt-v2v.pod
+index 7d24ceb..e841a43 100644
+--- a/v2v/virt-v2v.pod
++++ b/v2v/virt-v2v.pod
+@@ -621,7 +621,7 @@ below.
+  OpenSUSE 10    kernel >= 2.6.25.5-1.1
+ 
+  Windows        Drivers are installed from the directory pointed to by
+-                "VIRTIO_WIN_DIR" environment variable
++                "VIRTIO_WIN" environment variable
+                 (/usr/share/virtio-win by default) if present
+ 
+ =head1 RHEL 4
+@@ -1472,10 +1472,13 @@ not distributed with virt-v2v.
+ 
+ =back
+ 
+-=item C<VIRTIO_WIN_DIR>
++=item C<VIRTIO_WIN>
+ 
+ This is where VirtIO drivers for Windows are searched for
+-(F</usr/share/virtio-win> if unset).  See L<ENABLING VIRTIO>.
++(F</usr/share/virtio-win> if unset).  It can be a directory I<or>
++point to F<virtio-win.iso> (CD ROM image containing drivers).
++
++See L<ENABLING VIRTIO>.
+ 
+ =back
+ 
+-- 
+1.8.3.1
+

@@ -1,0 +1,30 @@
+From e21977b9ed7c3fa1cd7ba7736d6173667e904501 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 5 May 2015 20:56:38 +0100
+Subject: [PATCH] p2v: Use "About virt-p2v [VERSION]" on the about button.
+
+This makes it clearer what the button does.
+
+This updates commit a743f57cb8e74adaccae3a6f3b3da0c6961dc5ba.
+
+(cherry picked from commit d5305c9672054d03d0c2ccdbc532643027c63775)
+---
+ p2v/gui.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/p2v/gui.c b/p2v/gui.c
+index f32ac53..bba0c1c 100644
+--- a/p2v/gui.c
++++ b/p2v/gui.c
+@@ -199,7 +199,7 @@ create_connection_dialog (struct config *config)
+   /* Buttons. */
+   gtk_dialog_add_buttons (GTK_DIALOG (conn_dlg),
+                           /* _("Configure network ..."), 1, */
+-                          _("virt-p2v " PACKAGE_VERSION " ..."), 2,
++                          _("About virt-p2v " PACKAGE_VERSION " ..."), 2,
+                           _("Next"), 3,
+                           NULL);
+ 
+-- 
+1.8.3.1
+

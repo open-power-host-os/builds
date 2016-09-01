@@ -1,0 +1,172 @@
+From 93c2eb23dacc9ffa226c92777c498792d7f5a6cf Mon Sep 17 00:00:00 2001
+From: Shahar Havivi <shaharh@redhat.com>
+Date: Thu, 25 Dec 2014 11:57:12 +0200
+Subject: [PATCH] v2v: adding --vdsm-ovf-output option
+
+This option is needed by vdsm for writing the ovf to a specific directory.
+The default is current directory.
+
+Bug-Url: https://bugzilla.redhat.com/show_bug.cgi?id=1176598
+Signed-off-by: Shahar Havivi <shaharh@redhat.com>
+(cherry picked from commit 14d11916faf68afb672d1626348931f2b90afd08)
+---
+ v2v/cmdline.ml                 |  5 +++++
+ v2v/output_vdsm.ml             | 16 +++++++---------
+ v2v/output_vdsm.mli            |  1 +
+ v2v/test-v2v-o-vdsm-options.sh |  1 +
+ v2v/virt-v2v.pod               |  8 +++++++-
+ 5 files changed, 21 insertions(+), 10 deletions(-)
+
+diff --git a/v2v/cmdline.ml b/v2v/cmdline.ml
+index 14c3fb9..97167b4 100644
+--- a/v2v/cmdline.ml
++++ b/v2v/cmdline.ml
+@@ -47,6 +47,7 @@ let parse_cmdline () =
+   let qemu_boot = ref false in
+   let quiet = ref false in
+   let vdsm_vm_uuid = ref "" in
++  let vdsm_ovf_output = ref "." in
+   let verbose = ref false in
+   let trace = ref false in
+   let vmtype = ref "" in
+@@ -178,6 +179,8 @@ let parse_cmdline () =
+     Arg.String add_vdsm_vol_uuid, "uuid " ^ s_"Output vol UUID(s)";
+     "--vdsm-vm-uuid",
+     Arg.Set_string vdsm_vm_uuid, "uuid " ^ s_"Output VM UUID";
++    "--vdsm-ovf-output",
++    Arg.Set_string vdsm_ovf_output, " " ^ s_"Output OVF file";
+     "-v",        Arg.Set verbose,           " " ^ s_"Enable debugging messages";
+     "--verbose", Arg.Set verbose,           ditto;
+     "-V",        Arg.Unit display_version,  " " ^ s_"Display version and exit";
+@@ -237,6 +240,7 @@ read the man page virt-v2v(1).
+   let vdsm_image_uuids = List.rev !vdsm_image_uuids in
+   let vdsm_vol_uuids = List.rev !vdsm_vol_uuids in
+   let vdsm_vm_uuid = !vdsm_vm_uuid in
++  let vdsm_ovf_output = !vdsm_ovf_output in
+   let verbose = !verbose in
+   let trace = !trace in
+   let vmtype =
+@@ -386,6 +390,7 @@ read the man page virt-v2v(1).
+         Output_vdsm.image_uuids = vdsm_image_uuids;
+         vol_uuids = vdsm_vol_uuids;
+         vm_uuid = vdsm_vm_uuid;
++        ovf_output = vdsm_ovf_output;
+       } in
+       Output_vdsm.output_vdsm verbose output_storage vdsm_params
+         vmtype output_alloc in
+diff --git a/v2v/output_vdsm.ml b/v2v/output_vdsm.ml
+index 293f57f..492f586 100644
+--- a/v2v/output_vdsm.ml
++++ b/v2v/output_vdsm.ml
+@@ -30,6 +30,7 @@ type vdsm_params = {
+   image_uuids : string list;
+   vol_uuids : string list;
+   vm_uuid : string;
++  ovf_output : string;
+ }
+ 
+ class output_vdsm verbose os vdsm_params vmtype output_alloc =
+@@ -37,12 +38,13 @@ object
+   inherit output verbose
+ 
+   method as_options =
+-    sprintf "-o vdsm -os %s%s%s --vdsm-vm-uuid %s%s" os
++    sprintf "-o vdsm -os %s%s%s --vdsm-vm-uuid %s --vdsm-ovf-output %s%s" os
+       (String.concat ""
+          (List.map (sprintf " --vdsm-image-uuid %s") vdsm_params.image_uuids))
+       (String.concat ""
+          (List.map (sprintf " --vdsm-vol-uuid %s") vdsm_params.vol_uuids))
+       vdsm_params.vm_uuid
++      vdsm_params.ovf_output
+       (match vmtype with
+       | None -> ""
+       | Some `Server -> " --vmtype server"
+@@ -57,9 +59,6 @@ object
+   val mutable dd_mp = ""
+   val mutable dd_uuid = ""
+ 
+-  (* Target metadata directory. *)
+-  val mutable ovf_dir = ""
+-
+   (* This is called early on in the conversion and lets us choose the
+    * name of the target files that eventually get written by the main
+    * code.
+@@ -98,13 +97,12 @@ object
+     ) vdsm_params.image_uuids;
+ 
+     (* Note that VDSM has to create this directory too. *)
+-    ovf_dir <- dd_mp // dd_uuid // "master" // "vms" // vdsm_params.vm_uuid;
+-    if not (is_directory ovf_dir) then
++    if not (is_directory vdsm_params.ovf_output) then
+       error (f_"OVF (metadata) directory (%s) does not exist or is not a directory")
+-        ovf_dir;
++        vdsm_params.ovf_output;
+ 
+     if verbose then
+-      eprintf "VDSM: OVF (metadata) directory: %s\n%!" ovf_dir;
++      eprintf "VDSM: OVF (metadata) directory: %s\n%!" vdsm_params.ovf_output;
+ 
+     (* The final directory structure should look like this:
+      *   /<MP>/<ESD_UUID>/images/
+@@ -164,7 +162,7 @@ object
+       vdsm_params.vm_uuid in
+ 
+     (* Write it to the metadata file. *)
+-    let file = ovf_dir // vdsm_params.vm_uuid ^ ".ovf" in
++    let file = vdsm_params.ovf_output // vdsm_params.vm_uuid ^ ".ovf" in
+     let chan = open_out file in
+     doc_to_chan chan ovf;
+     close_out chan
+diff --git a/v2v/output_vdsm.mli b/v2v/output_vdsm.mli
+index 3ee5425..26ac15d 100644
+--- a/v2v/output_vdsm.mli
++++ b/v2v/output_vdsm.mli
+@@ -22,6 +22,7 @@ type vdsm_params = {
+   image_uuids : string list;          (* --vdsm-image-uuid (multiple) *)
+   vol_uuids : string list;            (* --vdsm-vol-uuid (multiple) *)
+   vm_uuid : string;                   (* --vdsm-vm-uuid *)
++  ovf_output : string;                (* --vdsm-ovf-output *)
+ }
+ (** Miscellaneous extra command line parameters used by VDSM. *)
+ 
+diff --git a/v2v/test-v2v-o-vdsm-options.sh b/v2v/test-v2v-o-vdsm-options.sh
+index 8747d8a..e2098fa 100755
+--- a/v2v/test-v2v-o-vdsm-options.sh
++++ b/v2v/test-v2v-o-vdsm-options.sh
+@@ -69,6 +69,7 @@ $VG virt-v2v --debug-gc \
+     --vdsm-image-uuid IMAGE \
+     --vdsm-vol-uuid VOL \
+     --vdsm-vm-uuid VM \
++    --vdsm-ovf-output $d/12345678-1234-1234-1234-123456789abc/master/vms/VM \
+ 
+ # Test the OVF metadata was created.
+ test -f $d/12345678-1234-1234-1234-123456789abc/master/vms/VM/VM.ovf
+diff --git a/v2v/virt-v2v.pod b/v2v/virt-v2v.pod
+index 933955a..7ed2dda 100644
+--- a/v2v/virt-v2v.pod
++++ b/v2v/virt-v2v.pod
+@@ -483,6 +483,8 @@ OS which is not in the first VirtIO disk.
+ 
+ =item B<--vdsm-vm-uuid> UUID
+ 
++=item B<--vdsm-ovf-output>
++
+ Normally the RHEV output mode chooses random UUIDs for the target
+ guest.  However VDSM needs to control the UUIDs and passes these
+ parameters when virt-v2v runs under VDSM control.  The parameters
+@@ -502,7 +504,11 @@ is passed once for each guest disk)
+ 
+ =item *
+ 
+-the VM and OVF file (I<--vdsm-vm-uuid>).
++the OVF file name (I<--vdsm-vm-uuid>).
++
++=item *
++
++the OVF output directory (default current directory) (I<--vdsm-ovf-output>).
+ 
+ =back
+ 
+-- 
+1.8.3.1
+

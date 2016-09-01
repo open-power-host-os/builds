@@ -1,0 +1,73 @@
+From 91b771d57ef671253ce336d7ccb74e5c3ff08404 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 4 Dec 2014 22:00:35 +0000
+Subject: [PATCH] mllib: Add Common_utils.string_suffix function and extend
+ test coverage.
+
+(cherry picked from commit c712f880db640163a0ce913e42115ecf4f6aa0c2)
+---
+ mllib/common_utils.ml       |  5 +++++
+ mllib/common_utils.mli      |  1 +
+ mllib/common_utils_tests.ml | 21 +++++++++++++++++++++
+ 3 files changed, 27 insertions(+)
+
+diff --git a/mllib/common_utils.ml b/mllib/common_utils.ml
+index 295981c..7c64ad0 100644
+--- a/mllib/common_utils.ml
++++ b/mllib/common_utils.ml
+@@ -98,6 +98,11 @@ let string_prefix str prefix =
+   let n = String.length prefix in
+   String.length str >= n && String.sub str 0 n = prefix
+ 
++let string_suffix str suffix =
++  let sufflen = String.length suffix
++  and len = String.length str in
++  len >= sufflen && String.sub str (len - sufflen) sufflen = suffix
++
+ let rec string_find s sub =
+   let len = String.length s in
+   let sublen = String.length sub in
+diff --git a/mllib/common_utils.mli b/mllib/common_utils.mli
+index 112648a..6d0a0fc 100644
+--- a/mllib/common_utils.mli
++++ b/mllib/common_utils.mli
+@@ -39,6 +39,7 @@ val output_spaces : out_channel -> int -> unit
+ (** Write [n] spaces to [out_channel]. *)
+ 
+ val string_prefix : string -> string -> bool
++val string_suffix : string -> string -> bool
+ val string_find : string -> string -> int
+ val replace_str : string -> string -> string -> string
+ val string_nsplit : string -> string -> string list
+diff --git a/mllib/common_utils_tests.ml b/mllib/common_utils_tests.ml
+index e06b3a4..e12297a 100644
+--- a/mllib/common_utils_tests.ml
++++ b/mllib/common_utils_tests.ml
+@@ -78,3 +78,24 @@ let () =
+   assert (human_size (-1363149_L) = "-1.3M");
+   assert (human_size 3650722201_L = "3.4G");
+   assert (human_size (-3650722201_L) = "-3.4G")
++
++(* Test Common_utils.string_prefix, string_suffix, string_find. *)
++let () =
++  assert (string_prefix "" "");
++  assert (string_prefix "foo" "");
++  assert (string_prefix "foo" "foo");
++  assert (string_prefix "foo123" "foo");
++  assert (not (string_prefix "" "foo"));
++
++  assert (string_suffix "" "");
++  assert (string_suffix "foo" "");
++  assert (string_suffix "foo" "foo");
++  assert (string_suffix "123foo" "foo");
++  assert (not (string_suffix "" "foo"));
++
++  assert (string_find "" "" = 0);
++  assert (string_find "foo" "" = 0);
++  assert (string_find "foo" "o" = 1);
++  assert (string_find "foobar" "bar" = 3);
++  assert (string_find "" "baz" = -1);
++  assert (string_find "foobar" "baz" = -1)
+-- 
+1.8.3.1
+

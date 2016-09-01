@@ -1,0 +1,133 @@
+From ff74f692fdeb34f7e315cd94c4675b9f78c40baa Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 5 May 2015 16:11:46 +0100
+Subject: [PATCH] v2v: -o libvirt: Check if the domain exists on the target
+ (RHBZ#889082).
+
+(cherry picked from commit badfc2e9b2a56fd5bac849a6edca4fec823abeea)
+---
+ v2v/domainxml-c.c     | 65 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ v2v/domainxml.ml      |  2 ++
+ v2v/domainxml.mli     |  6 +++++
+ v2v/output_libvirt.ml |  5 ++++
+ 4 files changed, 78 insertions(+)
+
+diff --git a/v2v/domainxml-c.c b/v2v/domainxml-c.c
+index 2aebc5c..ea93c41 100644
+--- a/v2v/domainxml-c.c
++++ b/v2v/domainxml-c.c
+@@ -416,6 +416,71 @@ v2v_capabilities (value connv, value unitv)
+   CAMLreturn (capabilitiesv);
+ }
+ 
++value
++v2v_domain_exists (value connv, value domnamev)
++{
++  CAMLparam2 (connv, domnamev);
++  const char *conn_uri = NULL;
++  const char *domname;
++  /* We have to assemble the error on the stack because a dynamic
++   * string couldn't be freed.
++   */
++  char errmsg[256];
++  virErrorPtr err;
++  virConnectPtr conn;
++  virDomainPtr dom;
++  int domain_exists;
++
++  if (connv != Val_int (0))
++    conn_uri = String_val (Field (connv, 0)); /* Some conn */
++
++  /* We have to call the default authentication handler, not least
++   * since it handles all the PolicyKit crap.  However it also makes
++   * coding this simpler.
++   */
++  conn = virConnectOpenAuth (conn_uri, virConnectAuthPtrDefault,
++                             VIR_CONNECT_RO);
++  if (conn == NULL) {
++    if (conn_uri)
++      snprintf (errmsg, sizeof errmsg,
++                _("cannot open libvirt connection '%s'"), conn_uri);
++    else
++      snprintf (errmsg, sizeof errmsg, _("cannot open libvirt connection"));
++    caml_invalid_argument (errmsg);
++  }
++
++  /* Suppress default behaviour of printing errors to stderr.  Note
++   * you can't set this to NULL to ignore errors; setting it to NULL
++   * restores the default error handler ...
++   */
++  virConnSetErrorFunc (conn, NULL, ignore_errors);
++
++  /* Look up the domain. */
++  domname = String_val (domnamev);
++  dom = virDomainLookupByName (conn, domname);
++
++  if (dom) {
++    domain_exists = 1;
++    virDomainFree (dom);
++  }
++  else {
++    err = virGetLastError ();
++    if (err->code == VIR_ERR_NO_DOMAIN)
++      domain_exists = 0;
++    else {
++      snprintf (errmsg, sizeof errmsg,
++                _("cannot find libvirt domain '%s': %s"),
++                domname, err->message);
++      virConnectClose (conn);
++      caml_invalid_argument (errmsg);
++    }
++  }
++
++  virConnectClose (conn);
++
++  CAMLreturn (Val_bool (domain_exists));
++}
++
+ #else /* !HAVE_LIBVIRT */
+ 
+ value
+diff --git a/v2v/domainxml.ml b/v2v/domainxml.ml
+index 3357856..1e7f27b 100644
+--- a/v2v/domainxml.ml
++++ b/v2v/domainxml.ml
+@@ -24,3 +24,5 @@ external pool_dumpxml : ?conn:string -> string -> string = "v2v_pool_dumpxml"
+ external vol_dumpxml : ?conn:string -> string -> string -> string = "v2v_vol_dumpxml"
+ 
+ external capabilities : ?conn:string -> unit -> string = "v2v_capabilities"
++
++external domain_exists : ?conn:string -> string -> bool = "v2v_domain_exists"
+diff --git a/v2v/domainxml.mli b/v2v/domainxml.mli
+index 089b793..a689621 100644
+--- a/v2v/domainxml.mli
++++ b/v2v/domainxml.mli
+@@ -43,3 +43,9 @@ val vol_dumpxml : ?conn:string -> string -> string -> string
+ val capabilities : ?conn:string -> unit -> string
+ (** [capabilities ?conn ()] returns the libvirt capabilities XML.
+     The optional [?conn] parameter is the libvirt connection URI. *)
++
++val domain_exists : ?conn:string -> string -> bool
++(** [domain_exists ?conn dom] returns a boolean indicating if the
++    the libvirt XML domain [dom] exists.
++    The optional [?conn] parameter is the libvirt connection URI.
++    [dom] may be a guest name, but not a UUID. *)
+diff --git a/v2v/output_libvirt.ml b/v2v/output_libvirt.ml
+index b516d51..23e881a 100644
+--- a/v2v/output_libvirt.ml
++++ b/v2v/output_libvirt.ml
+@@ -339,6 +339,11 @@ class output_libvirt verbose oc output_pool = object
+      *)
+     capabilities_doc <- Some doc;
+ 
++    (* Does the domain already exist on the target?  (RHBZ#889082) *)
++    if Domainxml.domain_exists ?conn:oc source.s_name then
++      error (f_"a libvirt domain called '%s' already exists on the target.\n\nIf using virt-v2v directly, use the '-on' option to select a different name. If using virt-p2v, select a different 'Name' in the 'Target properties'. Or delete the existing domain on the target using the 'virsh undefine' command.")
++            source.s_name;
++
+     (* Connect to output libvirt instance and check that the pool exists
+      * and dump out its XML.
+      *)
+-- 
+1.8.3.1
+

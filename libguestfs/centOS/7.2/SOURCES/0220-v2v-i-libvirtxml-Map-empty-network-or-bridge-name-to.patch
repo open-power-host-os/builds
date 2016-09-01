@@ -1,0 +1,49 @@
+From ba119f33fe23b5f0d3bbd9b4022dd4f36f4d61b4 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Fri, 28 Aug 2015 13:57:37 +0100
+Subject: [PATCH] v2v: -i libvirtxml: Map empty network or bridge name to
+ default (RHBZ#1257895).
+
+As with the -i ova driver, if an unnamed network is found, map it to
+"eth0", "eth1" etc.
+
+(cherry picked from commit 18b019e3dd808393cda510b6d80212ff5bdbed76)
+---
+ v2v/input_libvirtxml.ml | 14 +++++++++++---
+ 1 file changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/v2v/input_libvirtxml.ml b/v2v/input_libvirtxml.ml
+index be48a75..089f042 100644
+--- a/v2v/input_libvirtxml.ml
++++ b/v2v/input_libvirtxml.ml
+@@ -310,9 +310,7 @@ let parse_libvirt_xml ?conn ~verbose xml =
+       match vnet_type with
+       | None -> ()
+       | Some vnet_type ->
+-        match xpath_string "source/@network | source/@bridge" with
+-        | None -> ()
+-        | Some vnet ->
++         let add_nic vnet =
+            let nic = {
+              s_mac = mac;
+              s_vnet = vnet;
+@@ -320,6 +318,16 @@ let parse_libvirt_xml ?conn ~verbose xml =
+              s_vnet_type = vnet_type
+            } in
+            nics := nic :: !nics
++         in
++         match xpath_string "source/@network | source/@bridge" with
++         | None -> ()
++         | Some "" ->
++            (* The libvirt VMware driver produces at least <source
++             * bridge=''/> XML - see RHBZ#1257895.
++             *)
++            add_nic (sprintf "eth%d" i)
++         | Some vnet ->
++            add_nic vnet
+     done;
+     List.rev !nics in
+ 
+-- 
+1.8.3.1
+

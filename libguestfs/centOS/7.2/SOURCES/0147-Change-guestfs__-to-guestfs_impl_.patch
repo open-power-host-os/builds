@@ -1,0 +1,1402 @@
+From bdbd9ad42fb40b307fef6856b446322b55c97946 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Sat, 14 Feb 2015 15:26:15 +0000
+Subject: [PATCH] Change guestfs__* to guestfs_impl_*
+
+libguestfs has used double and triple underscores in identifiers.
+These aren't valid for global names in C++.
+
+The second step is to replace all guestfs__* (2 underscores) with
+guestfs_impl_*.
+
+These functions are used where a libguestfs API call is implemented on
+the library side.  The generator creates a wrapper function which
+calls guestfs_impl_* to do the work.  (Libguestfs APIs which are
+passed directly by the daemon work differently and don't require a
+guestfs_impl_* function).
+
+This is an entirely mechanical change done using:
+  git ls-files | xargs perl -pi.bak -e 's/guestfs___/guestfs_impl_/g'
+
+Reference: http://stackoverflow.com/a/228797
+
+RHEL 7.2:
+
+I did not cherry pick commit 1efd8aa8f1b5148ba8091e0df8be0b4afd6a596a.
+for this.  Instead I ran the Perl command on the RHEL 7.2 tree.  Note
+that the perl command in the original commit message above is wrong,
+and should only contain two underscores.
+---
+ generator/bindtests.ml      | 10 +++---
+ generator/c.ml              |  4 +--
+ generator/types.ml          |  2 +-
+ po-docs/ja.po               |  2 +-
+ po-docs/libguestfs-docs.pot |  2 +-
+ po-docs/uk.po               |  2 +-
+ src/canonical-name.c        |  2 +-
+ src/create.c                |  2 +-
+ src/drives.c                | 18 +++++-----
+ src/file.c                  | 26 +++++++-------
+ src/filearch.c              |  4 +--
+ src/fuse.c                  | 12 +++----
+ src/guestfs.pod             |  2 +-
+ src/handle.c                | 86 ++++++++++++++++++++++-----------------------
+ src/info.c                  |  6 ++--
+ src/inspect-apps.c          |  4 +--
+ src/inspect-fs-windows.c    |  2 +-
+ src/inspect-icon.c          |  2 +-
+ src/inspect.c               | 42 +++++++++++-----------
+ src/journal.c               |  2 +-
+ src/launch.c                | 22 ++++++------
+ src/libvirt-auth.c          | 24 ++++++-------
+ src/libvirt-domain.c        |  4 +--
+ src/listfs.c                |  2 +-
+ src/tmpdirs.c               |  8 ++---
+ 25 files changed, 146 insertions(+), 146 deletions(-)
+
+diff --git a/generator/bindtests.ml b/generator/bindtests.ml
+index cad123e..0d2fea9 100644
+--- a/generator/bindtests.ml
++++ b/generator/bindtests.ml
+@@ -46,7 +46,7 @@ let rec generate_bindtests () =
+ #include \"guestfs_protocol.h\"
+ 
+ int
+-guestfs__internal_test_set_output (guestfs_h *g, const char *filename)
++guestfs_impl_internal_test_set_output (guestfs_h *g, const char *filename)
+ {
+   FILE *fp;
+ 
+@@ -67,7 +67,7 @@ guestfs__internal_test_set_output (guestfs_h *g, const char *filename)
+ }
+ 
+ int
+-guestfs__internal_test_close_output (guestfs_h *g)
++guestfs_impl_internal_test_close_output (guestfs_h *g)
+ {
+   if (g->test_fp != NULL) {
+     if (fclose (g->test_fp) == EOF) {
+@@ -141,7 +141,7 @@ fill_lvm_pv (guestfs_h *g, struct guestfs_lvm_pv *pv, size_t i)
+       pr " */\n";
+ 
+       generate_prototype ~extern:false ~semicolon:false ~newline:true
+-        ~handle:"g" ~prefix:"guestfs__" ~optarg_proto:Argv name style;
++        ~handle:"g" ~prefix:"guestfs_impl_" ~optarg_proto:Argv name style;
+       pr "{\n";
+       pr "  FILE *fp = get_fp (g);\n";
+       pr "\n";
+@@ -215,7 +215,7 @@ fill_lvm_pv (guestfs_h *g, struct guestfs_lvm_pv *pv, size_t i)
+       if String.sub name (String.length name - 3) 3 <> "err" then (
+         pr "/* Test normal return. */\n";
+         generate_prototype ~extern:false ~semicolon:false ~newline:true
+-          ~handle:"g" ~prefix:"guestfs__" name style;
++          ~handle:"g" ~prefix:"guestfs_impl_" name style;
+         pr "{\n";
+         (match ret with
+          | RErr ->
+@@ -302,7 +302,7 @@ fill_lvm_pv (guestfs_h *g, struct guestfs_lvm_pv *pv, size_t i)
+       ) else (
+         pr "/* Test error return. */\n";
+         generate_prototype ~extern:false ~semicolon:false ~newline:true
+-          ~handle:"g" ~prefix:"guestfs__" name style;
++          ~handle:"g" ~prefix:"guestfs_impl_" name style;
+         pr "{\n";
+         pr "  error (g, \"error\");\n";
+         (match ret with
+diff --git a/generator/c.ml b/generator/c.ml
+index 9b3bbce..966e28a 100644
+--- a/generator/c.ml
++++ b/generator/c.ml
+@@ -791,7 +791,7 @@ and generate_internal_actions_h () =
+   List.iter (
+     fun { c_name = c_name; style = style } ->
+       generate_prototype ~single_line:true ~newline:true ~handle:"g"
+-        ~prefix:"guestfs__" ~optarg_proto:Argv
++        ~prefix:"guestfs_impl_" ~optarg_proto:Argv
+         c_name style
+   ) non_daemon_functions;
+ 
+@@ -1602,7 +1602,7 @@ and generate_client_actions hash () =
+     reject_unknown_optargs c_name style;
+     check_args_validity c_name style;
+     trace_call name c_name style;
+-    pr "  r = guestfs__%s " c_name;
++    pr "  r = guestfs_impl_%s " c_name;
+     generate_c_call_args ~handle:"g" ~implicit_size_ptr:"size_r" style;
+     pr ";\n";
+     pr "\n";
+diff --git a/generator/types.ml b/generator/types.ml
+index 0c189bc..3ae1d47 100644
+--- a/generator/types.ml
++++ b/generator/types.ml
+@@ -361,7 +361,7 @@ type action = {
+                                      machinery in various bindings. *)
+   wrapper : bool;                 (* For non-daemon functions, generate a
+                                      wrapper which calls the underlying
+-                                     guestfs__<name> function.  The wrapper
++                                     guestfs_impl_<name> function.  The wrapper
+                                      checks arguments and deals with trace
+                                      messages.  Set this to false for functions
+                                      that have to be thread-safe. *)
+diff --git a/po-docs/ja.po b/po-docs/ja.po
+index c7d67a0..f8e843a 100644
+--- a/po-docs/ja.po
++++ b/po-docs/ja.po
+@@ -84843,7 +84843,7 @@ msgstr ""
+ #. type: textblock
+ #: ../src/guestfs.pod:3924
+ msgid ""
+-"For library actions, implement the function C<guestfs__E<lt>nameE<gt>> "
++"For library actions, implement the function C<guestfs_impl_E<lt>nameE<gt>> "
+ "(note: double underscore) in the C<src/> directory."
+ msgstr ""
+ 
+diff --git a/po-docs/libguestfs-docs.pot b/po-docs/libguestfs-docs.pot
+index 1f1fb8c..50dbcff 100644
+--- a/po-docs/libguestfs-docs.pot
++++ b/po-docs/libguestfs-docs.pot
+@@ -75978,7 +75978,7 @@ msgstr ""
+ #. type: textblock
+ #: ../src/guestfs.pod:3924
+ msgid ""
+-"For library actions, implement the function C<guestfs__E<lt>nameE<gt>> "
++"For library actions, implement the function C<guestfs_impl_E<lt>nameE<gt>> "
+ "(note: double underscore) in the C<src/> directory."
+ msgstr ""
+ 
+diff --git a/po-docs/uk.po b/po-docs/uk.po
+index ab16832..9f725a2 100644
+--- a/po-docs/uk.po
++++ b/po-docs/uk.po
+@@ -84270,7 +84270,7 @@ msgstr ""
+ #. type: textblock
+ #: ../src/guestfs.pod:3924
+ msgid ""
+-"For library actions, implement the function C<guestfs__E<lt>nameE<gt>> "
++"For library actions, implement the function C<guestfs_impl_E<lt>nameE<gt>> "
+ "(note: double underscore) in the C<src/> directory."
+ msgstr ""
+ 
+diff --git a/src/canonical-name.c b/src/canonical-name.c
+index 6aa39e4..687b559 100644
+--- a/src/canonical-name.c
++++ b/src/canonical-name.c
+@@ -27,7 +27,7 @@
+ #include "guestfs-internal-actions.h"
+ 
+ char *
+-guestfs__canonical_device_name (guestfs_h *g, const char *device)
++guestfs_impl_canonical_device_name (guestfs_h *g, const char *device)
+ {
+   char *ret;
+   size_t len;
+diff --git a/src/create.c b/src/create.c
+index f438bdc..4e619c0 100644
+--- a/src/create.c
++++ b/src/create.c
+@@ -44,7 +44,7 @@ static int disk_create_qcow2 (guestfs_h *g, const char *filename, int64_t size,
+ static char *qemu_escape_param (guestfs_h *g, const char *param);
+ 
+ int
+-guestfs__disk_create (guestfs_h *g, const char *filename,
++guestfs_impl_disk_create (guestfs_h *g, const char *filename,
+                       const char *format, int64_t size,
+                       const struct guestfs_disk_create_argv *optargs)
+ {
+diff --git a/src/drives.c b/src/drives.c
+index 356293e..b2ec7e0 100644
+--- a/src/drives.c
++++ b/src/drives.c
+@@ -770,7 +770,7 @@ parse_servers (guestfs_h *g, char *const *strs,
+ }
+ 
+ int
+-guestfs__add_drive_opts (guestfs_h *g, const char *filename,
++guestfs_impl_add_drive_opts (guestfs_h *g, const char *filename,
+                          const struct guestfs_add_drive_opts_argv *optargs)
+ {
+   struct drive_create_data data;
+@@ -988,7 +988,7 @@ guestfs__add_drive_opts (guestfs_h *g, const char *filename,
+ }
+ 
+ int
+-guestfs__add_drive_ro (guestfs_h *g, const char *filename)
++guestfs_impl_add_drive_ro (guestfs_h *g, const char *filename)
+ {
+   const struct guestfs_add_drive_opts_argv optargs = {
+     .bitmask = GUESTFS_ADD_DRIVE_OPTS_READONLY_BITMASK,
+@@ -999,7 +999,7 @@ guestfs__add_drive_ro (guestfs_h *g, const char *filename)
+ }
+ 
+ int
+-guestfs__add_drive_with_if (guestfs_h *g, const char *filename,
++guestfs_impl_add_drive_with_if (guestfs_h *g, const char *filename,
+                             const char *iface)
+ {
+   const struct guestfs_add_drive_opts_argv optargs = {
+@@ -1011,7 +1011,7 @@ guestfs__add_drive_with_if (guestfs_h *g, const char *filename,
+ }
+ 
+ int
+-guestfs__add_drive_ro_with_if (guestfs_h *g, const char *filename,
++guestfs_impl_add_drive_ro_with_if (guestfs_h *g, const char *filename,
+                                const char *iface)
+ {
+   const struct guestfs_add_drive_opts_argv optargs = {
+@@ -1025,7 +1025,7 @@ guestfs__add_drive_ro_with_if (guestfs_h *g, const char *filename,
+ }
+ 
+ int
+-guestfs__add_drive_scratch (guestfs_h *g, int64_t size,
++guestfs_impl_add_drive_scratch (guestfs_h *g, int64_t size,
+                             const struct guestfs_add_drive_scratch_argv *optargs)
+ {
+   struct guestfs_add_drive_opts_argv add_drive_optargs = { .bitmask = 0 };
+@@ -1064,9 +1064,9 @@ guestfs__add_drive_scratch (guestfs_h *g, int64_t size,
+ }
+ 
+ int
+-guestfs__add_cdrom (guestfs_h *g, const char *filename)
++guestfs_impl_add_cdrom (guestfs_h *g, const char *filename)
+ {
+-  return guestfs__add_drive_ro (g, filename);
++  return guestfs_impl_add_drive_ro (g, filename);
+ }
+ 
+ /* Depending on whether we are hotplugging or not, this function
+@@ -1077,7 +1077,7 @@ guestfs__add_cdrom (guestfs_h *g, const char *filename)
+  * (NULL) slot in the g->drives vector.
+  */
+ int
+-guestfs__remove_drive (guestfs_h *g, const char *label)
++guestfs_impl_remove_drive (guestfs_h *g, const char *label)
+ {
+   size_t i;
+   struct drive *drv;
+@@ -1146,7 +1146,7 @@ guestfs_int_rollback_drives (guestfs_h *g, size_t old_i)
+ 
+ /* Internal command to return the list of drives. */
+ char **
+-guestfs__debug_drives (guestfs_h *g)
++guestfs_impl_debug_drives (guestfs_h *g)
+ {
+   size_t i;
+   DECLARE_STRINGSBUF (ret);
+diff --git a/src/file.c b/src/file.c
+index 854e7cc..417c084 100644
+--- a/src/file.c
++++ b/src/file.c
+@@ -72,7 +72,7 @@ take_strings (guestfs_h *g, char *const *names, size_t n, char *const **lastp)
+ }
+ 
+ char *
+-guestfs__cat (guestfs_h *g, const char *path)
++guestfs_impl_cat (guestfs_h *g, const char *path)
+ {
+   size_t size;
+ 
+@@ -80,7 +80,7 @@ guestfs__cat (guestfs_h *g, const char *path)
+ }
+ 
+ char *
+-guestfs__read_file (guestfs_h *g, const char *path, size_t *size_r)
++guestfs_impl_read_file (guestfs_h *g, const char *path, size_t *size_r)
+ {
+   int fd = -1;
+   size_t size;
+@@ -142,7 +142,7 @@ guestfs__read_file (guestfs_h *g, const char *path, size_t *size_r)
+ }
+ 
+ char **
+-guestfs__read_lines (guestfs_h *g, const char *file)
++guestfs_impl_read_lines (guestfs_h *g, const char *file)
+ {
+   size_t i, count, size, len;
+   CLEANUP_FREE char *buf = NULL;
+@@ -206,7 +206,7 @@ guestfs__read_lines (guestfs_h *g, const char *file)
+ }
+ 
+ char **
+-guestfs__find (guestfs_h *g, const char *directory)
++guestfs_impl_find (guestfs_h *g, const char *directory)
+ {
+   int fd = -1;
+   struct stat statbuf;
+@@ -364,14 +364,14 @@ write_or_append (guestfs_h *g, const char *path,
+ }
+ 
+ int
+-guestfs__write (guestfs_h *g, const char *path,
++guestfs_impl_write (guestfs_h *g, const char *path,
+                 const char *content, size_t size)
+ {
+   return write_or_append (g, path, content, size, 0);
+ }
+ 
+ int
+-guestfs__write_append (guestfs_h *g, const char *path,
++guestfs_impl_write_append (guestfs_h *g, const char *path,
+                        const char *content, size_t size)
+ {
+   return write_or_append (g, path, content, size, 1);
+@@ -380,7 +380,7 @@ guestfs__write_append (guestfs_h *g, const char *path,
+ #define LSTATNSLIST_MAX 1000
+ 
+ struct guestfs_statns_list *
+-guestfs__lstatnslist (guestfs_h *g, const char *dir, char * const*names)
++guestfs_impl_lstatnslist (guestfs_h *g, const char *dir, char * const*names)
+ {
+   size_t len = guestfs_int_count_strings (names);
+   size_t old_len;
+@@ -422,7 +422,7 @@ guestfs__lstatnslist (guestfs_h *g, const char *dir, char * const*names)
+ #define LXATTRLIST_MAX 1000
+ 
+ struct guestfs_xattr_list *
+-guestfs__lxattrlist (guestfs_h *g, const char *dir, char *const *names)
++guestfs_impl_lxattrlist (guestfs_h *g, const char *dir, char *const *names)
+ {
+   size_t len = guestfs_int_count_strings (names);
+   size_t i, old_len;
+@@ -470,7 +470,7 @@ guestfs__lxattrlist (guestfs_h *g, const char *dir, char *const *names)
+ #define READLINK_MAX 1000
+ 
+ char **
+-guestfs__readlinklist (guestfs_h *g, const char *dir, char *const *names)
++guestfs_impl_readlinklist (guestfs_h *g, const char *dir, char *const *names)
+ {
+   size_t len = guestfs_int_count_strings (names);
+   size_t old_len, ret_len = 0;
+@@ -508,7 +508,7 @@ guestfs__readlinklist (guestfs_h *g, const char *dir, char *const *names)
+ }
+ 
+ char **
+-guestfs__ls (guestfs_h *g, const char *directory)
++guestfs_impl_ls (guestfs_h *g, const char *directory)
+ {
+   int fd = -1;
+   struct stat statbuf;
+@@ -622,7 +622,7 @@ statns_to_old_stat (struct guestfs_statns *a, struct guestfs_stat *r)
+ }
+ 
+ struct guestfs_stat *
+-guestfs__stat (guestfs_h *g, const char *path)
++guestfs_impl_stat (guestfs_h *g, const char *path)
+ {
+   CLEANUP_FREE_STATNS struct guestfs_statns *r;
+   struct guestfs_stat *ret;
+@@ -637,7 +637,7 @@ guestfs__stat (guestfs_h *g, const char *path)
+ }
+ 
+ struct guestfs_stat *
+-guestfs__lstat (guestfs_h *g, const char *path)
++guestfs_impl_lstat (guestfs_h *g, const char *path)
+ {
+   CLEANUP_FREE_STATNS struct guestfs_statns *r;
+   struct guestfs_stat *ret;
+@@ -652,7 +652,7 @@ guestfs__lstat (guestfs_h *g, const char *path)
+ }
+ 
+ struct guestfs_stat_list *
+-guestfs__lstatlist (guestfs_h *g, const char *dir, char * const*names)
++guestfs_impl_lstatlist (guestfs_h *g, const char *dir, char * const*names)
+ {
+   CLEANUP_FREE_STATNS_LIST struct guestfs_statns_list *r;
+   struct guestfs_stat_list *ret;
+diff --git a/src/filearch.c b/src/filearch.c
+index 7591ff8..fdc818d 100644
+--- a/src/filearch.c
++++ b/src/filearch.c
+@@ -339,7 +339,7 @@ compressed_file_arch (guestfs_h *g, const char *path, const char *method)
+ }
+ 
+ char *
+-guestfs__file_architecture (guestfs_h *g, const char *path)
++guestfs_impl_file_architecture (guestfs_h *g, const char *path)
+ {
+   CLEANUP_FREE char *file = NULL;
+   CLEANUP_FREE char *elf_arch = NULL;
+@@ -379,7 +379,7 @@ guestfs__file_architecture (guestfs_h *g, const char *path)
+   return r
+ 
+ char *
+-guestfs__file_architecture (guestfs_h *g, const char *path)
++guestfs_impl_file_architecture (guestfs_h *g, const char *path)
+ {
+   NOT_IMPL(NULL);
+ }
+diff --git a/src/fuse.c b/src/fuse.c
+index f8d148b..4ff7315 100644
+--- a/src/fuse.c
++++ b/src/fuse.c
+@@ -952,7 +952,7 @@ static struct fuse_operations mount_local_operations = {
+ };
+ 
+ int
+-guestfs__mount_local (guestfs_h *g, const char *localmountpoint,
++guestfs_impl_mount_local (guestfs_h *g, const char *localmountpoint,
+                       const struct guestfs_mount_local_argv *optargs)
+ {
+   const char *t;
+@@ -1045,7 +1045,7 @@ guestfs__mount_local (guestfs_h *g, const char *localmountpoint,
+ }
+ 
+ int
+-guestfs__mount_local_run (guestfs_h *g)
++guestfs_impl_mount_local_run (guestfs_h *g)
+ {
+   int r, mounted;
+ 
+@@ -1100,7 +1100,7 @@ guestfs_int_free_fuse (guestfs_h *g)
+ }
+ 
+ int
+-guestfs__umount_local (guestfs_h *g,
++guestfs_impl_umount_local (guestfs_h *g,
+                        const struct guestfs_umount_local_argv *optargs)
+ {
+   const char *retry;
+@@ -1503,20 +1503,20 @@ dir_cache_invalidate (guestfs_h *g, const char *path)
+                           "when libguestfs was compiled"))
+ 
+ int
+-guestfs__mount_local (guestfs_h *g, const char *localmountpoint,
++guestfs_impl_mount_local (guestfs_h *g, const char *localmountpoint,
+                       const struct guestfs_mount_local_argv *optargs)
+ {
+   FUSE_NOT_SUPPORTED ();
+ }
+ 
+ int
+-guestfs__mount_local_run (guestfs_h *g)
++guestfs_impl_mount_local_run (guestfs_h *g)
+ {
+   FUSE_NOT_SUPPORTED ();
+ }
+ 
+ int
+-guestfs__umount_local (guestfs_h *g,
++guestfs_impl_umount_local (guestfs_h *g,
+                        const struct guestfs_umount_local_argv *optargs)
+ {
+   FUSE_NOT_SUPPORTED ();
+diff --git a/src/guestfs.pod b/src/guestfs.pod
+index 81347f3..7b7a7c0 100644
+--- a/src/guestfs.pod
++++ b/src/guestfs.pod
+@@ -3811,7 +3811,7 @@ Implement the action (in C):
+ For daemon actions, implement the function C<do_E<lt>nameE<gt>> in the
+ C<daemon/> directory.
+ 
+-For library actions, implement the function C<guestfs__E<lt>nameE<gt>>
++For library actions, implement the function C<guestfs_impl_E<lt>nameE<gt>>
+ (note: double underscore) in the C<src/> directory.
+ 
+ In either case, use another function as an example of what to do.
+diff --git a/src/handle.c b/src/handle.c
+index b712e21..5dc0992 100644
+--- a/src/handle.c
++++ b/src/handle.c
+@@ -284,7 +284,7 @@ call_getenv (const void *data, const char *name)
+ }
+ 
+ int
+-guestfs__parse_environment (guestfs_h *g)
++guestfs_impl_parse_environment (guestfs_h *g)
+ {
+   return parse_environment (g, call_getenv, NULL);
+ }
+@@ -303,7 +303,7 @@ getenv_from_strings (const void *stringsv, const char *name)
+ }
+ 
+ int
+-guestfs__parse_environment_list (guestfs_h *g, char * const *strings)
++guestfs_impl_parse_environment_list (guestfs_h *g, char * const *strings)
+ {
+   return parse_environment (g, getenv_from_strings, strings);
+ }
+@@ -393,7 +393,7 @@ guestfs_close (guestfs_h *g)
+ }
+ 
+ int
+-guestfs__shutdown (guestfs_h *g)
++guestfs_impl_shutdown (guestfs_h *g)
+ {
+   return shutdown_backend (g, 1);
+ }
+@@ -459,33 +459,33 @@ close_handles (void)
+ }
+ 
+ int
+-guestfs__set_verbose (guestfs_h *g, int v)
++guestfs_impl_set_verbose (guestfs_h *g, int v)
+ {
+   g->verbose = !!v;
+   return 0;
+ }
+ 
+ int
+-guestfs__get_verbose (guestfs_h *g)
++guestfs_impl_get_verbose (guestfs_h *g)
+ {
+   return g->verbose;
+ }
+ 
+ int
+-guestfs__set_autosync (guestfs_h *g, int a)
++guestfs_impl_set_autosync (guestfs_h *g, int a)
+ {
+   g->autosync = !!a;
+   return 0;
+ }
+ 
+ int
+-guestfs__get_autosync (guestfs_h *g)
++guestfs_impl_get_autosync (guestfs_h *g)
+ {
+   return g->autosync;
+ }
+ 
+ int
+-guestfs__set_path (guestfs_h *g, const char *path)
++guestfs_impl_set_path (guestfs_h *g, const char *path)
+ {
+   free (g->path);
+   g->path = NULL;
+@@ -497,13 +497,13 @@ guestfs__set_path (guestfs_h *g, const char *path)
+ }
+ 
+ const char *
+-guestfs__get_path (guestfs_h *g)
++guestfs_impl_get_path (guestfs_h *g)
+ {
+   return g->path;
+ }
+ 
+ int
+-guestfs__set_qemu (guestfs_h *g, const char *qemu)
++guestfs_impl_set_qemu (guestfs_h *g, const char *qemu)
+ {
+   char *new_hv;
+ 
+@@ -529,13 +529,13 @@ guestfs__set_qemu (guestfs_h *g, const char *qemu)
+ }
+ 
+ const char *
+-guestfs__get_qemu (guestfs_h *g)
++guestfs_impl_get_qemu (guestfs_h *g)
+ {
+   return g->hv;
+ }
+ 
+ int
+-guestfs__set_hv (guestfs_h *g, const char *hv)
++guestfs_impl_set_hv (guestfs_h *g, const char *hv)
+ {
+   free (g->hv);
+   g->hv = safe_strdup (g, hv);
+@@ -543,13 +543,13 @@ guestfs__set_hv (guestfs_h *g, const char *hv)
+ }
+ 
+ char *
+-guestfs__get_hv (guestfs_h *g)
++guestfs_impl_get_hv (guestfs_h *g)
+ {
+   return safe_strdup (g, g->hv);
+ }
+ 
+ int
+-guestfs__set_append (guestfs_h *g, const char *append)
++guestfs_impl_set_append (guestfs_h *g, const char *append)
+ {
+   free (g->append);
+   g->append = NULL;
+@@ -559,13 +559,13 @@ guestfs__set_append (guestfs_h *g, const char *append)
+ }
+ 
+ const char *
+-guestfs__get_append (guestfs_h *g)
++guestfs_impl_get_append (guestfs_h *g)
+ {
+   return g->append;
+ }
+ 
+ int
+-guestfs__set_memsize (guestfs_h *g, int memsize)
++guestfs_impl_set_memsize (guestfs_h *g, int memsize)
+ {
+   if (memsize < MIN_MEMSIZE) {
+     error (g, _("too small value for memsize (must be at least %d)"), MIN_MEMSIZE);
+@@ -576,26 +576,26 @@ guestfs__set_memsize (guestfs_h *g, int memsize)
+ }
+ 
+ int
+-guestfs__get_memsize (guestfs_h *g)
++guestfs_impl_get_memsize (guestfs_h *g)
+ {
+   return g->memsize;
+ }
+ 
+ int
+-guestfs__set_selinux (guestfs_h *g, int selinux)
++guestfs_impl_set_selinux (guestfs_h *g, int selinux)
+ {
+   g->selinux = selinux;
+   return 0;
+ }
+ 
+ int
+-guestfs__get_selinux (guestfs_h *g)
++guestfs_impl_get_selinux (guestfs_h *g)
+ {
+   return g->selinux;
+ }
+ 
+ struct guestfs_version *
+-guestfs__version (guestfs_h *g)
++guestfs_impl_version (guestfs_h *g)
+ {
+   struct guestfs_version *r;
+ 
+@@ -608,59 +608,59 @@ guestfs__version (guestfs_h *g)
+ }
+ 
+ int
+-guestfs__set_trace (guestfs_h *g, int t)
++guestfs_impl_set_trace (guestfs_h *g, int t)
+ {
+   g->trace = !!t;
+   return 0;
+ }
+ 
+ int
+-guestfs__get_trace (guestfs_h *g)
++guestfs_impl_get_trace (guestfs_h *g)
+ {
+   return g->trace;
+ }
+ 
+ int
+-guestfs__set_direct (guestfs_h *g, int d)
++guestfs_impl_set_direct (guestfs_h *g, int d)
+ {
+   g->direct_mode = !!d;
+   return 0;
+ }
+ 
+ int
+-guestfs__get_direct (guestfs_h *g)
++guestfs_impl_get_direct (guestfs_h *g)
+ {
+   return g->direct_mode;
+ }
+ 
+ int
+-guestfs__set_recovery_proc (guestfs_h *g, int f)
++guestfs_impl_set_recovery_proc (guestfs_h *g, int f)
+ {
+   g->recovery_proc = !!f;
+   return 0;
+ }
+ 
+ int
+-guestfs__get_recovery_proc (guestfs_h *g)
++guestfs_impl_get_recovery_proc (guestfs_h *g)
+ {
+   return g->recovery_proc;
+ }
+ 
+ int
+-guestfs__set_network (guestfs_h *g, int v)
++guestfs_impl_set_network (guestfs_h *g, int v)
+ {
+   g->enable_network = !!v;
+   return 0;
+ }
+ 
+ int
+-guestfs__get_network (guestfs_h *g)
++guestfs_impl_get_network (guestfs_h *g)
+ {
+   return g->enable_network;
+ }
+ 
+ int
+-guestfs__set_program (guestfs_h *g, const char *program)
++guestfs_impl_set_program (guestfs_h *g, const char *program)
+ {
+   free (g->program);
+   g->program = safe_strdup (g, program);
+@@ -669,13 +669,13 @@ guestfs__set_program (guestfs_h *g, const char *program)
+ }
+ 
+ const char *
+-guestfs__get_program (guestfs_h *g)
++guestfs_impl_get_program (guestfs_h *g)
+ {
+   return g->program;
+ }
+ 
+ int
+-guestfs__set_backend (guestfs_h *g, const char *method)
++guestfs_impl_set_backend (guestfs_h *g, const char *method)
+ {
+   if (guestfs_int_set_backend (g, method) == -1) {
+     error (g, "invalid backend: %s", method);
+@@ -686,19 +686,19 @@ guestfs__set_backend (guestfs_h *g, const char *method)
+ }
+ 
+ int
+-guestfs__set_attach_method (guestfs_h *g, const char *method)
++guestfs_impl_set_attach_method (guestfs_h *g, const char *method)
+ {
+   return guestfs_set_backend (g, method);
+ }
+ 
+ char *
+-guestfs__get_backend (guestfs_h *g)
++guestfs_impl_get_backend (guestfs_h *g)
+ {
+   return safe_strdup (g, g->backend);
+ }
+ 
+ char *
+-guestfs__get_attach_method (guestfs_h *g)
++guestfs_impl_get_attach_method (guestfs_h *g)
+ {
+   if (STREQ (g->backend, "direct"))
+     /* Return 'appliance' here for backwards compatibility. */
+@@ -708,7 +708,7 @@ guestfs__get_attach_method (guestfs_h *g)
+ }
+ 
+ int
+-guestfs__set_backend_settings (guestfs_h *g, char *const *settings)
++guestfs_impl_set_backend_settings (guestfs_h *g, char *const *settings)
+ {
+   char **copy;
+ 
+@@ -725,7 +725,7 @@ guestfs__set_backend_settings (guestfs_h *g, char *const *settings)
+ }
+ 
+ char **
+-guestfs__get_backend_settings (guestfs_h *g)
++guestfs_impl_get_backend_settings (guestfs_h *g)
+ {
+   char *empty_list[1] = { NULL };
+   char **ret;
+@@ -744,7 +744,7 @@ guestfs__get_backend_settings (guestfs_h *g)
+ }
+ 
+ char *
+-guestfs__get_backend_setting (guestfs_h *g, const char *name)
++guestfs_impl_get_backend_setting (guestfs_h *g, const char *name)
+ {
+   char **settings = g->backend_settings;
+   size_t namelen = strlen (name);
+@@ -768,7 +768,7 @@ guestfs__get_backend_setting (guestfs_h *g, const char *name)
+ }
+ 
+ int
+-guestfs__clear_backend_setting (guestfs_h *g, const char *name)
++guestfs_impl_clear_backend_setting (guestfs_h *g, const char *name)
+ {
+   char **settings = g->backend_settings;
+   size_t namelen = strlen (name);
+@@ -796,7 +796,7 @@ guestfs__clear_backend_setting (guestfs_h *g, const char *name)
+ }
+ 
+ int
+-guestfs__set_backend_setting (guestfs_h *g, const char *name, const char *value)
++guestfs_impl_set_backend_setting (guestfs_h *g, const char *name, const char *value)
+ {
+   char *new_setting;
+   size_t len;
+@@ -848,20 +848,20 @@ guestfs_int_get_backend_setting_bool (guestfs_h *g, const char *name)
+ }
+ 
+ int
+-guestfs__set_pgroup (guestfs_h *g, int v)
++guestfs_impl_set_pgroup (guestfs_h *g, int v)
+ {
+   g->pgroup = !!v;
+   return 0;
+ }
+ 
+ int
+-guestfs__get_pgroup (guestfs_h *g)
++guestfs_impl_get_pgroup (guestfs_h *g)
+ {
+   return g->pgroup;
+ }
+ 
+ int
+-guestfs__set_smp (guestfs_h *g, int v)
++guestfs_impl_set_smp (guestfs_h *g, int v)
+ {
+   if (v > 255) {
+     error (g, "unsupported number of smp vcpus: %d", v);
+@@ -876,7 +876,7 @@ guestfs__set_smp (guestfs_h *g, int v)
+ }
+ 
+ int
+-guestfs__get_smp (guestfs_h *g)
++guestfs_impl_get_smp (guestfs_h *g)
+ {
+   return g->smp;
+ }
+diff --git a/src/info.c b/src/info.c
+index cec042b..9a967d4 100644
+--- a/src/info.c
++++ b/src/info.c
+@@ -51,7 +51,7 @@ static int64_t old_parser_disk_virtual_size (guestfs_h *g, const char *filename)
+ static int old_parser_disk_has_backing_file (guestfs_h *g, const char *filename);
+ 
+ char *
+-guestfs__disk_format (guestfs_h *g, const char *filename)
++guestfs_impl_disk_format (guestfs_h *g, const char *filename)
+ {
+   switch (which_parser (g)) {
+   case QEMU_IMG_INFO_NEW_PARSER:
+@@ -66,7 +66,7 @@ guestfs__disk_format (guestfs_h *g, const char *filename)
+ }
+ 
+ int64_t
+-guestfs__disk_virtual_size (guestfs_h *g, const char *filename)
++guestfs_impl_disk_virtual_size (guestfs_h *g, const char *filename)
+ {
+   switch (which_parser (g)) {
+   case QEMU_IMG_INFO_NEW_PARSER:
+@@ -81,7 +81,7 @@ guestfs__disk_virtual_size (guestfs_h *g, const char *filename)
+ }
+ 
+ int
+-guestfs__disk_has_backing_file (guestfs_h *g, const char *filename)
++guestfs_impl_disk_has_backing_file (guestfs_h *g, const char *filename)
+ {
+   switch (which_parser (g)) {
+   case QEMU_IMG_INFO_NEW_PARSER:
+diff --git a/src/inspect-apps.c b/src/inspect-apps.c
+index 64b0602..bfc31eb 100644
+--- a/src/inspect-apps.c
++++ b/src/inspect-apps.c
+@@ -65,7 +65,7 @@ static void sort_applications (struct guestfs_application2_list *);
+  * just a wrapper around guestfs_inspect_list_applications2.
+  */
+ struct guestfs_application_list *
+-guestfs__inspect_list_applications (guestfs_h *g, const char *root)
++guestfs_impl_inspect_list_applications (guestfs_h *g, const char *root)
+ {
+   struct guestfs_application_list *ret;
+   struct guestfs_application2_list *r;
+@@ -112,7 +112,7 @@ guestfs__inspect_list_applications (guestfs_h *g, const char *root)
+  * disks are mounted up, and reads files from the mounted disks.
+  */
+ struct guestfs_application2_list *
+-guestfs__inspect_list_applications2 (guestfs_h *g, const char *root)
++guestfs_impl_inspect_list_applications2 (guestfs_h *g, const char *root)
+ {
+   struct guestfs_application2_list *ret = NULL;
+   struct inspect_fs *fs = guestfs_int_search_for_root (g, root);
+diff --git a/src/inspect-fs-windows.c b/src/inspect-fs-windows.c
+index 80e60b4..deaed57 100644
+--- a/src/inspect-fs-windows.c
++++ b/src/inspect-fs-windows.c
+@@ -623,7 +623,7 @@ guestfs_int_case_sensitive_path_silently (guestfs_h *g, const char *path)
+ static char *utf16_to_utf8 (/* const */ char *input, size_t len);
+ 
+ char *
+-guestfs__hivex_value_utf8 (guestfs_h *g, int64_t valueh)
++guestfs_impl_hivex_value_utf8 (guestfs_h *g, int64_t valueh)
+ {
+   char *ret;
+   size_t buflen;
+diff --git a/src/inspect-icon.c b/src/inspect-icon.c
+index 866c80e..bf931b4 100644
+--- a/src/inspect-icon.c
++++ b/src/inspect-icon.c
+@@ -84,7 +84,7 @@ static char *NOT_FOUND = (char *) "not_found";
+  * Check optargs for the optional argument.
+  */
+ char *
+-guestfs__inspect_get_icon (guestfs_h *g, const char *root, size_t *size_r,
++guestfs_impl_inspect_get_icon (guestfs_h *g, const char *root, size_t *size_r,
+                            const struct guestfs_inspect_get_icon_argv *optargs)
+ {
+   struct inspect_fs *fs;
+diff --git a/src/inspect.c b/src/inspect.c
+index 311175d..5c16ade 100644
+--- a/src/inspect.c
++++ b/src/inspect.c
+@@ -39,7 +39,7 @@
+ 
+ /* The main inspection code. */
+ char **
+-guestfs__inspect_os (guestfs_h *g)
++guestfs_impl_inspect_os (guestfs_h *g)
+ {
+   CLEANUP_FREE_STRING_LIST char **fses = NULL;
+   char **fs, **ret;
+@@ -85,7 +85,7 @@ compare_strings (const void *vp1, const void *vp2)
+ }
+ 
+ char **
+-guestfs__inspect_get_roots (guestfs_h *g)
++guestfs_impl_inspect_get_roots (guestfs_h *g)
+ {
+   size_t i;
+   DECLARE_STRINGSBUF (ret);
+@@ -105,7 +105,7 @@ guestfs__inspect_get_roots (guestfs_h *g)
+ }
+ 
+ char *
+-guestfs__inspect_get_type (guestfs_h *g, const char *root)
++guestfs_impl_inspect_get_type (guestfs_h *g, const char *root)
+ {
+   struct inspect_fs *fs = guestfs_int_search_for_root (g, root);
+   char *ret = NULL;
+@@ -132,7 +132,7 @@ guestfs__inspect_get_type (guestfs_h *g, const char *root)
+ }
+ 
+ char *
+-guestfs__inspect_get_arch (guestfs_h *g, const char *root)
++guestfs_impl_inspect_get_arch (guestfs_h *g, const char *root)
+ {
+   struct inspect_fs *fs = guestfs_int_search_for_root (g, root);
+   if (!fs)
+@@ -142,7 +142,7 @@ guestfs__inspect_get_arch (guestfs_h *g, const char *root)
+ }
+ 
+ char *
+-guestfs__inspect_get_distro (guestfs_h *g, const char *root)
++guestfs_impl_inspect_get_distro (guestfs_h *g, const char *root)
+ {
+   struct inspect_fs *fs = guestfs_int_search_for_root (g, root);
+   char *ret = NULL;
+@@ -186,7 +186,7 @@ guestfs__inspect_get_distro (guestfs_h *g, const char *root)
+ }
+ 
+ int
+-guestfs__inspect_get_major_version (guestfs_h *g, const char *root)
++guestfs_impl_inspect_get_major_version (guestfs_h *g, const char *root)
+ {
+   struct inspect_fs *fs = guestfs_int_search_for_root (g, root);
+   if (!fs)
+@@ -196,7 +196,7 @@ guestfs__inspect_get_major_version (guestfs_h *g, const char *root)
+ }
+ 
+ int
+-guestfs__inspect_get_minor_version (guestfs_h *g, const char *root)
++guestfs_impl_inspect_get_minor_version (guestfs_h *g, const char *root)
+ {
+   struct inspect_fs *fs = guestfs_int_search_for_root (g, root);
+   if (!fs)
+@@ -206,7 +206,7 @@ guestfs__inspect_get_minor_version (guestfs_h *g, const char *root)
+ }
+ 
+ char *
+-guestfs__inspect_get_product_name (guestfs_h *g, const char *root)
++guestfs_impl_inspect_get_product_name (guestfs_h *g, const char *root)
+ {
+   struct inspect_fs *fs = guestfs_int_search_for_root (g, root);
+   if (!fs)
+@@ -216,7 +216,7 @@ guestfs__inspect_get_product_name (guestfs_h *g, const char *root)
+ }
+ 
+ char *
+-guestfs__inspect_get_product_variant (guestfs_h *g, const char *root)
++guestfs_impl_inspect_get_product_variant (guestfs_h *g, const char *root)
+ {
+   struct inspect_fs *fs = guestfs_int_search_for_root (g, root);
+   if (!fs)
+@@ -226,7 +226,7 @@ guestfs__inspect_get_product_variant (guestfs_h *g, const char *root)
+ }
+ 
+ char *
+-guestfs__inspect_get_windows_systemroot (guestfs_h *g, const char *root)
++guestfs_impl_inspect_get_windows_systemroot (guestfs_h *g, const char *root)
+ {
+   struct inspect_fs *fs = guestfs_int_search_for_root (g, root);
+   if (!fs)
+@@ -241,7 +241,7 @@ guestfs__inspect_get_windows_systemroot (guestfs_h *g, const char *root)
+ }
+ 
+ char *
+-guestfs__inspect_get_windows_current_control_set (guestfs_h *g,
++guestfs_impl_inspect_get_windows_current_control_set (guestfs_h *g,
+                                                   const char *root)
+ {
+   struct inspect_fs *fs = guestfs_int_search_for_root (g, root);
+@@ -257,7 +257,7 @@ guestfs__inspect_get_windows_current_control_set (guestfs_h *g,
+ }
+ 
+ char *
+-guestfs__inspect_get_format (guestfs_h *g, const char *root)
++guestfs_impl_inspect_get_format (guestfs_h *g, const char *root)
+ {
+   char *ret = NULL;
+   struct inspect_fs *fs = guestfs_int_search_for_root (g, root);
+@@ -277,7 +277,7 @@ guestfs__inspect_get_format (guestfs_h *g, const char *root)
+ }
+ 
+ int
+-guestfs__inspect_is_live (guestfs_h *g, const char *root)
++guestfs_impl_inspect_is_live (guestfs_h *g, const char *root)
+ {
+   struct inspect_fs *fs = guestfs_int_search_for_root (g, root);
+   if (!fs)
+@@ -287,7 +287,7 @@ guestfs__inspect_is_live (guestfs_h *g, const char *root)
+ }
+ 
+ int
+-guestfs__inspect_is_netinst (guestfs_h *g, const char *root)
++guestfs_impl_inspect_is_netinst (guestfs_h *g, const char *root)
+ {
+   struct inspect_fs *fs = guestfs_int_search_for_root (g, root);
+   if (!fs)
+@@ -297,7 +297,7 @@ guestfs__inspect_is_netinst (guestfs_h *g, const char *root)
+ }
+ 
+ int
+-guestfs__inspect_is_multipart (guestfs_h *g, const char *root)
++guestfs_impl_inspect_is_multipart (guestfs_h *g, const char *root)
+ {
+   struct inspect_fs *fs = guestfs_int_search_for_root (g, root);
+   if (!fs)
+@@ -307,7 +307,7 @@ guestfs__inspect_is_multipart (guestfs_h *g, const char *root)
+ }
+ 
+ char **
+-guestfs__inspect_get_mountpoints (guestfs_h *g, const char *root)
++guestfs_impl_inspect_get_mountpoints (guestfs_h *g, const char *root)
+ {
+   char **ret;
+   size_t i, count, nr;
+@@ -358,7 +358,7 @@ guestfs__inspect_get_mountpoints (guestfs_h *g, const char *root)
+ }
+ 
+ char **
+-guestfs__inspect_get_filesystems (guestfs_h *g, const char *root)
++guestfs_impl_inspect_get_filesystems (guestfs_h *g, const char *root)
+ {
+   char **ret;
+   size_t i, nr;
+@@ -388,7 +388,7 @@ guestfs__inspect_get_filesystems (guestfs_h *g, const char *root)
+ }
+ 
+ char **
+-guestfs__inspect_get_drive_mappings (guestfs_h *g, const char *root)
++guestfs_impl_inspect_get_drive_mappings (guestfs_h *g, const char *root)
+ {
+   DECLARE_STRINGSBUF (ret);
+   size_t i;
+@@ -408,7 +408,7 @@ guestfs__inspect_get_drive_mappings (guestfs_h *g, const char *root)
+ }
+ 
+ char *
+-guestfs__inspect_get_package_format (guestfs_h *g, const char *root)
++guestfs_impl_inspect_get_package_format (guestfs_h *g, const char *root)
+ {
+   char *ret = NULL;
+   struct inspect_fs *fs = guestfs_int_search_for_root (g, root);
+@@ -434,7 +434,7 @@ guestfs__inspect_get_package_format (guestfs_h *g, const char *root)
+ }
+ 
+ char *
+-guestfs__inspect_get_package_management (guestfs_h *g, const char *root)
++guestfs_impl_inspect_get_package_management (guestfs_h *g, const char *root)
+ {
+   char *ret = NULL;
+   struct inspect_fs *fs = guestfs_int_search_for_root (g, root);
+@@ -462,7 +462,7 @@ guestfs__inspect_get_package_management (guestfs_h *g, const char *root)
+ }
+ 
+ char *
+-guestfs__inspect_get_hostname (guestfs_h *g, const char *root)
++guestfs_impl_inspect_get_hostname (guestfs_h *g, const char *root)
+ {
+   struct inspect_fs *fs = guestfs_int_search_for_root (g, root);
+   if (!fs)
+diff --git a/src/journal.c b/src/journal.c
+index d2e7269..f01d46f 100644
+--- a/src/journal.c
++++ b/src/journal.c
+@@ -49,7 +49,7 @@
+  * hashtable entries from that.
+  */
+ struct guestfs_xattr_list *
+-guestfs__journal_get (guestfs_h *g)
++guestfs_impl_journal_get (guestfs_h *g)
+ {
+   CLEANUP_UNLINK_FREE char *tmpfile = NULL;
+   CLEANUP_FREE char *buf = NULL;
+diff --git a/src/launch.c b/src/launch.c
+index 18736e6..46ee875 100644
+--- a/src/launch.c
++++ b/src/launch.c
+@@ -46,7 +46,7 @@ static struct backend {
+ static mode_t get_umask (guestfs_h *g);
+ 
+ int
+-guestfs__launch (guestfs_h *g)
++guestfs_impl_launch (guestfs_h *g)
+ {
+   /* Configured? */
+   if (g->state != CONFIG) {
+@@ -166,7 +166,7 @@ guestfs_int_timeval_diff (const struct timeval *x, const struct timeval *y)
+ }
+ 
+ int
+-guestfs__get_pid (guestfs_h *g)
++guestfs_impl_get_pid (guestfs_h *g)
+ {
+   if (g->state != READY || g->backend_ops == NULL) {
+     error (g, _("get-pid can only be called after launch"));
+@@ -182,7 +182,7 @@ guestfs__get_pid (guestfs_h *g)
+ 
+ /* Maximum number of disks. */
+ int
+-guestfs__max_disks (guestfs_h *g)
++guestfs_impl_max_disks (guestfs_h *g)
+ {
+   if (g->backend_ops->max_disks == NULL)
+     NOT_SUPPORTED (g, -1,
+@@ -195,7 +195,7 @@ guestfs__max_disks (guestfs_h *g)
+  * but it is now a no-op.
+  */
+ int
+-guestfs__wait_ready (guestfs_h *g)
++guestfs_impl_wait_ready (guestfs_h *g)
+ {
+   if (g->state != READY)  {
+     error (g, _("qemu has not been launched yet"));
+@@ -206,46 +206,46 @@ guestfs__wait_ready (guestfs_h *g)
+ }
+ 
+ int
+-guestfs__kill_subprocess (guestfs_h *g)
++guestfs_impl_kill_subprocess (guestfs_h *g)
+ {
+   return guestfs_shutdown (g);
+ }
+ 
+ /* Access current state. */
+ int
+-guestfs__is_config (guestfs_h *g)
++guestfs_impl_is_config (guestfs_h *g)
+ {
+   return g->state == CONFIG;
+ }
+ 
+ int
+-guestfs__is_launching (guestfs_h *g)
++guestfs_impl_is_launching (guestfs_h *g)
+ {
+   return g->state == LAUNCHING;
+ }
+ 
+ int
+-guestfs__is_ready (guestfs_h *g)
++guestfs_impl_is_ready (guestfs_h *g)
+ {
+   return g->state == READY;
+ }
+ 
+ int
+-guestfs__is_busy (guestfs_h *g)
++guestfs_impl_is_busy (guestfs_h *g)
+ {
+   /* There used to be a BUSY state but it was removed in 1.17.36. */
+   return 0;
+ }
+ 
+ int
+-guestfs__get_state (guestfs_h *g)
++guestfs_impl_get_state (guestfs_h *g)
+ {
+   return g->state;
+ }
+ 
+ /* Add arbitrary qemu parameters.  Useful for testing. */
+ int
+-guestfs__config (guestfs_h *g,
++guestfs_impl_config (guestfs_h *g,
+                  const char *hv_param, const char *hv_value)
+ {
+   struct hv_param *hp;
+diff --git a/src/libvirt-auth.c b/src/libvirt-auth.c
+index af8b4a4..68d1f12 100644
+--- a/src/libvirt-auth.c
++++ b/src/libvirt-auth.c
+@@ -82,7 +82,7 @@ get_string_of_credtype (int credtype)
+  * an error or not, so don't depend on the current behaviour.
+  */
+ int
+-guestfs__set_libvirt_supported_credentials (guestfs_h *g, char *const *creds)
++guestfs_impl_set_libvirt_supported_credentials (guestfs_h *g, char *const *creds)
+ {
+   size_t i;
+   int credtype;
+@@ -248,7 +248,7 @@ guestfs_int_open_libvirt_connection (guestfs_h *g, const char *uri,
+   }
+ 
+ char **
+-guestfs__get_libvirt_requested_credentials (guestfs_h *g)
++guestfs_impl_get_libvirt_requested_credentials (guestfs_h *g)
+ {
+   DECLARE_STRINGSBUF (ret);
+   size_t i;
+@@ -265,7 +265,7 @@ guestfs__get_libvirt_requested_credentials (guestfs_h *g)
+ }
+ 
+ char *
+-guestfs__get_libvirt_requested_credential_prompt (guestfs_h *g, int index)
++guestfs_impl_get_libvirt_requested_credential_prompt (guestfs_h *g, int index)
+ {
+   size_t i;
+ 
+@@ -285,7 +285,7 @@ guestfs__get_libvirt_requested_credential_prompt (guestfs_h *g, int index)
+ }
+ 
+ char *
+-guestfs__get_libvirt_requested_credential_challenge (guestfs_h *g, int index)
++guestfs_impl_get_libvirt_requested_credential_challenge (guestfs_h *g, int index)
+ {
+   size_t i;
+ 
+@@ -305,7 +305,7 @@ guestfs__get_libvirt_requested_credential_challenge (guestfs_h *g, int index)
+ }
+ 
+ char *
+-guestfs__get_libvirt_requested_credential_defresult (guestfs_h *g, int index)
++guestfs_impl_get_libvirt_requested_credential_defresult (guestfs_h *g, int index)
+ {
+   size_t i;
+ 
+@@ -325,7 +325,7 @@ guestfs__get_libvirt_requested_credential_defresult (guestfs_h *g, int index)
+ }
+ 
+ int
+-guestfs__set_libvirt_requested_credential (guestfs_h *g, int index,
++guestfs_impl_set_libvirt_requested_credential (guestfs_h *g, int index,
+                                            const char *cred, size_t cred_size)
+ {
+   size_t i;
+@@ -359,37 +359,37 @@ guestfs__set_libvirt_requested_credential (guestfs_h *g, int index,
+   return r
+ 
+ int
+-guestfs__set_libvirt_supported_credentials (guestfs_h *g, char *const *creds)
++guestfs_impl_set_libvirt_supported_credentials (guestfs_h *g, char *const *creds)
+ {
+   NOT_IMPL(-1);
+ }
+ 
+ char **
+-guestfs__get_libvirt_requested_credentials (guestfs_h *g)
++guestfs_impl_get_libvirt_requested_credentials (guestfs_h *g)
+ {
+   NOT_IMPL(NULL);
+ }
+ 
+ char *
+-guestfs__get_libvirt_requested_credential_prompt (guestfs_h *g, int index)
++guestfs_impl_get_libvirt_requested_credential_prompt (guestfs_h *g, int index)
+ {
+   NOT_IMPL(NULL);
+ }
+ 
+ char *
+-guestfs__get_libvirt_requested_credential_challenge (guestfs_h *g, int index)
++guestfs_impl_get_libvirt_requested_credential_challenge (guestfs_h *g, int index)
+ {
+   NOT_IMPL(NULL);
+ }
+ 
+ char *
+-guestfs__get_libvirt_requested_credential_defresult (guestfs_h *g, int index)
++guestfs_impl_get_libvirt_requested_credential_defresult (guestfs_h *g, int index)
+ {
+   NOT_IMPL(NULL);
+ }
+ 
+ int
+-guestfs__set_libvirt_requested_credential (guestfs_h *g, int index, const char *cred, size_t cred_size)
++guestfs_impl_set_libvirt_requested_credential (guestfs_h *g, int index, const char *cred, size_t cred_size)
+ {
+   NOT_IMPL(-1);
+ }
+diff --git a/src/libvirt-domain.c b/src/libvirt-domain.c
+index 7897240..7fb9fd0 100644
+--- a/src/libvirt-domain.c
++++ b/src/libvirt-domain.c
+@@ -50,7 +50,7 @@ ignore_errors (void *ignore, virErrorPtr ignore2)
+ }
+ 
+ int
+-guestfs__add_domain (guestfs_h *g, const char *domain_name,
++guestfs_impl_add_domain (guestfs_h *g, const char *domain_name,
+                      const struct guestfs_add_domain_argv *optargs)
+ {
+   virErrorPtr err;
+@@ -783,7 +783,7 @@ get_domain_xml (guestfs_h *g, virDomainPtr dom)
+   return r
+ 
+ int
+-guestfs__add_domain (guestfs_h *g, const char *dom,
++guestfs_impl_add_domain (guestfs_h *g, const char *dom,
+                      const struct guestfs_add_domain_argv *optargs)
+ {
+   NOT_IMPL(-1);
+diff --git a/src/listfs.c b/src/listfs.c
+index 836ede2..707e229 100644
+--- a/src/listfs.c
++++ b/src/listfs.c
+@@ -43,7 +43,7 @@ static int check_with_vfs_type (guestfs_h *g, const char *dev, struct stringsbuf
+ static int is_mbr_partition_type_42 (guestfs_h *g, const char *partition);
+ 
+ char **
+-guestfs__list_filesystems (guestfs_h *g)
++guestfs_impl_list_filesystems (guestfs_h *g)
+ {
+   size_t i;
+   DECLARE_STRINGSBUF (ret);
+diff --git a/src/tmpdirs.c b/src/tmpdirs.c
+index 1e49ba7..b1f1445 100644
+--- a/src/tmpdirs.c
++++ b/src/tmpdirs.c
+@@ -78,14 +78,14 @@ guestfs_int_set_env_tmpdir (guestfs_h *g, const char *tmpdir)
+ }
+ 
+ int
+-guestfs__set_tmpdir (guestfs_h *g, const char *tmpdir)
++guestfs_impl_set_tmpdir (guestfs_h *g, const char *tmpdir)
+ {
+   return set_abs_path (g, tmpdir, &g->int_tmpdir);
+ }
+ 
+ /* Note this actually calculates the tmpdir, so it never returns NULL. */
+ char *
+-guestfs__get_tmpdir (guestfs_h *g)
++guestfs_impl_get_tmpdir (guestfs_h *g)
+ {
+   const char *str;
+ 
+@@ -100,14 +100,14 @@ guestfs__get_tmpdir (guestfs_h *g)
+ }
+ 
+ int
+-guestfs__set_cachedir (guestfs_h *g, const char *cachedir)
++guestfs_impl_set_cachedir (guestfs_h *g, const char *cachedir)
+ {
+   return set_abs_path (g, cachedir, &g->int_cachedir);
+ }
+ 
+ /* Note this actually calculates the cachedir, so it never returns NULL. */
+ char *
+-guestfs__get_cachedir (guestfs_h *g)
++guestfs_impl_get_cachedir (guestfs_h *g)
+ {
+   const char *str;
+ 
+-- 
+1.8.3.1
+

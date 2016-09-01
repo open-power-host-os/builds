@@ -1,0 +1,41 @@
+From 28ca86d12286aad430378cbf416c966cdfddfbdf Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Sat, 24 Jan 2015 15:40:05 +0000
+Subject: [PATCH] aarch64: Increase default appliance memory size on aarch64.
+
+Kernel 3.19 has problems uncompressing the RAM disk with <= 500 MB.
+(This is likely to be a kernel bug)
+
+64 KB pages are common on aarch64, so treat this case the same as ppc,
+and use a larger default appliance memory size.
+
+Thanks: Laszlo Ersek for help and reproducing the bug.
+(cherry picked from commit c24f242521e882380c28d0952007d8462040d998)
+---
+ src/guestfs-internal.h | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/src/guestfs-internal.h b/src/guestfs-internal.h
+index d5de345..d9ccf5f 100644
+--- a/src/guestfs-internal.h
++++ b/src/guestfs-internal.h
+@@ -68,6 +68,16 @@
+ #  define MIN_MEMSIZE 256
+ #endif
+ 
++/* Kernel 3.19 is unable to uncompress the initramfs on aarch64 unless
++ * we have > 500 MB of space.  This looks like a kernel bug (earlier
++ * kernels have no problems).  However since 64 KB pages are also
++ * common on aarch64, treat this like the ppc case above.
++ */
++#ifdef __aarch64__
++#  define DEFAULT_MEMSIZE 768
++#  define MIN_MEMSIZE 256
++#endif
++
+ /* Valgrind has a fairly hefty memory overhead.  Using the defaults
+  * caused the C API tests to fail.
+  */
+-- 
+1.8.3.1
+

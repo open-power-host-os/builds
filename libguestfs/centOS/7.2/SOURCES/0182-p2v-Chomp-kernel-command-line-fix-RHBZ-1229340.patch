@@ -1,0 +1,33 @@
+From b34585b2a2998ade39c9a3ab119f396d67c051f3 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 9 Jun 2015 14:09:55 +0100
+Subject: [PATCH] p2v: Chomp kernel command line (fix) (RHBZ#1229340).
+
+Calculate the length of the string, not the length of the buffer.
+
+This fixes commit 6114c10df05cdb1662ac22930010fd45714f9c40.
+
+(cherry picked from commit fc554d422a95f0cef21073a3a8ba0b2d8ddbab45)
+---
+ p2v/main.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/p2v/main.c b/p2v/main.c
+index fd9c156..2dba1b8 100644
+--- a/p2v/main.c
++++ b/p2v/main.c
+@@ -517,6 +517,11 @@ read_cmdline (void)
+     return NULL;
+   }
+ 
++  /* 'len' is not the length of the string, but the length of the
++   * buffer.  We need to chomp the string.
++   */
++  len = strlen (ret);
++
+   if (len >= 1 && ret[len-1] == '\n')
+     ret[len-1] = '\0';
+ 
+-- 
+1.8.3.1
+

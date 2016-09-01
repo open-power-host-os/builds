@@ -1,0 +1,93 @@
+From 0c4505463744dafcb2fdecd5d7317f5cdf573d42 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 8 Jun 2015 14:41:46 +0100
+Subject: [PATCH] p2v: Update documentation.
+
+- How to configure virt-p2v for PXE boot.
+
+- How to test PXE boot using qemu.
+
+(cherry picked from commit cca4343203f18367033a56139231ff2518ad6655)
+---
+ p2v/virt-p2v-make-kickstart.pod | 42 ++++++++++++++++++++++++++++++++++++++++-
+ p2v/virt-p2v.pod                |  4 ++--
+ 2 files changed, 43 insertions(+), 3 deletions(-)
+
+diff --git a/p2v/virt-p2v-make-kickstart.pod b/p2v/virt-p2v-make-kickstart.pod
+index a17c34c..47ca737 100644
+--- a/p2v/virt-p2v-make-kickstart.pod
++++ b/p2v/virt-p2v-make-kickstart.pod
+@@ -120,7 +120,9 @@ containing the files required to PXE boot virt-p2v:
+  tftpboot/pxelinux.cfg:
+  default
+ 
+-=head1 TESTING THE P2V ISO USING QEMU
++=head1 TESTING VIRT-P2V USING QEMU
++
++=head2 TESTING THE P2V ISO USING QEMU
+ 
+ You can use qemu to test-boot the P2V ISO:
+ 
+@@ -130,6 +132,44 @@ Note that C<-hda> is the (virtual) system that you want to convert
+ (for test purposes).  It could be any guest type supported by
+ L<virt-v2v(1)>, including Windows or Red Hat Enterprise Linux.
+ 
++=head2 TESTING PXE SUPPORT USING QEMU
++
++=over 4
++
++=item *
++
++Unpack the tftpboot directory into C</tmp> (so it appears as
++C</tmp/tftpboot>).
++
++=item *
++
++Copy C<pxelinux.0> and C<ldlinux.c32> from syslinux (usually from
++C</usr/share/syslinux>) into C</tmp/tftpboot>.
++
++=item *
++
++Adjust the C<APPEND> line in C</tmp/tftpboot/pxelinux.cfg/default> if
++required.  See L<virt-p2v(1)/KERNEL COMMAND LINE CONFIGURATION>.
++
++=item *
++
++Run qemu like this so that it acts as a TFTP and BOOTP server,
++emulating a netboot:
++
++ qemu-kvm \
++     -m 4096 -hda /tmp/guest.img \
++     -boot n \
++     -netdev user,id=unet,tftp=/tmp/tftpboot,bootfile=/pxelinux.0 \
++     -device virtio-net-pci,netdev=unet \
++     -serial stdio
++
++Note that this requires considerably more memory because the PXE image
++is loaded into memory.  Also that qemu's TFTP server is very slow and
++the virt-p2v PXE image is very large, so it can appear to "hang" after
++pxelinux starts up.
++
++=back
++
+ =head1 OPTIONS
+ 
+ =over 4
+diff --git a/p2v/virt-p2v.pod b/p2v/virt-p2v.pod
+index 15e68bd..9c1dba1 100644
+--- a/p2v/virt-p2v.pod
++++ b/p2v/virt-p2v.pod
+@@ -288,8 +288,8 @@ in the C<pxelinux.cfg> file.  For example:
+  TIMEOUT 20
+  PROMPT 0
+  LABEL p2v
+-   KERNEL virt-p2v-vmlinuz
+-   APPEND initrd=virt-p2v-initrd p2v.server=conv.example.com p2v.password=secret p2v.o=libvirt
++   KERNEL vmlinuz0
++   APPEND initrd=initrd0.img [....] p2v.server=conv.example.com p2v.password=secret p2v.o=libvirt
+ 
+ You have to set some or all of the following command line arguments:
+ 
+-- 
+1.8.3.1
+

@@ -1,0 +1,29 @@
+From e5760106dab5690b3d39ecd9b90111454a2e0976 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 11 Aug 2015 15:49:28 +0100
+Subject: [PATCH] p2v: Add tar to the kickstart.
+
+Work around https://bugzilla.redhat.com/show_bug.cgi?id=1182362
+
+(cherry picked from commit bfd151b8bfc7d236aac72ef04f62efbd6e6547d7)
+---
+ p2v/p2v.ks.in | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/p2v/p2v.ks.in b/p2v/p2v.ks.in
+index a14ee46..c201ab5 100644
+--- a/p2v/p2v.ks.in
++++ b/p2v/p2v.ks.in
+@@ -59,6 +59,9 @@ firewalld
+ /usr/bin/base64
+ /usr/bin/gzip
+ 
++# Work around https://bugzilla.redhat.com/show_bug.cgi?id=1182362
++tar
++
+ # The dependencies of virt-p2v.
+ /usr/bin/xinit
+ /usr/bin/ssh
+-- 
+1.8.3.1
+

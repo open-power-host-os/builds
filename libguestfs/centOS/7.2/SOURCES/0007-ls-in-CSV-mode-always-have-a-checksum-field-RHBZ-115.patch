@@ -1,0 +1,42 @@
+From 558b40360a293f981bcf8673a97baa8d285c3303 Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Mon, 13 Oct 2014 15:51:34 +0200
+Subject: [PATCH] ls: in CSV mode, always have a checksum field (RHBZ#1151900).
+
+Make sure to output the field for checksum even for non-regular files,
+as empty, in CSV output mode. This ensures each line has the same number
+of fields, regardless of the file type.
+
+(cherry picked from commit e5befcacc5f7c1a6bd67fcdb92afede1a82d50eb)
+---
+ cat/ls.c | 13 ++++++++-----
+ 1 file changed, 8 insertions(+), 5 deletions(-)
+
+diff --git a/cat/ls.c b/cat/ls.c
+index de8248e..2cb4e74 100644
+--- a/cat/ls.c
++++ b/cat/ls.c
+@@ -524,12 +524,15 @@ show_file (const char *dir, const char *name,
+ 
+   path = full_path (dir, name);
+ 
+-  if (checksum && is_reg (stat->st_mode)) {
+-    csum = guestfs_checksum (g, checksum, path);
+-    if (!csum)
+-      exit (EXIT_FAILURE);
++  if (checksum) {
++    if (is_reg (stat->st_mode)) {
++      csum = guestfs_checksum (g, checksum, path);
++      if (!csum)
++        exit (EXIT_FAILURE);
+ 
+-    output_string (csum);
++      output_string (csum);
++    } else if (csv)
++      output_string ("");
+   }
+ 
+   output_string (path);
+-- 
+1.8.3.1
+

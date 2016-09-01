@@ -1,0 +1,42 @@
+From 29ea861fd1b10c2ce3cc9e44de2d61fdc0346882 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 17 Nov 2014 09:31:55 +0000
+Subject: [PATCH] Fix minor typo in release notes (RHBZ#1164697).
+
+(cherry picked from commit 88f2bc1a7bf769424fc219dae925a70a04b19294)
+---
+ guestfs-release-notes.pod | 2 +-
+ guestfs-release-notes.txt | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/guestfs-release-notes.pod b/guestfs-release-notes.pod
+index 87df533..3f85e2b 100644
+--- a/guestfs-release-notes.pod
++++ b/guestfs-release-notes.pod
+@@ -338,7 +338,7 @@ Illegal command 'part-get-name /dev/sda1 1' cause libguestfs appliance crashed
+ 
+ =item L<https://bugzilla.redhat.com/1142004>
+ 
+-virt-v2v prints waring:WARNING:/files/boot/grub/device.map references unknown device "xvda"
++virt-v2v prints warning:WARNING:/files/boot/grub/device.map references unknown device "xvda"
+ 
+ =item L<https://bugzilla.redhat.com/1141723>
+ 
+diff --git a/guestfs-release-notes.txt b/guestfs-release-notes.txt
+index 03178aa..6778537 100644
+--- a/guestfs-release-notes.txt
++++ b/guestfs-release-notes.txt
+@@ -322,8 +322,8 @@ RELEASE NOTES FOR LIBGUESTFS 1.28
+ 
+     https://bugzilla.redhat.com/1142004
+ 
+-      virt-v2v prints waring:WARNING:/files/boot/grub/device.map references
+-      unknown device "xvda"
++      virt-v2v prints warning:WARNING:/files/boot/grub/device.map
++      references unknown device "xvda"
+ 
+     https://bugzilla.redhat.com/1141723
+ 
+-- 
+1.8.3.1
+

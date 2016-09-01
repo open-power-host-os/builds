@@ -1,0 +1,93 @@
+From 76ebcac68d5e2da63494e94c6f6039677515ca7f Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 6 Nov 2014 18:47:34 +0000
+Subject: [PATCH] v2v: Fix kernel detection when multiple kernels are installed
+ (RHBZ#1161250).
+
+Previously we used to try to find the 'vmlinuz' file by running 'rpm
+-ql kernel' and looking for any file called 'vmlinuz-*'.
+
+If there were multiple 'kernel' packages installed, the rpm command
+would list files from all of them, resulting in a random 'vmlinuz-*'
+being chosen, not necessarily the one corresponding to the kernel
+package we were looking at.
+
+Use 'rpm -ql kernel-<VERSION>-<RELEASE>' instead so that we only look
+for files in the right kernel package.
+
+Thanks: James Mighion
+(cherry picked from commit 377bc302f11db3da4263f894c76a7d280fb25dbd)
+---
+ v2v/convert_linux.ml |  2 +-
+ v2v/linux.ml         | 17 +++++++++++++++--
+ v2v/linux.mli        |  2 +-
+ 3 files changed, 17 insertions(+), 4 deletions(-)
+
+diff --git a/v2v/convert_linux.ml b/v2v/convert_linux.ml
+index 6c0c903..b6335d9 100644
+--- a/v2v/convert_linux.ml
++++ b/v2v/convert_linux.ml
+@@ -148,7 +148,7 @@ let rec convert ~verbose ~keep_serial_console (g : G.guestfs) inspect source =
+           when name = "kernel" || string_prefix name "kernel-" ->
+         (try
+            (* For each kernel, list the files directly owned by the kernel. *)
+-           let files = Linux.file_list_of_package verbose g inspect name in
++           let files = Linux.file_list_of_package verbose g inspect app in
+ 
+            (* Which of these is the kernel itself? *)
+            let vmlinuz = List.find (
+diff --git a/v2v/linux.ml b/v2v/linux.ml
+index 2c743e3..4287a4f 100644
+--- a/v2v/linux.ml
++++ b/v2v/linux.ml
+@@ -24,6 +24,8 @@ open Common_utils
+ open Types
+ open Utils
+ 
++module G = Guestfs
++
+ (* Wrappers around aug_init & aug_load which can dump out full Augeas
+  * parsing problems when debugging is enabled.
+  *)
+@@ -115,12 +117,23 @@ let remove verbose g inspect packages =
+         format (String.concat " " packages)
+   )
+ 
+-let file_list_of_package verbose (g : Guestfs.guestfs) inspect name =
++let file_list_of_package verbose (g : Guestfs.guestfs) inspect app =
+   let package_format = inspect.i_package_format in
+ 
+   match package_format with
+   | "rpm" ->
+-    let cmd = [| "rpm"; "-ql"; name |] in
++    (* Since RPM allows multiple packages installed with the same
++     * name, always check the full ENVR here (RHBZ#1161250).
++     *)
++    let pkg_name =
++      sprintf "%s-%s-%s" app.G.app2_name
++        app.G.app2_version app.G.app2_release in
++    let pkg_name =
++      if app.G.app2_epoch > 0_l then
++        sprintf "%ld:%s" app.G.app2_epoch pkg_name
++      else
++        pkg_name in
++    let cmd = [| "rpm"; "-ql"; pkg_name |] in
+     if verbose then eprintf "%s\n%!" (String.concat " " (Array.to_list cmd));
+     let files = g#command_lines cmd in
+     let files = Array.to_list files in
+diff --git a/v2v/linux.mli b/v2v/linux.mli
+index e5a3025..14e757b 100644
+--- a/v2v/linux.mli
++++ b/v2v/linux.mli
+@@ -31,7 +31,7 @@ val install : bool -> Guestfs.guestfs -> Types.inspect -> string list -> unit
+ val remove : bool -> Guestfs.guestfs -> Types.inspect -> string list -> unit
+ (** Uninstall package(s). *)
+ 
+-val file_list_of_package : bool -> Guestfs.guestfs -> Types.inspect -> string -> string list
++val file_list_of_package : bool -> Guestfs.guestfs -> Types.inspect -> Guestfs.application2 -> string list
+ (** Return list of files owned by package. *)
+ 
+ val file_owner : bool -> Guestfs.guestfs -> Types.inspect -> string -> string
+-- 
+1.8.3.1
+

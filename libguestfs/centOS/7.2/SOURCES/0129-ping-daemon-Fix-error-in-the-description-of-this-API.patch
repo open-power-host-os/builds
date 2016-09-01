@@ -1,0 +1,28 @@
+From f2e747fd52fccb1fef13f1a7f8793b05854c26c0 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 18 Dec 2014 10:59:15 +0000
+Subject: [PATCH] ping-daemon: Fix error in the description of this API
+ (RHBZ#1175676).
+
+Thanks: Lingfei Kong
+(cherry picked from commit f6e74ecd73d9aeeb4c9ef0044d7112645b09172f)
+---
+ generator/actions.ml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/generator/actions.ml b/generator/actions.ml
+index 263c6f3..c7a1777 100644
+--- a/generator/actions.ml
++++ b/generator/actions.ml
+@@ -5273,7 +5273,7 @@ running the program." };
+     shortdesc = "ping the guest daemon";
+     longdesc = "\
+ This is a test probe into the guestfs daemon running inside
+-the hypervisor.  Calling this function checks that the
++the libguestfs appliance.  Calling this function checks that the
+ daemon responds to the ping message, without affecting the daemon
+ or attached block device(s) in any other way." };
+ 
+-- 
+1.8.3.1
+

@@ -1,0 +1,36 @@
+From 0d62524f6318979bdb5226c87bf0c7155d110879 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 3 Nov 2014 19:38:12 +0000
+Subject: [PATCH] v2v: Ensure --bridge and --network args are documented
+ correctly in --help output.
+
+(cherry picked from commit 39f524d79b10a3654ee4879951a3ef8dcc99a46f)
+---
+ v2v/cmdline.ml | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/v2v/cmdline.ml b/v2v/cmdline.ml
+index 9c3253e..69a627f 100644
+--- a/v2v/cmdline.ml
++++ b/v2v/cmdline.ml
+@@ -144,7 +144,7 @@ let parse_cmdline () =
+   let ditto = " -\"-" in
+   let argspec = Arg.align [
+     "-b",        Arg.String add_bridge,     "in:out " ^ s_"Map bridge 'in' to 'out'";
+-    "--bridge",  Arg.String add_bridge,     ditto;
++    "--bridge",  Arg.String add_bridge,     "in:out " ^ ditto;
+     "--debug-gc",Arg.Set debug_gc,          " " ^ s_"Debug GC and memory allocations";
+     "--debug-overlay",Arg.Set debug_overlays,
+     " " ^ s_"Save overlay files";
+@@ -157,7 +157,7 @@ let parse_cmdline () =
+     "--long-options", Arg.Unit display_long_options, " " ^ s_"List long options";
+     "--machine-readable", Arg.Set machine_readable, " " ^ s_"Make output machine readable";
+     "-n",        Arg.String add_network,    "in:out " ^ s_"Map network 'in' to 'out'";
+-    "--network", Arg.String add_network,    ditto;
++    "--network", Arg.String add_network,    "in:out " ^ ditto;
+     "--no-copy", Arg.Clear do_copy,         " " ^ s_"Just write the metadata";
+     "--no-trim", Arg.String set_no_trim,    "all|mp,mp,.." ^ s_"Don't trim selected mounts";
+     "-o",        Arg.String set_output_mode, o_options ^ " " ^ s_"Set output mode (default: libvirt)";
+-- 
+1.8.3.1
+

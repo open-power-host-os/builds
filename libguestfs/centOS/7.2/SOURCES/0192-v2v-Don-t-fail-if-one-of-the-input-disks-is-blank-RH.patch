@@ -1,0 +1,157 @@
+From c3f824a71eb165d45231bfb3561b3ac1b4e35c1e Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 16 Jun 2015 12:15:29 +0100
+Subject: [PATCH] v2v: Don't fail if one of the input disks is blank
+ (RHBZ#1232192).
+
+This also adds a regression test since it is probably easy to break
+this in future.
+
+Thanks: Junqin Zhou
+(cherry picked from commit 4c73d1d4f142c6f6211c963beea68773e11fd3ef)
+---
+ tests/regressions/Makefile.am     |  3 +++
+ tests/regressions/rhbz1232192.sh  | 56 +++++++++++++++++++++++++++++++++++++++
+ tests/regressions/rhbz1232192.xml | 26 ++++++++++++++++++
+ v2v/v2v.ml                        |  7 ++++-
+ 4 files changed, 91 insertions(+), 1 deletion(-)
+ create mode 100755 tests/regressions/rhbz1232192.sh
+ create mode 100644 tests/regressions/rhbz1232192.xml
+
+diff --git a/tests/regressions/Makefile.am b/tests/regressions/Makefile.am
+index 72d26da..1cd50b4 100644
+--- a/tests/regressions/Makefile.am
++++ b/tests/regressions/Makefile.am
+@@ -43,6 +43,8 @@ EXTRA_DIST = \
+ 	rhbz1054761.sh \
+ 	rhbz1091803.sh \
+ 	rhbz1175196.sh \
++	rhbz1232192.sh \
++	rhbz1232192.xml \
+ 	test-noexec-stack.pl
+ 
+ TESTS = \
+@@ -68,6 +70,7 @@ TESTS = \
+ 	rhbz1055452 \
+ 	rhbz1091803.sh \
+ 	rhbz1175196.sh \
++	rhbz1232192.sh \
+ 	test-noexec-stack.pl
+ 
+ if HAVE_LIBVIRT
+diff --git a/tests/regressions/rhbz1232192.sh b/tests/regressions/rhbz1232192.sh
+new file mode 100755
+index 0000000..5b4b31e
+--- /dev/null
++++ b/tests/regressions/rhbz1232192.sh
+@@ -0,0 +1,56 @@
++#!/bin/bash -
++# libguestfs
++# Copyright (C) 2015 Red Hat Inc.
++#
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 2 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++
++# Regression test for virt-v2v handling of blank disks:
++# https://bugzilla.redhat.com/show_bug.cgi?id=1232192
++
++set -e
++export LANG=C
++
++if [ -n "$SKIP_TEST_RHBZ1232192_SH" ]; then
++    echo "$0: test skipped because environment variable is set"
++    exit 77
++fi
++
++if ! ../../v2v/virt-v2v --help >/dev/null 2>&1; then
++    echo "$0: test skipped because virt-v2v was not built"
++    exit 77
++fi
++
++if [ "$(guestfish get-backend)" = "uml" ]; then
++    echo "$0: test skipped because UML backend does not support network"
++    exit 77
++fi
++
++if [ ! -f ../guests/windows.img ] || [ ! -s ../guests/windows.img ]; then
++    echo "$0: test skipped because tests/guests/windows.img was not built"
++    exit 77
++fi
++
++if [ ! -f ../guests/blank-disk.img ]; then
++    echo "$0: test skipped because tests/guests/blank-disk.img was not built"
++    exit 77
++fi
++
++virt_tools_data_dir=${VIRT_TOOLS_DATA_DIR:-/usr/share/virt-tools}
++if ! test -r $virt_tools_data_dir/rhsrvany.exe; then
++    echo "$0: test skipped because rhsrvany.exe is not installed"
++    exit 77
++fi
++
++../../v2v/virt-v2v -i libvirtxml rhbz1232192.xml -o null --no-copy
+diff --git a/tests/regressions/rhbz1232192.xml b/tests/regressions/rhbz1232192.xml
+new file mode 100644
+index 0000000..c31ea24
+--- /dev/null
++++ b/tests/regressions/rhbz1232192.xml
+@@ -0,0 +1,26 @@
++<domain type='kvm'>
++  <name>rhbz1232192</name>
++  <memory>1048576</memory>
++  <vcpu>2</vcpu>
++  <os>
++    <type>hvm</type>
++    <boot dev='hd'/>
++  </os>
++  <features>
++    <acpi/>
++    <apic/>
++    <pae/>
++  </features>
++  <devices>
++    <disk type='file' device='disk'>
++      <driver name='qemu' type='raw'/>
++      <source file='../guests/windows.img'/>
++      <target dev='hda' bus='ide'/>
++    </disk>
++    <disk type='file' device='disk'>
++      <driver name='qemu' type='raw'/>
++      <source file='../guests/blank-disk.img'/>
++      <target dev='hdb' bus='ide'/>
++    </disk>
++  </devices>
++</domain>
+diff --git a/v2v/v2v.ml b/v2v/v2v.ml
+index 859b92a..033d75b 100644
+--- a/v2v/v2v.ml
++++ b/v2v/v2v.ml
+@@ -549,8 +549,13 @@ and inspect_source ~verbose g root_choice =
+     let rec uefi_ESP_guid = "C12A7328-F81F-11D2-BA4B-00A0C93EC93B"
+     and is_uefi_ESP dev { G.part_num = partnum } =
+       g#part_get_gpt_type dev (Int32.to_int partnum) = uefi_ESP_guid
++    and parttype_is_gpt dev =
++      try g#part_get_parttype dev = "gpt"
++      with G.Error msg ->
++        if verbose then printf "%s (ignored)\n" msg;
++        false
+     and is_uefi_bootable_device dev =
+-      g#part_get_parttype dev = "gpt" && (
++      parttype_is_gpt dev && (
+         let partitions = Array.to_list (g#part_list dev) in
+         List.exists (is_uefi_ESP dev) partitions
+       )
+-- 
+1.8.3.1
+

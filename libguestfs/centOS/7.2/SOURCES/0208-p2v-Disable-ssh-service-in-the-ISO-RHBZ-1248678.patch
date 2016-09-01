@@ -1,0 +1,30 @@
+From 19f04c83cad40c60a530bfd09a479f24f944e7ae Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 5 Aug 2015 12:39:10 +0100
+Subject: [PATCH] p2v: Disable ssh service in the ISO (RHBZ#1248678).
+
+We don't want people to be able to ssh into the p2v ISO while it is
+running, with a simple, known root password.
+
+(cherry picked from commit 007004a536c2893d31cf8e2ba3def629dc002203)
+---
+ p2v/p2v.ks.in | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/p2v/p2v.ks.in b/p2v/p2v.ks.in
+index a3b63ab..94c2dfe 100644
+--- a/p2v/p2v.ks.in
++++ b/p2v/p2v.ks.in
+@@ -127,6 +127,9 @@ systemctl set-default multi-user.target
+ # Start p2v service
+ systemctl enable p2v.service
+ 
++# Disable ssh service (RHBZ#1248678)
++systemctl disable sshd.service
++
+ %end
+ 
+ %post --nochroot
+-- 
+1.8.3.1
+

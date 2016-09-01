@@ -1,0 +1,47 @@
+From 87979f276677b934e930e2cb78803715635e4496 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 27 Oct 2014 13:41:49 +0000
+Subject: [PATCH] p2v: Add "Hardware Support" group to the P2V images
+ (RHBZ#1157679).
+
+Thanks: Chris Adams
+(cherry picked from commit 91788cd76f23227c102293a5dc5eef1c30cf7858)
+---
+ p2v/p2v.ks.in             | 1 +
+ p2v/virt-p2v-make-disk.in | 3 ++-
+ 2 files changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/p2v/p2v.ks.in b/p2v/p2v.ks.in
+index 3019c4e..c21424f 100644
+--- a/p2v/p2v.ks.in
++++ b/p2v/p2v.ks.in
+@@ -64,6 +64,7 @@ matchbox-window-manager
+ pcre
+ libxml2
+ gtk2
++@hardware-support --optional
+ 
+ %end
+ 
+diff --git a/p2v/virt-p2v-make-disk.in b/p2v/virt-p2v-make-disk.in
+index af1d6f4..c29af2c 100644
+--- a/p2v/virt-p2v-make-disk.in
++++ b/p2v/virt-p2v-make-disk.in
+@@ -85,12 +85,13 @@ osversion="$1"
+ #   - Xorg (or another X server, but only Xorg has been tested)
+ #   - Xorg drivers
+ #   - some fonts
++#   - hardware support (firmware etc, RHBZ#1157679)
+ #   - matchbox (window manager, another could be used)
+ #
+ # Note that libguestfs is NOT a dependency.
+ case "$osversion" in
+     centos-*|fedora-*|rhel-*|scientificlinux-*)
+-        deps=pcre,libxml2,gtk2,/usr/bin/xinit,/usr/bin/ssh,/usr/bin/qemu-nbd,/usr/bin/Xorg,xorg-x11-drivers,xorg-x11-fonts-Type1,matchbox-window-manager
++        deps=pcre,libxml2,gtk2,/usr/bin/xinit,/usr/bin/ssh,/usr/bin/qemu-nbd,/usr/bin/Xorg,xorg-x11-drivers,xorg-x11-fonts-Type1,matchbox-window-manager,@hardware-support
+         selinux_relabel=--selinux-relabel
+         ;;
+     debian-*|ubuntu-*)
+-- 
+1.8.3.1
+

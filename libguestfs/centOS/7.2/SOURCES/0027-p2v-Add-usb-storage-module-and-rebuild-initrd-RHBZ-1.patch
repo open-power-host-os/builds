@@ -1,0 +1,90 @@
+From 9480da99354f873916b19b07be649f5965bfe1f2 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 27 Oct 2014 15:42:02 +0000
+Subject: [PATCH] p2v: Add usb-storage module and rebuild initrd
+ (RHBZ#1157679).
+
+Include the usb-storage kernel module, to permit booting from USB
+keys.
+
+Rerun dracut to rebuild the initramfs.  This is complicated because by
+default dracut will try to build an initramfs for the running
+(ie. appliance) kernel, which is completely useless.  We need to find
+the latest installed kernel and rebuild the initramfs for that
+instead, which is hairy.
+
+This also does a small refactoring of the distro-specific code,
+removing the $selinux_relabel variable and replacing it with a generic
+$extra_args variable.
+
+I only added this to the virt-builder script, since one assumes that
+livecd-creator/whatever should make the kickstart ISO bootable by
+installing whatever drivers and modules are necessary.
+
+(cherry picked from commit b09b60c987ff113bc4520ab994142da912ffa3d6)
+---
+ p2v/virt-p2v-make-disk.in | 30 +++++++++++++++++++++++++++---
+ 1 file changed, 27 insertions(+), 3 deletions(-)
+
+diff --git a/p2v/virt-p2v-make-disk.in b/p2v/virt-p2v-make-disk.in
+index c29af2c..fb02856 100644
+--- a/p2v/virt-p2v-make-disk.in
++++ b/p2v/virt-p2v-make-disk.in
+@@ -74,6 +74,14 @@ fi
+ 
+ osversion="$1"
+ 
++# Create a temporary directory and clean it up when we finish.
++tmpdir="$(mktemp -d)"
++cleanup ()
++{
++    rm -rf $tmpdir
++}
++trap cleanup INT QUIT TERM EXIT ERR
++
+ # The dependencies are:
+ #
+ #   - pcre (library only)
+@@ -92,7 +100,21 @@ osversion="$1"
+ case "$osversion" in
+     centos-*|fedora-*|rhel-*|scientificlinux-*)
+         deps=pcre,libxml2,gtk2,/usr/bin/xinit,/usr/bin/ssh,/usr/bin/qemu-nbd,/usr/bin/Xorg,xorg-x11-drivers,xorg-x11-fonts-Type1,matchbox-window-manager,@hardware-support
+-        selinux_relabel=--selinux-relabel
++        cat > $tmpdir/p2v.conf <<'EOF'
++add_drivers+=" usb-storage "
++EOF
++        cat > $tmpdir/post-install <<'EOF'
++#!/bin/bash
++# Rebuild the initramfs.
++version=` rpm -q kernel | sort -rV | head -1 | sed 's/kernel-//' `
++dracut -f --kver $version
++EOF
++        # Double quotes because we want $tmpdir to be expanded:
++        extra_args="
++          --selinux-relabel
++          --upload $tmpdir/p2v.conf:/etc/dracut.conf.d/
++          --run $tmpdir/post-install
++        "
+         ;;
+     debian-*|ubuntu-*)
+         deps=libpcre3,libxml2,libgtk2.0-0,openssh-client,qemu-utils,xorg,xserver-xorg-video-all,matchbox-window-manager
+@@ -123,7 +145,6 @@ fi
+ 
+ # Run virt-builder.  Note we controversially assume systemd here.  We
+ # could provide a sysvinit fallback if required.
+-exec \
+ virt-builder "$osversion"                                       \
+     --output "$output"                                          \
+     --update                                                    \
+@@ -145,4 +166,7 @@ virt-builder "$osversion"                                       \
+     --edit '/etc/systemd/logind.conf:
+         s/^[Login]/[Login]\nReserveVT=1\n/
+     '                                                           \
+-    $selinux_relabel
++    $extra_args
++
++# We have to do this so the cleanup() handler runs.
++exit $?
+-- 
+1.8.3.1
+

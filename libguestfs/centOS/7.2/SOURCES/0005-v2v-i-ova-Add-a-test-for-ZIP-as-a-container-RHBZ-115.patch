@@ -1,0 +1,291 @@
+From d6dd4275c08f7eafa71e97ac29c78f430d4dcaed Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Sat, 18 Oct 2014 21:45:10 +0100
+Subject: [PATCH] v2v: -i ova: Add a test for ZIP as a container
+ (RHBZ#1152998).
+
+(cherry picked from commit f27a582b6dd85a2810351cf7c2d2c98dc5ea6e9a)
+---
+ v2v/Makefile.am                 |   5 +-
+ v2v/test-v2v-i-ova-zip.expected |  15 +++++
+ v2v/test-v2v-i-ova-zip.ovf      | 138 ++++++++++++++++++++++++++++++++++++++++
+ v2v/test-v2v-i-ova-zip.sh       |  77 ++++++++++++++++++++++
+ 4 files changed, 234 insertions(+), 1 deletion(-)
+ create mode 100644 v2v/test-v2v-i-ova-zip.expected
+ create mode 100644 v2v/test-v2v-i-ova-zip.ovf
+ create mode 100755 v2v/test-v2v-i-ova-zip.sh
+
+diff --git a/v2v/Makefile.am b/v2v/Makefile.am
+index 2092621..e9856fd 100644
+--- a/v2v/Makefile.am
++++ b/v2v/Makefile.am
+@@ -25,6 +25,8 @@ EXTRA_DIST = \
+ 	test-v2v-i-ova.xml \
+ 	test-v2v-i-ova-two-disks.expected \
+ 	test-v2v-i-ova-two-disks.ovf \
++	test-v2v-i-ova-zip.expected \
++	test-v2v-i-ova-zip.ovf \
+ 	test-v2v-networks-and-bridges-expected.xml \
+ 	test-v2v-networks-and-bridges.xml.in \
+ 	virt-v2v.pod
+@@ -218,7 +220,8 @@ CLEANFILES += stamp-virt-v2v.pod
+ TESTS_ENVIRONMENT = $(top_builddir)/run --test
+ 
+ TESTS = \
+-	test-v2v-i-ova-two-disks.sh
++	test-v2v-i-ova-two-disks.sh \
++	test-v2v-i-ova-zip.sh
+ 
+ if ENABLE_APPLIANCE
+ TESTS += \
+diff --git a/v2v/test-v2v-i-ova-zip.expected b/v2v/test-v2v-i-ova-zip.expected
+new file mode 100644
+index 0000000..a835f00
+--- /dev/null
++++ b/v2v/test-v2v-i-ova-zip.expected
+@@ -0,0 +1,15 @@
++Source guest information (--print-source option):
++
++    source name: 2K8R2EESP1_2_Medium
++hypervisor type: vmware
++         memory: 1073741824 (bytes)
++       nr vCPUs: 1
++   CPU features: 
++        display: 
++disks:
++	disk1.vmdk (vmdk) [hda]
++removable media:
++	CD-ROM [hda]
++NICs:
++	Network "Network adapter 1"
++
+diff --git a/v2v/test-v2v-i-ova-zip.ovf b/v2v/test-v2v-i-ova-zip.ovf
+new file mode 100644
+index 0000000..3c685f4
+--- /dev/null
++++ b/v2v/test-v2v-i-ova-zip.ovf
+@@ -0,0 +1,138 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<Envelope vmw:buildId="build-1750787" xmlns="http://schemas.dmtf.org/ovf/envelope/1" xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1" xmlns:rasd="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_ResourceAllocationSettingData" xmlns:vmw="http://www.vmware.com/schema/ovf" xmlns:vssd="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_VirtualSystemSettingData" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
++  <References>
++    <File ovf:href="disk1.vmdk" ovf:id="file1" ovf:size="7804077568"/>
++  </References>
++  <DiskSection>
++    <Info>Virtual disk information</Info>
++    <Disk ovf:capacity="50" ovf:capacityAllocationUnits="byte * 2^30" ovf:diskId="vmdisk1" ovf:fileRef="file1" ovf:format="http://www.vmware.com/interfaces/specifications/vmdk.html#streamOptimized" ovf:populatedSize="18975752192"/>
++  </DiskSection>
++  <NetworkSection>
++    <Info>The list of logical networks</Info>
++    <Network ovf:name="PG-VLAN60">
++      <Description>The PG-VLAN60 network</Description>
++    </Network>
++  </NetworkSection>
++  <VirtualSystem ovf:id="2K8R2EESP1_2_Medium">
++    <Info>A virtual machine</Info>
++    <Name>2K8R2EESP1_2_Medium</Name>
++    <OperatingSystemSection ovf:id="103" vmw:osType="windows7Server64Guest">
++      <Info>The kind of installed guest operating system</Info>
++      <Description>Microsoft Windows Server 2008 R2 (64-bit)</Description>
++    </OperatingSystemSection>
++    <VirtualHardwareSection>
++      <Info>Virtual hardware requirements</Info>
++      <System>
++        <vssd:ElementName>Virtual Hardware Family</vssd:ElementName>
++        <vssd:InstanceID>0</vssd:InstanceID>
++        <vssd:VirtualSystemIdentifier>2K8R2EESP1_2_Medium</vssd:VirtualSystemIdentifier>
++        <vssd:VirtualSystemType>vmx-10</vssd:VirtualSystemType>
++      </System>
++      <Item>
++        <rasd:AllocationUnits>hertz * 10^6</rasd:AllocationUnits>
++        <rasd:Description>Number of Virtual CPUs</rasd:Description>
++        <rasd:ElementName>1 virtual CPU(s)</rasd:ElementName>
++        <rasd:InstanceID>1</rasd:InstanceID>
++        <rasd:ResourceType>3</rasd:ResourceType>
++        <rasd:VirtualQuantity>1</rasd:VirtualQuantity>
++      </Item>
++      <Item>
++        <rasd:AllocationUnits>byte * 2^20</rasd:AllocationUnits>
++        <rasd:Description>Memory Size</rasd:Description>
++        <rasd:ElementName>1024MB of memory</rasd:ElementName>
++        <rasd:InstanceID>2</rasd:InstanceID>
++        <rasd:ResourceType>4</rasd:ResourceType>
++        <rasd:VirtualQuantity>1024</rasd:VirtualQuantity>
++      </Item>
++      <Item>
++        <rasd:Address>0</rasd:Address>
++        <rasd:Description>SCSI Controller</rasd:Description>
++        <rasd:ElementName>SCSI controller 0</rasd:ElementName>
++        <rasd:InstanceID>3</rasd:InstanceID>
++        <rasd:ResourceSubType>lsilogicsas</rasd:ResourceSubType>
++        <rasd:ResourceType>6</rasd:ResourceType>
++        <vmw:Config ovf:required="false" vmw:key="slotInfo.pciSlotNumber" vmw:value="160"/>
++      </Item>
++      <Item>
++        <rasd:Address>1</rasd:Address>
++        <rasd:Description>IDE Controller</rasd:Description>
++        <rasd:ElementName>IDE 1</rasd:ElementName>
++        <rasd:InstanceID>4</rasd:InstanceID>
++        <rasd:ResourceType>5</rasd:ResourceType>
++      </Item>
++      <Item>
++        <rasd:Address>0</rasd:Address>
++        <rasd:Description>IDE Controller</rasd:Description>
++        <rasd:ElementName>IDE 0</rasd:ElementName>
++        <rasd:InstanceID>5</rasd:InstanceID>
++        <rasd:ResourceType>5</rasd:ResourceType>
++      </Item>
++      <Item ovf:required="false">
++        <rasd:AutomaticAllocation>false</rasd:AutomaticAllocation>
++        <rasd:ElementName>Video card</rasd:ElementName>
++        <rasd:InstanceID>6</rasd:InstanceID>
++        <rasd:ResourceType>24</rasd:ResourceType>
++        <vmw:Config ovf:required="false" vmw:key="enable3DSupport" vmw:value="false"/>
++        <vmw:Config ovf:required="false" vmw:key="use3dRenderer" vmw:value="automatic"/>
++        <vmw:Config ovf:required="false" vmw:key="useAutoDetect" vmw:value="true"/>
++        <vmw:Config ovf:required="false" vmw:key="videoRamSizeInKB" vmw:value="4096"/>
++      </Item>
++      <Item ovf:required="false">
++        <rasd:AutomaticAllocation>false</rasd:AutomaticAllocation>
++        <rasd:ElementName>VMCI device</rasd:ElementName>
++        <rasd:InstanceID>7</rasd:InstanceID>
++        <rasd:ResourceSubType>vmware.vmci</rasd:ResourceSubType>
++        <rasd:ResourceType>1</rasd:ResourceType>
++        <vmw:Config ovf:required="false" vmw:key="allowUnrestrictedCommunication" vmw:value="false"/>
++        <vmw:Config ovf:required="false" vmw:key="slotInfo.pciSlotNumber" vmw:value="32"/>
++      </Item>
++      <Item ovf:required="false">
++        <rasd:AddressOnParent>0</rasd:AddressOnParent>
++        <rasd:AutomaticAllocation>false</rasd:AutomaticAllocation>
++        <rasd:ElementName>CD/DVD drive 1</rasd:ElementName>
++        <rasd:InstanceID>8</rasd:InstanceID>
++        <rasd:Parent>4</rasd:Parent>
++        <rasd:ResourceSubType>vmware.cdrom.atapi</rasd:ResourceSubType>
++        <rasd:ResourceType>15</rasd:ResourceType>
++      </Item>
++      <Item>
++        <rasd:AddressOnParent>0</rasd:AddressOnParent>
++        <rasd:ElementName>Hard disk 1</rasd:ElementName>
++        <rasd:HostResource>ovf:/disk/vmdisk1</rasd:HostResource>
++        <rasd:InstanceID>9</rasd:InstanceID>
++        <rasd:Parent>3</rasd:Parent>
++        <rasd:ResourceType>17</rasd:ResourceType>
++        <vmw:Config ovf:required="false" vmw:key="backing.writeThrough" vmw:value="false"/>
++      </Item>
++      <Item>
++        <rasd:AddressOnParent>7</rasd:AddressOnParent>
++        <rasd:AutomaticAllocation>true</rasd:AutomaticAllocation>
++        <rasd:Connection>PG-VLAN60</rasd:Connection>
++        <rasd:Description>E1000 ethernet adapter on &quot;PG-VLAN60&quot;</rasd:Description>
++        <rasd:ElementName>Network adapter 1</rasd:ElementName>
++        <rasd:InstanceID>11</rasd:InstanceID>
++        <rasd:ResourceSubType>E1000</rasd:ResourceSubType>
++        <rasd:ResourceType>10</rasd:ResourceType>
++        <vmw:Config ovf:required="false" vmw:key="slotInfo.pciSlotNumber" vmw:value="33"/>
++        <vmw:Config ovf:required="false" vmw:key="wakeOnLanEnabled" vmw:value="true"/>
++      </Item>
++      <vmw:Config ovf:required="false" vmw:key="cpuHotAddEnabled" vmw:value="false"/>
++      <vmw:Config ovf:required="false" vmw:key="cpuHotRemoveEnabled" vmw:value="false"/>
++      <vmw:Config ovf:required="false" vmw:key="firmware" vmw:value="bios"/>
++      <vmw:Config ovf:required="false" vmw:key="virtualICH7MPresent" vmw:value="false"/>
++      <vmw:Config ovf:required="false" vmw:key="virtualSMCPresent" vmw:value="false"/>
++      <vmw:Config ovf:required="false" vmw:key="memoryHotAddEnabled" vmw:value="false"/>
++      <vmw:Config ovf:required="false" vmw:key="nestedHVEnabled" vmw:value="false"/>
++      <vmw:Config ovf:required="false" vmw:key="powerOpInfo.powerOffType" vmw:value="soft"/>
++      <vmw:Config ovf:required="false" vmw:key="powerOpInfo.resetType" vmw:value="soft"/>
++      <vmw:Config ovf:required="false" vmw:key="powerOpInfo.standbyAction" vmw:value="checkpoint"/>
++      <vmw:Config ovf:required="false" vmw:key="powerOpInfo.suspendType" vmw:value="hard"/>
++      <vmw:Config ovf:required="false" vmw:key="tools.afterPowerOn" vmw:value="true"/>
++      <vmw:Config ovf:required="false" vmw:key="tools.afterResume" vmw:value="true"/>
++      <vmw:Config ovf:required="false" vmw:key="tools.beforeGuestShutdown" vmw:value="true"/>
++      <vmw:Config ovf:required="false" vmw:key="tools.beforeGuestStandby" vmw:value="true"/>
++      <vmw:Config ovf:required="false" vmw:key="tools.syncTimeWithHost" vmw:value="false"/>
++      <vmw:Config ovf:required="false" vmw:key="tools.toolsUpgradePolicy" vmw:value="upgradeAtPowerCycle"/>
++    </VirtualHardwareSection>
++  </VirtualSystem>
++</Envelope>                                 
+diff --git a/v2v/test-v2v-i-ova-zip.sh b/v2v/test-v2v-i-ova-zip.sh
+new file mode 100755
+index 0000000..cd1e258
+--- /dev/null
++++ b/v2v/test-v2v-i-ova-zip.sh
+@@ -0,0 +1,77 @@
++#!/bin/bash -
++# libguestfs virt-v2v test script
++# Copyright (C) 2014 Red Hat Inc.
++#
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 2 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++
++# Test -i ova option with a zip file.
++
++unset CDPATH
++export LANG=C
++set -e
++
++if [ -n "$SKIP_TEST_V2V_I_OVA_ZIP_SH" ]; then
++    echo "$0: test skipped because environment variable is set"
++    exit 77
++fi
++
++if ! zip --version >/dev/null 2>&1; then
++    echo "$0: test skipped because 'zip' utility is not available"
++    exit 77
++fi
++
++if ! unzip --help >/dev/null 2>&1; then
++    echo "$0: test skipped because 'unzip' utility is not available"
++    exit 77
++fi
++
++if [ "$(guestfish get-backend)" = "uml" ]; then
++    echo "$0: test skipped because UML backend does not support network"
++    exit 77
++fi
++
++virt_tools_data_dir=${VIRT_TOOLS_DATA_DIR:-/usr/share/virt-tools}
++if ! test -r $virt_tools_data_dir/rhsrvany.exe; then
++    echo "$0: test skipped because rhsrvany.exe is not installed"
++    exit 77
++fi
++
++d=test-v2v-i-ova-zip.d
++rm -rf $d
++mkdir $d
++
++pushd $d
++
++# Create a phony OVA.  This is only a test of source parsing, not
++# conversion, so the contents of the disks doesn't matter.
++truncate -s 10k disk1.vmdk
++sha=`sha1sum disk1.vmdk | awk '{print $1}'`
++echo -e "SHA1(disk1.vmdk)=$sha\r" > disk1.mf
++
++zip -r test ../test-v2v-i-ova-zip.ovf disk1.vmdk disk1.mf
++mv test.zip test.ova
++popd
++
++# Run virt-v2v but only as far as the --print-source stage, and
++# normalize the output.
++$VG virt-v2v --debug-gc --quiet \
++    -i ova $d/test.ova \
++    --print-source |
++sed 's,[^ \t]*\(disk.*.vmdk\),\1,' > $d/source
++
++# Check the parsed source is what we expect.
++diff -u test-v2v-i-ova-zip.expected $d/source
++
++rm -rf $d
+-- 
+1.8.3.1
+

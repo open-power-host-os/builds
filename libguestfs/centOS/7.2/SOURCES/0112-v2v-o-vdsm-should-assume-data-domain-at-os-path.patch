@@ -1,0 +1,89 @@
+From 766c53d1d28006cbefa2837f6f3bd9fd2bee64b8 Mon Sep 17 00:00:00 2001
+From: Shahar Havivi <shaharh@redhat.com>
+Date: Mon, 26 Jan 2015 12:13:49 +0200
+Subject: [PATCH] v2v: -o vdsm should assume data domain at -os path
+
+Unlike -o rhev which have only one data domin, -o vdsm can and usually
+does have multiple data domain.
+The path to vdsm is pre mounted so no need to assume nfs path with -os
+Example:
+-o vdsm -os /rhev/data-center/<data-center-uuid>/<data-domain-uuid>
+
+Bug-Url: https://bugzilla.redhat.com/1176591
+Signed-off-by: Shahar Havivi <shaharh@redhat.com>
+(cherry picked from commit 889e55516869d1eadcdeae15e38dd8d3bbca8d20)
+---
+ v2v/output_vdsm.ml             | 18 ++++++++++++++----
+ v2v/test-v2v-o-vdsm-options.sh |  2 +-
+ v2v/virt-v2v.pod               |  6 ++++--
+ 3 files changed, 19 insertions(+), 7 deletions(-)
+
+diff --git a/v2v/output_vdsm.ml b/v2v/output_vdsm.ml
+index 492f586..c7a243e 100644
+--- a/v2v/output_vdsm.ml
++++ b/v2v/output_vdsm.ml
+@@ -63,9 +63,8 @@ object
+    * name of the target files that eventually get written by the main
+    * code.
+    *
+-   * 'os' is the output storage (-os nfs:/export).  'source' contains a
+-   * few useful fields such as the guest name.  'targets' describes the
+-   * destination files.  We modify and return this list.
++   * 'os' is the output storage domain (-os /rhev/data/<data center>/<data domain>)
++   * this is already mounted path.
+    *
+    * Note it's good to fail here (early) if there are any problems, since
+    * the next time we are called (in {!create_metadata}) we have already
+@@ -79,7 +78,18 @@ object
+         (List.length targets);
+ 
+     let mp, uuid =
+-      Output_rhev.mount_and_check_storage_domain verbose (s_"Data Domain") os in
++      let fields = string_nsplit "/" os in (* ... "data-center" "UUID" *)
++      let fields = List.rev fields in      (* "UUID" "data-center" ... *)
++      match fields with
++      | "" :: uuid :: rest                 (* handles trailing "/" case *)
++      | uuid :: rest
++          when String.length uuid = 36 ->
++        let mp = String.concat "/" (List.rev rest) in
++        mp, uuid
++      | _ ->
++        error (f_"vdsm: invalid -os parameter does not contain a valid UUID: %s")
++          os in
++
+     dd_mp <- mp;
+     dd_uuid <- uuid;
+     if verbose then
+diff --git a/v2v/test-v2v-o-vdsm-options.sh b/v2v/test-v2v-o-vdsm-options.sh
+index e2098fa..c170467 100755
+--- a/v2v/test-v2v-o-vdsm-options.sh
++++ b/v2v/test-v2v-o-vdsm-options.sh
+@@ -64,7 +64,7 @@ mkdir $d/12345678-1234-1234-1234-123456789abc/master/vms/VM
+ 
+ $VG virt-v2v --debug-gc \
+     -i libvirt -ic "$libvirt_uri" windows \
+-    -o vdsm -os $d \
++    -o vdsm -os $d/12345678-1234-1234-1234-123456789abc \
+     --vmtype desktop \
+     --vdsm-image-uuid IMAGE \
+     --vdsm-vol-uuid VOL \
+diff --git a/v2v/virt-v2v.pod b/v2v/virt-v2v.pod
+index 7ed2dda..2e49fbf 100644
+--- a/v2v/virt-v2v.pod
++++ b/v2v/virt-v2v.pod
+@@ -360,8 +360,10 @@ See L</OUTPUT TO RHEV> below.
+ 
+ Set the output method to I<vdsm>.
+ 
+-This mode is similar to I<-o rhev> but is only used by RHEV VDSM
+-when it runs virt-v2v under VDSM control.
++This mode is similar to I<-o rhev>, but the full path to the
++data domain must be given:
++C</rhev/data-center/E<lt>data-center-uuidE<gt>/E<lt>data-domain-uuidE<gt>>.
++This mode is only used when virt-v2v runs under VDSM control.
+ 
+ =item B<-oa sparse>
+ 
+-- 
+1.8.3.1
+

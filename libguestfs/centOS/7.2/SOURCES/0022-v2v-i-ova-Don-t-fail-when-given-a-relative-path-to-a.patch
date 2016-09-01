@@ -1,0 +1,30 @@
+From 4de6d5e94dd9b38c86aca5554a16488f9d3dee00 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 21 Oct 2014 13:36:55 +0100
+Subject: [PATCH] v2v: -i ova: Don't fail when given a relative path to an OVA
+ directory (RHBZ#1155121).
+
+(cherry picked from commit e1eccae2da3a670c1ef7626c8779b71fb1877f7d)
+---
+ v2v/input_ova.ml | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/v2v/input_ova.ml b/v2v/input_ova.ml
+index 6349c76..d9928de 100644
+--- a/v2v/input_ova.ml
++++ b/v2v/input_ova.ml
+@@ -66,6 +66,11 @@ object
+           error (f_"%s: unsupported file format") ova
+       ) in
+ 
++    (* Exploded path must be absolute (RHBZ#1155121). *)
++    let exploded =
++      if not (Filename.is_relative exploded) then exploded
++      else Sys.getcwd () // exploded in
++
+     let files = Sys.readdir exploded in
+     let ovf = ref "" in
+     (* Search for the ovf file. *)
+-- 
+1.8.3.1
+

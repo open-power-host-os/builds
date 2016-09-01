@@ -1,0 +1,26 @@
+From 0b0d434a1b3563308fa0ec3724aaffe9516df452 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 30 Oct 2014 13:47:23 +0000
+Subject: [PATCH] v2v: Remove useless parentheses around expression.
+
+(cherry picked from commit d82c5fb5a0c86345891ee191ae7d820361978643)
+---
+ v2v/input_libvirtxml.ml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/v2v/input_libvirtxml.ml b/v2v/input_libvirtxml.ml
+index c71260f..f302b2c 100644
+--- a/v2v/input_libvirtxml.ml
++++ b/v2v/input_libvirtxml.ml
+@@ -170,7 +170,7 @@ let parse_libvirt_xml ~verbose xml =
+              * XXX Quoting, although it's not needed for virt-p2v.
+              *)
+             let path = sprintf "nbd:%s:%d" host port in
+-            add_disk path format target_dev (P_dont_rewrite)
++            add_disk path format target_dev P_dont_rewrite
+           )
+         | "" -> ()
+         | protocol ->
+-- 
+1.8.3.1
+

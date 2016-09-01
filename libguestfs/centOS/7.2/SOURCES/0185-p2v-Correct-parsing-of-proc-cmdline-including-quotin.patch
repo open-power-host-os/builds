@@ -1,0 +1,604 @@
+From dfa319bc27420a611311834108e6807b300fc2b3 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 9 Jun 2015 17:53:05 +0100
+Subject: [PATCH] p2v: Correct parsing of /proc/cmdline, including quoting.
+
+Fix the parsing of /proc/cmdline, including allowing double quoting of
+parameters.
+
+This allows you to pass parameters to p2v on the command line which
+include spaces.
+
+(cherry picked from commit 716244c33718c866edce9e7ee8f21ee612f53337)
+---
+ p2v/Makefile.am      |   1 +
+ p2v/kernel-cmdline.c | 193 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ p2v/kernel.c         | 143 ++++++++++++++++----------------------
+ p2v/main.c           |  55 ++++-----------
+ p2v/p2v.h            |  10 ++-
+ po/POTFILES          |   1 +
+ 6 files changed, 277 insertions(+), 126 deletions(-)
+ create mode 100644 p2v/kernel-cmdline.c
+
+diff --git a/p2v/Makefile.am b/p2v/Makefile.am
+index c9d6b6f..cafe597 100644
+--- a/p2v/Makefile.am
++++ b/p2v/Makefile.am
+@@ -49,6 +49,7 @@ virt_p2v_SOURCES = \
+ 	copying.c \
+ 	gui.c \
+ 	kernel.c \
++	kernel-cmdline.c \
+ 	main.c \
+ 	miniexpect.c \
+ 	miniexpect.h \
+diff --git a/p2v/kernel-cmdline.c b/p2v/kernel-cmdline.c
+new file mode 100644
+index 0000000..142108a
+--- /dev/null
++++ b/p2v/kernel-cmdline.c
+@@ -0,0 +1,193 @@
++/* virt-p2v
++ * Copyright (C) 2015 Red Hat Inc.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++ */
++
++/* Read /proc/cmdline.
++ *
++ * We only support double quoting, consistent with the Linux
++ * documentation.
++ * https://www.kernel.org/doc/Documentation/kernel-parameters.txt
++ *
++ * systemd supports single and double quoting and single character
++ * escaping, but we don't support all that.
++ *
++ * Returns a list of key, value pairs, terminated by NULL.
++ */
++
++#include <config.h>
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <unistd.h>
++#include <errno.h>
++
++#include "p2v.h"
++
++static void
++add_null (char ***argv, size_t *lenp)
++{
++  (*lenp)++;
++  *argv = realloc (*argv, *lenp * sizeof (char *));
++  if (*argv == NULL) {
++    perror ("realloc");
++    exit (EXIT_FAILURE);
++  }
++  (*argv)[(*lenp)-1] = NULL;
++}
++
++static void
++add_string (char ***argv, size_t *lenp, const char *str, size_t len)
++{
++  add_null (argv, lenp);
++  (*argv)[(*lenp)-1] = strndup (str, len);
++  if ((*argv)[(*lenp)-1] == NULL) {
++    perror ("strndup");
++    exit (EXIT_FAILURE);
++  }
++}
++
++char **
++parse_cmdline_string (const char *cmdline)
++{
++  char **ret = NULL;
++  size_t len = 0;
++  const char *p, *key = NULL, *value = NULL;
++  enum {
++    KEY_START = 0,
++    KEY,
++    VALUE_START,
++    VALUE,
++    VALUE_QUOTED
++  } state = 0;
++
++  for (p = cmdline; *p; p++) {
++    switch (state) {
++    case KEY_START:             /* looking for the start of a key */
++      if (*p == ' ') continue;
++      key = p;
++      state = KEY;
++      break;
++
++    case KEY:                   /* reading key */
++      if (*p == ' ') {
++        add_string (&ret, &len, key, p-key);
++        add_string (&ret, &len, "", 0);
++        state = KEY_START;
++      }
++      else if (*p == '=') {
++        add_string (&ret, &len, key, p-key);
++        state = VALUE_START;
++      }
++      break;
++
++    case VALUE_START:           /* looking for the start of a value */
++      if (*p == ' ') {
++        add_string (&ret, &len, "", 0);
++        state = KEY_START;
++      }
++      else if (*p == '"') {
++        value = p+1;
++        state = VALUE_QUOTED;
++      }
++      else {
++        value = p;
++        state = VALUE;
++      }
++      break;
++
++    case VALUE:                 /* reading unquoted value */
++      if (*p == ' ') {
++        add_string (&ret, &len, value, p-value);
++        state = KEY_START;
++      }
++      break;
++
++    case VALUE_QUOTED:          /* reading quoted value */
++      if (*p == '"') {
++        add_string (&ret, &len, value, p-value);
++        state = KEY_START;
++      }
++      break;
++    }
++  }
++
++  switch (state) {
++  case KEY_START: break;
++  case KEY:                     /* key followed by end of string */
++    add_string (&ret, &len, key, p-key);
++    add_string (&ret, &len, "", 0);
++    break;
++  case VALUE_START:             /* key= followed by end of string */
++    add_string (&ret, &len, "", 0);
++    break;
++  case VALUE:                   /* key=value followed by end of string */
++    add_string (&ret, &len, value, p-value);
++    break;
++  case VALUE_QUOTED:            /* unterminated key="value" */
++    fprintf (stderr, "%s: warning: unterminated quoted string on kernel command line\n",
++             guestfs_int_program_name);
++    add_string (&ret, &len, value, p-value);
++  }
++
++  add_null (&ret, &len);
++
++  return ret;
++}
++
++char **
++parse_proc_cmdline (void)
++{
++  CLEANUP_FCLOSE FILE *fp = NULL;
++  CLEANUP_FREE char *cmdline = NULL;
++  size_t len = 0;
++
++  fp = fopen ("/proc/cmdline", "re");
++  if (fp == NULL) {
++    perror ("/proc/cmdline");
++    return NULL;
++  }
++
++  if (getline (&cmdline, &len, fp) == -1) {
++    perror ("getline");
++    return NULL;
++  }
++
++  /* 'len' is not the length of the string, but the length of the
++   * buffer.  We need to chomp the string.
++   */
++  len = strlen (cmdline);
++
++  if (len >= 1 && cmdline[len-1] == '\n')
++    cmdline[len-1] = '\0';
++
++  return parse_cmdline_string (cmdline);
++}
++
++const char *
++get_cmdline_key (char **argv, const char *key)
++{
++  size_t i;
++
++  for (i = 0; argv[i] != NULL; i += 2) {
++    if (STREQ (argv[i], key))
++      return argv[i+1];
++  }
++
++  /* Not found. */
++  return NULL;
++}
+diff --git a/p2v/kernel.c b/p2v/kernel.c
+index 481ac78..88d18bd 100644
+--- a/p2v/kernel.c
++++ b/p2v/kernel.c
+@@ -35,46 +35,38 @@
+ static void notify_ui_callback (int type, const char *data);
+ 
+ void
+-kernel_configuration (struct config *config, const char *cmdline)
++kernel_configuration (struct config *config, char **cmdline, int cmdline_source)
+ {
+-  const char *r;
+-  size_t len;
++  const char *p;
+ 
+-  r = strstr (cmdline, "p2v.server=");
+-  assert (r); /* checked by caller */
+-  r += 5+6;
+-  len = strcspn (r, " ");
++  p = get_cmdline_key (cmdline, "p2v.server");
++  assert (p); /* checked by caller */
+   free (config->server);
+-  config->server = strndup (r, len);
++  config->server = strdup (p);
+ 
+-  r = strstr (cmdline, "p2v.port=");
+-  if (r) {
+-    r += 5+4;
+-    if (sscanf (r, "%d", &config->port) != 1) {
++  p = get_cmdline_key (cmdline, "p2v.port");
++  if (p) {
++    if (sscanf (p, "%d", &config->port) != 1) {
+       fprintf (stderr, "%s: cannot parse p2v.port from kernel command line",
+                guestfs_int_program_name);
+       exit (EXIT_FAILURE);
+     }
+   }
+ 
+-  r = strstr (cmdline, "p2v.username=");
+-  if (r) {
+-    r += 5+8;
+-    len = strcspn (r, " ");
++  p = get_cmdline_key (cmdline, "p2v.username");
++  if (p) {
+     free (config->username);
+-    config->username = strndup (r, len);
++    config->username = strdup (p);
+   }
+ 
+-  r = strstr (cmdline, "p2v.password=");
+-  if (r) {
+-    r += 5+8;
+-    len = strcspn (r, " ");
++  p = get_cmdline_key (cmdline, "p2v.password");
++  if (p) {
+     free (config->password);
+-    config->password = strndup (r, len);
++    config->password = strdup (p);
+   }
+ 
+-  r = strstr (cmdline, "p2v.sudo");
+-  if (r)
++  p = get_cmdline_key (cmdline, "p2v.sudo");
++  if (p)
+     config->sudo = 1;
+ 
+   /* We should now be able to connect and interrogate virt-v2v
+@@ -88,30 +80,26 @@ kernel_configuration (struct config *config, const char *cmdline)
+     exit (EXIT_FAILURE);
+   }
+ 
+-  r = strstr (cmdline, "p2v.name=");
+-  if (r) {
+-    r += 5+4;
+-    len = strcspn (r, " ");
++  p = get_cmdline_key (cmdline, "p2v.name");
++  if (p) {
+     free (config->guestname);
+-    config->guestname = strndup (r, len);
++    config->guestname = strdup (p);
+   }
+ 
+-  r = strstr (cmdline, "p2v.vcpus=");
+-  if (r) {
+-    r += 5+5;
+-    if (sscanf (r, "%d", &config->vcpus) != 1) {
++  p = get_cmdline_key (cmdline, "p2v.vcpus");
++  if (p) {
++    if (sscanf (p, "%d", &config->vcpus) != 1) {
+       fprintf (stderr, "%s: cannot parse p2v.vcpus from kernel command line\n",
+                guestfs_int_program_name);
+       exit (EXIT_FAILURE);
+     }
+   }
+ 
+-  r = strstr (cmdline, "p2v.memory=");
+-  if (r) {
++  p = get_cmdline_key (cmdline, "p2v.memory");
++  if (p) {
+     char mem_code[2];
+ 
+-    r += 5+6;
+-    if (sscanf (r, "%" SCNu64 "%c", &config->memory, mem_code) != 1) {
++    if (sscanf (p, "%" SCNu64 "%c", &config->memory, mem_code) != 1) {
+       fprintf (stderr, "%s: cannot parse p2v.memory from kernel command line\n",
+                guestfs_int_program_name);
+       exit (EXIT_FAILURE);
+@@ -128,88 +116,75 @@ kernel_configuration (struct config *config, const char *cmdline)
+     }
+   }
+ 
+-  r = strstr (cmdline, "p2v.disks=");
+-  if (r) {
++  p = get_cmdline_key (cmdline, "p2v.disks");
++  if (p) {
+     CLEANUP_FREE char *t;
+ 
+-    r += 5+5;
+-    len = strcspn (r, " ");
+-    t = strndup (r, len);
++    t = strdup (p);
+     guestfs_int_free_string_list (config->disks);
+     config->disks = guestfs_int_split_string (',', t);
+   }
+ 
+-  r = strstr (cmdline, "p2v.removable=");
+-  if (r) {
++  p = get_cmdline_key (cmdline, "p2v.removable");
++  if (p) {
+     CLEANUP_FREE char *t;
+ 
+-    r += 5+9;
+-    len = strcspn (r, " ");
+-    t = strndup (r, len);
++    t = strdup (p);
+     guestfs_int_free_string_list (config->removable);
+     config->removable = guestfs_int_split_string (',', t);
+   }
+ 
+-  r = strstr (cmdline, "p2v.interfaces=");
+-  if (r) {
++  p = get_cmdline_key (cmdline, "p2v.interfaces");
++  if (p) {
+     CLEANUP_FREE char *t;
+ 
+-    r += 5+10;
+-    len = strcspn (r, " ");
+-    t = strndup (r, len);
++    t = strdup (p);
+     guestfs_int_free_string_list (config->interfaces);
+     config->interfaces = guestfs_int_split_string (',', t);
+   }
+ 
+-  r = strstr (cmdline, "p2v.network=");
+-  if (r) {
++  p = get_cmdline_key (cmdline, "p2v.network");
++  if (p) {
+     CLEANUP_FREE char *t;
+ 
+-    r += 5+7;
+-    len = strcspn (r, " ");
+-    t = strndup (r, len);
++    t = strdup (p);
+     guestfs_int_free_string_list (config->network_map);
+     config->network_map = guestfs_int_split_string (',', t);
+   }
+ 
+-  r = strstr (cmdline, "p2v.o=");
+-  if (r) {
+-    r += 5+1;
+-    len = strcspn (r, " ");
++  p = get_cmdline_key (cmdline, "p2v.o");
++  if (p) {
+     free (config->output);
+-    config->output = strndup (r, len);
++    config->output = strdup (p);
+   }
+ 
+-  r = strstr (cmdline, "p2v.oa=sparse");
+-  if (r)
+-    config->output_allocation = OUTPUT_ALLOCATION_SPARSE;
+-
+-  r = strstr (cmdline, "p2v.oa=preallocated");
+-  if (r)
+-    config->output_allocation = OUTPUT_ALLOCATION_PREALLOCATED;
++  p = get_cmdline_key (cmdline, "p2v.oa");
++  if (p) {
++    if (STREQ (p, "sparse"))
++      config->output_allocation = OUTPUT_ALLOCATION_SPARSE;
++    else if (STREQ (p, "preallocated"))
++      config->output_allocation = OUTPUT_ALLOCATION_PREALLOCATED;
++    else
++      fprintf (stderr, "%s: warning: don't know what p2v.oa=%s means\n",
++               guestfs_int_program_name, p);
++  }
+ 
+-  r = strstr (cmdline, "p2v.oc=");
+-  if (r) {
+-    r += 5+2;
+-    len = strcspn (r, " ");
++  p = get_cmdline_key (cmdline, "p2v.oc");
++  if (p) {
+     free (config->output_connection);
+-    config->output_connection = strndup (r, len);
++    config->output_connection = strdup (p);
+   }
+ 
+-  r = strstr (cmdline, "p2v.of=");
+-  if (r) {
+-    r += 5+2;
+-    len = strcspn (r, " ");
++  p = get_cmdline_key (cmdline, "p2v.of");
++  if (p) {
+     free (config->output_format);
+-    config->output_format = strndup (r, len);
++    config->output_format = strdup (p);
+   }
+ 
+-  r = strstr (cmdline, "p2v.os=");
+-  if (r) {
+-    r += 5+2;
+-    len = strcspn (r, " ");
++  p = get_cmdline_key (cmdline, "p2v.os");
++  if (p) {
+     free (config->output_storage);
+-    config->output_storage = strndup (r, len);
++    config->output_storage = strdup (p);
+   }
+ 
+   /* Perform the conversion in text mode. */
+diff --git a/p2v/main.c b/p2v/main.c
+index 2dba1b8..4e67992 100644
+--- a/p2v/main.c
++++ b/p2v/main.c
+@@ -44,7 +44,6 @@ char **all_interfaces;
+ static void set_config_defaults (struct config *config);
+ static void find_all_disks (void);
+ static void find_all_interfaces (void);
+-static char *read_cmdline (void);
+ static int cpuinfo_flags (void);
+ 
+ enum { HELP_OPTION = CHAR_MAX + 1 };
+@@ -99,7 +98,8 @@ main (int argc, char *argv[])
+   gboolean gui_possible;
+   int c;
+   int option_index;
+-  char *cmdline = NULL;
++  char **cmdline = NULL;
++  int cmdline_source = 0;
+   struct config *config = new_config ();
+ 
+   setlocale (LC_ALL, "");
+@@ -120,7 +120,8 @@ main (int argc, char *argv[])
+         display_long_options (long_options);
+       }
+       else if (STREQ (long_options[option_index].name, "cmdline")) {
+-        cmdline = strdup (optarg);
++        cmdline = parse_cmdline_string (optarg);
++        cmdline_source = CMDLINE_SOURCE_COMMAND_LINE;
+       }
+       else {
+         fprintf (stderr, _("%s: unknown long option: %s (%d)\n"),
+@@ -158,16 +159,18 @@ main (int argc, char *argv[])
+    * If /proc/cmdline contains p2v.debug then we enable verbose mode
+    * even for interactive configuration.
+    */
+-  if (cmdline == NULL)
+-    cmdline = read_cmdline ();
+-  if (cmdline == NULL)
+-    goto gui;
++  if (cmdline == NULL) {
++    cmdline = parse_proc_cmdline ();
++    if (cmdline == NULL)
++      goto gui;
++    cmdline_source = CMDLINE_SOURCE_PROC_CMDLINE;
++  }
+ 
+-  if (strstr (cmdline, "p2v.debug"))
++  if (get_cmdline_key (cmdline, "p2v.debug") != NULL)
+     config->verbose = 1;
+ 
+-  if (strstr (cmdline, "p2v.server="))
+-    kernel_configuration (config, cmdline);
++  if (get_cmdline_key (cmdline, "p2v.server") != NULL)
++    kernel_configuration (config, cmdline, cmdline_source);
+   else {
+   gui:
+     if (!gui_possible)
+@@ -176,7 +179,7 @@ main (int argc, char *argv[])
+     gui_application (config);
+   }
+ 
+-  free (cmdline);
++  guestfs_int_free_string_list (cmdline);
+ 
+   exit (EXIT_SUCCESS);
+ }
+@@ -498,36 +501,6 @@ find_all_interfaces (void)
+     qsort (all_interfaces, nr_interfaces, sizeof (char *), compare);
+ }
+ 
+-/* Read /proc/cmdline. */
+-static char *
+-read_cmdline (void)
+-{
+-  CLEANUP_FCLOSE FILE *fp = NULL;
+-  char *ret = NULL;
+-  size_t len;
+-
+-  fp = fopen ("/proc/cmdline", "re");
+-  if (fp == NULL) {
+-    perror ("/proc/cmdline");
+-    return NULL;
+-  }
+-
+-  if (getline (&ret, &len, fp) == -1) {
+-    perror ("getline");
+-    return NULL;
+-  }
+-
+-  /* 'len' is not the length of the string, but the length of the
+-   * buffer.  We need to chomp the string.
+-   */
+-  len = strlen (ret);
+-
+-  if (len >= 1 && ret[len-1] == '\n')
+-    ret[len-1] = '\0';
+-
+-  return ret;
+-}
+-
+ /* Read the list of flags from /proc/cpuinfo. */
+ static int
+ cpuinfo_flags (void)
+diff --git a/p2v/p2v.h b/p2v/p2v.h
+index c5427a7..41d305d 100644
+--- a/p2v/p2v.h
++++ b/p2v/p2v.h
+@@ -85,8 +85,16 @@ extern struct config *new_config (void);
+ extern struct config *copy_config (struct config *);
+ extern void free_config (struct config *);
+ 
++/* kernel-cmdline.c */
++extern char **parse_cmdline_string (const char *cmdline);
++extern char **parse_proc_cmdline (void);
++extern const char *get_cmdline_key (char **cmdline, const char *key);
++
++#define CMDLINE_SOURCE_COMMAND_LINE 1 /* --cmdline */
++#define CMDLINE_SOURCE_PROC_CMDLINE 2 /* /proc/cmdline */
++
+ /* kernel.c */
+-extern void kernel_configuration (struct config *, const char *cmdline);
++extern void kernel_configuration (struct config *, char **cmdline, int cmdline_source);
+ 
+ /* gui.c */
+ extern void gui_application (struct config *);
+diff --git a/po/POTFILES b/po/POTFILES
+index 320710f..7c99fd0 100644
+--- a/po/POTFILES
++++ b/po/POTFILES
+@@ -258,6 +258,7 @@ p2v/config.c
+ p2v/conversion.c
+ p2v/copying.c
+ p2v/gui.c
++p2v/kernel-cmdline.c
+ p2v/kernel.c
+ p2v/main.c
+ p2v/miniexpect.c
+-- 
+1.8.3.1
+

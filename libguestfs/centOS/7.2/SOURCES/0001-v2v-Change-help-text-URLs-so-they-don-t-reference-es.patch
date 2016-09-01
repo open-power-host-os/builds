@@ -1,0 +1,30 @@
+From 40ff641d49cec18b1d55277b4038d0b8f2f466b6 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Sat, 18 Oct 2014 13:53:19 +0100
+Subject: [PATCH] v2v: Change --help text URLs so they don't reference esx as
+ main server.
+
+(cherry picked from commit a7a5a223d4ca17b09a1e489fb3f147a2102f98d7)
+---
+ v2v/cmdline.ml | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/v2v/cmdline.ml b/v2v/cmdline.ml
+index 0ef1338..6f8a964 100644
+--- a/v2v/cmdline.ml
++++ b/v2v/cmdline.ml
+@@ -190,9 +190,9 @@ let parse_cmdline () =
+     sprintf (f_"\
+ %s: convert a guest to use KVM
+ 
+- virt-v2v -ic vpx://esx.example.com/Datacenter/esxi -os imported esx_guest
++ virt-v2v -ic vpx://vcenter.example.com/Datacenter/esxi -os imported esx_guest
+ 
+- virt-v2v -ic vpx://esx.example.com/Datacenter/esxi esx_guest \
++ virt-v2v -ic vpx://vcenter.example.com/Datacenter/esxi esx_guest \
+    -o rhev -os rhev.nfs:/export_domain --network rhevm
+ 
+  virt-v2v -i libvirtxml guest-domain.xml -o local -os /var/tmp
+-- 
+1.8.3.1
+

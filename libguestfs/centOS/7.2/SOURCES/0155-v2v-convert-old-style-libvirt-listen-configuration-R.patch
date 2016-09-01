@@ -1,0 +1,35 @@
+From dde05b72c37686b27380d33f88e6a4adc6a5b4a1 Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Mon, 27 Apr 2015 10:16:40 +0200
+Subject: [PATCH] v2v: convert old-style libvirt listen configuration
+ (RHBZ#1174073)
+
+Use the listen configuration from the "listen" attribute of <graphics>,
+in case <listen> is missing.
+
+Followup of commit 9360675dc244a8762e07a8a4289e7a30ca3e1eef.
+
+(cherry picked from commit 8c26ef91f95a9de68cea4c2341e00c938586f950)
+---
+ v2v/input_libvirtxml.ml | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/v2v/input_libvirtxml.ml b/v2v/input_libvirtxml.ml
+index 0db0a88..9834313 100644
+--- a/v2v/input_libvirtxml.ml
++++ b/v2v/input_libvirtxml.ml
+@@ -96,8 +96,9 @@ let parse_libvirt_xml ?conn ~verbose xml =
+       let listen =
+         let obj = Xml.xpath_eval_expression xpathctx "listen" in
+         let nr_nodes = Xml.xpathobj_nr_nodes obj in
+-        if nr_nodes < 1 then LNone
+-        else (
++        if nr_nodes < 1 then (
++          match xpath_to_string "@listen" "" with "" -> LNone | a -> LAddress a
++        ) else (
+           (* Use only the first <listen> configuration. *)
+           match xpath_to_string "listen[1]/@type" "" with
+           | "" -> LNone
+-- 
+1.8.3.1
+

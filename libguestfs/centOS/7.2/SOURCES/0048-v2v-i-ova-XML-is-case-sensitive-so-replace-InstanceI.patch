@@ -1,0 +1,46 @@
+From 4ce3c8f8c9ce120dfe580402fe82663dc8d14f9a Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 18 Nov 2014 12:35:38 +0000
+Subject: [PATCH] v2v: -i ova: XML is case-sensitive, so replace 'InstanceId'
+ with 'InstanceID'.
+
+(cherry picked from commit 78f6d3aff59ab0a539b8f2a90b88a2b6f7c994f6)
+---
+ v2v/input_ova.ml | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/v2v/input_ova.ml b/v2v/input_ova.ml
+index d9928de..836b24e 100644
+--- a/v2v/input_ova.ml
++++ b/v2v/input_ova.ml
+@@ -171,9 +171,11 @@ object
+         Xml.xpathctx_set_current_context xpathctx n;
+         let address = xpath_to_int "rasd:AddressOnParent/text()" 0 in
+         let parent_id = xpath_to_int "rasd:Parent/text()" 0 in
+-        (* Probably the parent controller. *)
+-        let expr = sprintf "/ovf:Envelope/ovf:VirtualSystem/ovf:VirtualHardwareSection/ovf:Item[rasd:InstanceId/text()=%d]/rasd:ResourceType/text()" parent_id in
++
++        (* Find the parent controller. *)
++        let expr = sprintf "/ovf:Envelope/ovf:VirtualSystem/ovf:VirtualHardwareSection/ovf:Item[rasd:InstanceID/text()=%d]/rasd:ResourceType/text()" parent_id in
+         let controller = xpath_to_int expr 0 in
++
+         (* 6: iscsi controller, 5: ide. assuming scsi or ide *)
+         let target_dev =
+           match controller with
+@@ -243,9 +245,11 @@ object
+         assert (id = 14 || id = 15 || id = 16);
+         let address = xpath_to_int "rasd:AddressOnParent/text()" 0 in
+         let parent_id = xpath_to_int "rasd:Parent/text()" 0 in
+-        (* Probably the parent controller. *)
+-        let expr = sprintf "/ovf:Envelope/ovf:VirtualSystem/ovf:VirtualHardwareSection/ovf:Item[rasd:InstanceId/text()=%d]/rasd:ResourceType/text()" parent_id in
++
++        (* Find the parent controller. *)
++        let expr = sprintf "/ovf:Envelope/ovf:VirtualSystem/ovf:VirtualHardwareSection/ovf:Item[rasd:InstanceID/text()=%d]/rasd:ResourceType/text()" parent_id in
+         let controller = xpath_to_int expr 0 in
++
+         (* 6: iscsi controller, 5: ide. assuming scsi or ide *)
+         let target_dev =
+           match controller with
+-- 
+1.8.3.1
+

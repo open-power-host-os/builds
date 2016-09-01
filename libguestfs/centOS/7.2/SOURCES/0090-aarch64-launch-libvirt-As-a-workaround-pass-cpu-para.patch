@@ -1,0 +1,71 @@
+From 240cd5f90c83bcd0441d8ea079c3e5f6508d1202 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 21 Jan 2015 05:37:56 -0500
+Subject: [PATCH] aarch64: launch: libvirt: As a workaround, pass -cpu
+ parameter to qemu.
+
+When libguestfs is running using TCG on aarch64, we need to pass the
+-cpu cortex-a57 parameter to qemu.  Libvirt doesn't let us do this,
+complaining "Unable to find CPU definition".
+
+As a temporary workaround only, use <qemu:commandline> to pass this
+argument directly to qemu.  When libvirt is fixed we can remove this
+hack.
+
+This is a workaround for libvirt bug RHBZ#1184411.
+
+See:
+https://www.redhat.com/archives/libvirt-users/2014-August/msg00043.html
+https://bugzilla.redhat.com/show_bug.cgi?id=1184411
+(cherry picked from commit 7e4b7a346a4558a02aeb58f82d518509ce6e5d03)
+---
+ src/launch-libvirt.c | 21 ++++++++++++++++++++-
+ 1 file changed, 20 insertions(+), 1 deletion(-)
+
+diff --git a/src/launch-libvirt.c b/src/launch-libvirt.c
+index e6899ac..79bc6fd 100644
+--- a/src/launch-libvirt.c
++++ b/src/launch-libvirt.c
+@@ -1035,12 +1035,16 @@ construct_libvirt_xml_cpu (guestfs_h *g,
+         } end_element ();
+       }
+       else {
+-        /* XXX This does not work, see:
++        /* XXX This does not work on aarch64, see:
+          * https://www.redhat.com/archives/libvirt-users/2014-August/msg00043.html
++	 * https://bugzilla.redhat.com/show_bug.cgi?id=1184411
++	 * Instead we hack around it using <qemu:commandline> below.
+          */
++#ifndef __aarch64__
+         start_element ("model") {
+           string (cpu_model);
+         } end_element ();
++#endif
+       }
+     } end_element ();
+   }
+@@ -1670,6 +1674,21 @@ construct_libvirt_xml_qemu_cmdline (guestfs_h *g,
+       }
+     }
+ 
++#ifdef __aarch64__
++    /* This is a temporary hack until RHBZ#1184411 is resolved.
++     * See comments above about cpu model and aarch64.
++     */
++    const char *cpu_model = guestfs___get_cpu_model (params->data->is_kvm);
++    if (STRNEQ (cpu_model, "host")) {
++      start_element ("qemu:arg") {
++        attribute ("value", "-cpu");
++      } end_element ();
++      start_element ("qemu:arg") {
++        attribute ("value", cpu_model);
++      } end_element ();
++    }
++#endif
++
+   } end_element (); /* </qemu:commandline> */
+ 
+   return 0;
+-- 
+1.8.3.1
+

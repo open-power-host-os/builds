@@ -1,0 +1,38 @@
+From 3815caab495ce2644eee574bb3564cddf886bebe Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Sat, 20 Dec 2014 17:46:53 +0000
+Subject: [PATCH] v2v: -o libvirt: Prevent possible XPath injection.
+
+Ensure the arch string is sane before using it in the following XPath
+expression.  Since the arch string can be derived from untrusted guest
+data [see src/filearch.c], this prevents a possible XPath injection
+vulnerability.
+
+(cherry picked from commit 6c6ce85f94c36803fe2db35a98db436bff0c14b0)
+---
+ v2v/output_libvirt.ml | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/v2v/output_libvirt.ml b/v2v/output_libvirt.ml
+index dc9466c..7f9a3a0 100644
+--- a/v2v/output_libvirt.ml
++++ b/v2v/output_libvirt.ml
+@@ -30,9 +30,15 @@ module StringSet = Set.Make (String)
+ let string_set_of_list =
+   List.fold_left (fun set x -> StringSet.add x set) StringSet.empty
+ 
++let arch_sanity_re = Str.regexp "^[-_A-Za-z0-9]+$"
++
+ let target_features_of_capabilities_doc doc arch =
+   let xpathctx = Xml.xpath_new_context doc in
+   let expr =
++    (* Check the arch is sane.  It comes from untrusted input.  This
++     * avoids XPath injection below.
++     *)
++    assert (Str.string_match arch_sanity_re arch 0);
+     (* NB: Pay attention to the square brackets.  This returns the
+      * <guest> nodes!
+      *)
+-- 
+1.8.3.1
+

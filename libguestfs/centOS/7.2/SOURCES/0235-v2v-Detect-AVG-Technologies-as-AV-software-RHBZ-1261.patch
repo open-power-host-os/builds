@@ -1,0 +1,41 @@
+From 2187d79e5537990e5266cca3a2c2f0c91470bf5a Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 9 Sep 2015 13:12:16 +0100
+Subject: [PATCH] v2v: Detect AVG Technologies as AV software (RHBZ#1261436).
+
+Thanks: Junqin Zhou
+(cherry picked from commit d68be534eab585916ec829424d072f3ace5a4060)
+---
+ v2v/detect_antivirus.ml | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/v2v/detect_antivirus.ml b/v2v/detect_antivirus.ml
+index 747b225..545bd29 100644
+--- a/v2v/detect_antivirus.ml
++++ b/v2v/detect_antivirus.ml
+@@ -23,17 +23,20 @@ let rex_kaspersky = Str.regexp_case_fold "kaspersky"
+ let rex_mcafee    = Str.regexp_case_fold "mcafee"
+ let rex_norton    = Str.regexp_case_fold "norton"
+ let rex_sophos    = Str.regexp_case_fold "sophos"
++let rex_avg_tech  = Str.regexp_case_fold "avg technologies" (* RHBZ#1261436 *)
+ 
+ let rec detect_antivirus { Types.i_type = t; i_apps = apps } =
+   assert (t = "windows");
+   List.exists check_app apps
+ 
+-and check_app { Guestfs.app2_name = name } =
++and check_app { Guestfs.app2_name = name;
++                app2_publisher = publisher } =
+   name      =~ rex_virus     ||
+   name      =~ rex_kaspersky ||
+   name      =~ rex_mcafee    ||
+   name      =~ rex_norton    ||
+-  name      =~ rex_sophos
++  name      =~ rex_sophos    ||
++  publisher =~ rex_avg_tech
+ 
+ and (=~) str rex =
+   try ignore (Str.search_forward rex str 0); true with Not_found -> false
+-- 
+1.8.3.1
+

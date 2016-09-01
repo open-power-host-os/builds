@@ -1,0 +1,27 @@
+From b09d873ea2c26557490ccca0765fe2fc2aa2a415 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 15 Dec 2014 08:54:59 +0000
+Subject: [PATCH] v2v: Whitespace change.
+
+(cherry picked from commit 9c4af17add53b50ce0b6756c6216380862f10631)
+---
+ v2v/domainxml-c.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/v2v/domainxml-c.c b/v2v/domainxml-c.c
+index 6fa8270..b57440c 100644
+--- a/v2v/domainxml-c.c
++++ b/v2v/domainxml-c.c
+@@ -230,7 +230,8 @@ v2v_pool_dumpxml (value connv, value poolnamev)
+    * since it handles all the PolicyKit crap.  However it also makes
+    * coding this simpler.
+    */
+-  conn = virConnectOpenAuth (conn_uri, virConnectAuthPtrDefault, VIR_CONNECT_RO);
++  conn = virConnectOpenAuth (conn_uri, virConnectAuthPtrDefault,
++                             VIR_CONNECT_RO);
+   if (conn == NULL) {
+     if (conn_uri)
+       snprintf (errmsg, sizeof errmsg,
+-- 
+1.8.3.1
+

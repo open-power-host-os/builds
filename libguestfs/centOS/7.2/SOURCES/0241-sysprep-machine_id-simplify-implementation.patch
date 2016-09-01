@@ -1,0 +1,44 @@
+From 2711e86de854290af855e2acfcab8ac7699cc560 Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Wed, 29 Jul 2015 13:36:23 +0200
+Subject: [PATCH] sysprep: machine_id: simplify implementation
+
+Instead of rm + touch, just truncate the file if existing.
+In case there was no file previously, now nothing is created, as most
+probably the system was fine even without it.
+
+Also, turn the single path into a list, so more machine-id files can be
+handled at once.
+
+(cherry picked from commit bc598ff52af415d8acc923402bd6dcfd462f2e4d)
+---
+ sysprep/sysprep_operation_machine_id.ml | 11 ++++-------
+ 1 file changed, 4 insertions(+), 7 deletions(-)
+
+diff --git a/sysprep/sysprep_operation_machine_id.ml b/sysprep/sysprep_operation_machine_id.ml
+index acf8757..1409876 100644
+--- a/sysprep/sysprep_operation_machine_id.ml
++++ b/sysprep/sysprep_operation_machine_id.ml
+@@ -21,15 +21,12 @@ open Common_gettext.Gettext
+ 
+ module G = Guestfs
+ 
+-let machine_id_perform ~verbose ~quiet g root side_effects =
++let machine_id_perform ~verbose ~quiet (g : Guestfs.guestfs) root side_effects =
+   let typ = g#inspect_get_type root in
+   if typ <> "windows" then (
+-    let path = "/etc/machine-id" in
+-    (try g#rm path with G.Error _ -> ());
+-    (try
+-       g#touch path;
+-       side_effects#created_file ()
+-     with G.Error _ -> ());
++    let paths = [ "/etc/machine-id"; ] in
++    let paths = List.filter g#is_file paths in
++    List.iter g#truncate paths
+   )
+ 
+ let op = {
+-- 
+1.8.3.1
+

@@ -1,0 +1,26 @@
+From 5d1a88d2feae5c37adcfd50b7873b31019cfc4ed Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Tue, 14 Oct 2014 11:10:22 +0200
+Subject: [PATCH] diff: do not pad uid/gid in CSV mode
+
+(cherry picked from commit 3276845df1847d037fc4a5bed24966e0f9a0d564)
+---
+ diff/diff.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/diff/diff.c b/diff/diff.c
+index f4b25e9..ad371b0 100644
+--- a/diff/diff.c
++++ b/diff/diff.c
+@@ -1108,7 +1108,7 @@ output_int64_uid (int64_t i)
+ {
+   next_field ();
+   /* csv doesn't need escaping */
+-  if (printf ("%4" PRIi64, i) < 0) {
++  if (printf (csv ? "%" PRIi64 : "%4" PRIi64, i) < 0) {
+     perror ("printf");
+     exit (EXIT_FAILURE);
+   }
+-- 
+1.8.3.1
+

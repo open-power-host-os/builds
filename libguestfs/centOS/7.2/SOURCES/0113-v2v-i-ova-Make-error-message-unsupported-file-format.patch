@@ -1,0 +1,28 @@
+From e4dc8b36f3e7b16b81ea220b10325726c0406bca Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 28 Jan 2015 13:28:37 +0000
+Subject: [PATCH] v2v: -i ova: Make error message "unsupported file format"
+ clearer.
+
+Thanks: Moran Goldboim
+(cherry picked from commit 6a195d0f9565ad0e6e46f3e9904a6dea129e59f4)
+---
+ v2v/input_ova.ml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/v2v/input_ova.ml b/v2v/input_ova.ml
+index 1ab0320..e2a1243 100644
+--- a/v2v/input_ova.ml
++++ b/v2v/input_ova.ml
+@@ -63,7 +63,7 @@ object
+             error (f_"error unpacking %s, see earlier error messages") ova;
+           tmpdir
+         | `GZip | `XZ | `Unknown ->
+-          error (f_"%s: unsupported file format") ova
++          error (f_"%s: unsupported file format\n\nFormats which we currently understand for '-i ova' are: uncompressed tar, zip") ova
+       ) in
+ 
+     (* Exploded path must be absolute (RHBZ#1155121). *)
+-- 
+1.8.3.1
+

@@ -1,0 +1,91 @@
+From 0d60372cb2b9f6afa92993cf3d4666e98296bf69 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 20 Oct 2014 18:18:54 +0100
+Subject: [PATCH] v2v: Add a unique number to source disks.
+
+Note that it doesn't matter what the number is, as long as it's
+different for each disk.
+
+The unique number lets us store extra data in input objects which is
+associated with each disk.
+
+(cherry picked from commit 63387fd8d0d77f7fdaaad14e5053b86ae51cbd6e)
+---
+ v2v/input_disk.ml       | 1 +
+ v2v/input_libvirtxml.ml | 6 ++++--
+ v2v/input_ova.ml        | 1 +
+ v2v/types.ml            | 1 +
+ v2v/types.mli           | 1 +
+ 5 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/v2v/input_disk.ml b/v2v/input_disk.ml
+index 0b68ccf..ef28b43 100644
+--- a/v2v/input_disk.ml
++++ b/v2v/input_disk.ml
+@@ -66,6 +66,7 @@ class input_disk verbose input_format disk = object
+         | format -> format in
+ 
+     let disk = {
++      s_disk_id = 0;
+       s_qemu_uri = disk_absolute;
+       s_format = Some format;
+       s_target_dev = None;
+diff --git a/v2v/input_libvirtxml.ml b/v2v/input_libvirtxml.ml
+index 3b19685..0cfd75c 100644
+--- a/v2v/input_libvirtxml.ml
++++ b/v2v/input_libvirtxml.ml
+@@ -103,11 +103,13 @@ let parse_libvirt_xml ~verbose xml =
+   (* Non-removable disk devices. *)
+   let disks =
+     let get_disks, add_disk =
+-      let disks = ref [] in
++      let disks = ref [] and i = ref 0 in
+       let get_disks () = List.rev !disks in
+       let add_disk qemu_uri format target_dev =
++        incr i;
+         disks :=
+-          { s_qemu_uri = qemu_uri; s_format = format;
++          { s_disk_id = !i;
++            s_qemu_uri = qemu_uri; s_format = format;
+             s_target_dev = target_dev } :: !disks
+       in
+       get_disks, add_disk
+diff --git a/v2v/input_ova.ml b/v2v/input_ova.ml
+index 001a579..6349c76 100644
+--- a/v2v/input_ova.ml
++++ b/v2v/input_ova.ml
+@@ -210,6 +210,7 @@ object
+             else filename in
+ 
+           let disk = {
++            s_disk_id = i;
+             s_qemu_uri = filename;
+             s_format = Some "vmdk";
+             s_target_dev = Some target_dev;
+diff --git a/v2v/types.ml b/v2v/types.ml
+index ba04161..5124f3c 100644
+--- a/v2v/types.ml
++++ b/v2v/types.ml
+@@ -33,6 +33,7 @@ type source = {
+   s_nics : source_nic list;
+ }
+ and source_disk = {
++  s_disk_id : int;
+   s_qemu_uri : string;
+   s_format : string option;
+   s_target_dev : string option;
+diff --git a/v2v/types.mli b/v2v/types.mli
+index 863371c..c077dc2 100644
+--- a/v2v/types.mli
++++ b/v2v/types.mli
+@@ -35,6 +35,7 @@ type source = {
+ (** The source: metadata, disk images. *)
+ 
+ and source_disk = {
++  s_disk_id : int;                      (** A unique ID for each source disk. *)
+   s_qemu_uri : string;                  (** QEMU URI of source disk. *)
+   s_format : string option;             (** Format. *)
+   s_target_dev : string option;         (** Target @dev from libvirt XML. *)
+-- 
+1.8.3.1
+

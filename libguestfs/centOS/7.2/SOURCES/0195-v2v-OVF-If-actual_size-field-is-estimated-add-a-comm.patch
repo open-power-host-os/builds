@@ -1,0 +1,56 @@
+From 513aea6a54e5c5b40936a072810bec3c1414f730 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 29 Jun 2015 10:41:10 +0100
+Subject: [PATCH] v2v: OVF: If actual_size field is estimated, add a comment to
+ the output.
+
+The 'note:' comment is added, as below:
+
+  <Section xsi:type='ovf:DiskSection_Type'>
+    <Info>List of Virtual Disks</Info>
+    <!-- note: actual_size field is estimated -->
+    <Disk ovf:actual_size='7' [...]/>
+  </Section>
+
+(cherry picked from commit 52ca4d5dd4c909a4eac8c6f3a58f8800a444a611)
+---
+ v2v/OVF.ml | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/v2v/OVF.ml b/v2v/OVF.ml
+index 849bedd..2f0c469 100644
+--- a/v2v/OVF.ml
++++ b/v2v/OVF.ml
+@@ -371,14 +371,14 @@ and add_disks targets guestcaps output_alloc sd_uuid image_uuids vol_uuids ovf =
+         b /^ 1073741824L
+       in
+       let size_gb = bytes_to_gb ov.ov_virtual_size in
+-      let actual_size_gb =
++      let actual_size_gb, is_estimate =
+         match t.target_actual_size, t.target_estimated_size with
+-        | Some actual_size, _ -> Some (bytes_to_gb actual_size)
++        | Some actual_size, _ -> Some (bytes_to_gb actual_size), false
+           (* In the --no-copy case the target file does not exist.  In
+            * that case we use the estimated size.
+            *)
+-        | None, Some estimated_size -> Some (bytes_to_gb estimated_size)
+-        | None, None -> None in
++        | None, Some estimated_size -> Some (bytes_to_gb estimated_size), true
++        | None, None -> None, false in
+ 
+       let format_for_rhev =
+         match t.target_format with
+@@ -426,6 +426,10 @@ and add_disks targets guestcaps output_alloc sd_uuid image_uuids vol_uuids ovf =
+           | Some actual_size_gb ->
+             ("ovf:actual_size", Int64.to_string actual_size_gb) :: attrs in
+         e "Disk" attrs [] in
++      if is_estimate then (
++        let comment = Comment "note: actual_size field is estimated" in
++        append_child comment disk_section
++      );
+       append_child disk disk_section;
+ 
+       (* Add disk to VirtualHardware. *)
+-- 
+1.8.3.1
+

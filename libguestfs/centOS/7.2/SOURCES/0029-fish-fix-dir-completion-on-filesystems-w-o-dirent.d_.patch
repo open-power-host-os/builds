@@ -1,0 +1,37 @@
+From 07ac79e2f53f17e79977ea60e42441591e619879 Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Fri, 31 Oct 2014 17:37:22 +0100
+Subject: [PATCH] fish: fix dir completion on filesystems w/o dirent.d_type
+ (RHBZ#1153844).
+
+On filesystems whose dirent.d_type is DT_UNKNOWN or some unknown value,
+manually check whether an entry is a directory, thus completing in the
+proper way.
+
+(cherry picked from commit a8b95a5535480c7b382fab82dcaf18eb67e5278a)
+---
+ fish/destpaths.c | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/fish/destpaths.c b/fish/destpaths.c
+index f224106..df1ec00 100644
+--- a/fish/destpaths.c
++++ b/fish/destpaths.c
+@@ -191,7 +191,13 @@ complete_dest_paths_generator (const char *text, int state)
+                   else {
+                     words = w;
+                     words[nr_words].name = p;
+-                    words[nr_words].is_dir = dirents->val[i].ftyp == 'd';
++                    if (dirents->val[i].ftyp == 'u'
++                        || dirents->val[i].ftyp == '?') {
++                      int is_dir = guestfs_is_dir_opts (g, words[nr_words].name,
++                        GUESTFS_IS_DIR_OPTS_FOLLOWSYMLINKS, 1, -1);
++                      words[nr_words].is_dir = is_dir;
++                    } else
++                      words[nr_words].is_dir = dirents->val[i].ftyp == 'd';
+                     nr_words++;
+                   }
+                 }
+-- 
+1.8.3.1
+

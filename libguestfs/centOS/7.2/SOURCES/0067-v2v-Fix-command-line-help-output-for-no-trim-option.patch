@@ -1,0 +1,26 @@
+From 89b5f3263f16a21a64b48cb361a9031d8980df71 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 27 Nov 2014 17:40:52 +0000
+Subject: [PATCH] v2v: Fix command line --help output for --no-trim option.
+
+(cherry picked from commit 196813ea7466c54d26f71ff1760b433bdc29c081)
+---
+ v2v/cmdline.ml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/v2v/cmdline.ml b/v2v/cmdline.ml
+index 69a627f..01f3335 100644
+--- a/v2v/cmdline.ml
++++ b/v2v/cmdline.ml
+@@ -159,7 +159,7 @@ let parse_cmdline () =
+     "-n",        Arg.String add_network,    "in:out " ^ s_"Map network 'in' to 'out'";
+     "--network", Arg.String add_network,    "in:out " ^ ditto;
+     "--no-copy", Arg.Clear do_copy,         " " ^ s_"Just write the metadata";
+-    "--no-trim", Arg.String set_no_trim,    "all|mp,mp,.." ^ s_"Don't trim selected mounts";
++    "--no-trim", Arg.String set_no_trim,    "all|mp,mp,.." ^ " " ^ s_"Don't trim selected mounts";
+     "-o",        Arg.String set_output_mode, o_options ^ " " ^ s_"Set output mode (default: libvirt)";
+     "-oa",       Arg.String set_output_alloc, "sparse|preallocated " ^ s_"Set output allocation mode";
+     "-oc",       Arg.Set_string output_conn, "uri " ^ s_"Libvirt URI";
+-- 
+1.8.3.1
+

@@ -1,0 +1,33 @@
+From acbd4c482537fbba34c31ca9691940646d0d54be Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 8 Sep 2015 09:11:36 +0100
+Subject: [PATCH] v2v: -o rhev, -o vdsm: Use correct DefaultDisplayType for qxl
+ (RHBZ#1260590).
+
+This fixes commit 829e3fe7a6ed834939a7a79e453ab873d3328ae1.
+
+(cherry picked from commit c4bc8116d9d586085f96da2e5558c9b366e84925)
+---
+ v2v/OVF.ml | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/v2v/OVF.ml b/v2v/OVF.ml
+index 2ebb00f..01f244a 100644
+--- a/v2v/OVF.ml
++++ b/v2v/OVF.ml
+@@ -275,7 +275,11 @@ let rec create_ovf verbose source targets guestcaps inspect
+         e "IsStateless" [] [PCData "False"];
+         e "Origin" [] [PCData "0"];
+         e "VmType" [] [PCData vmtype];
+-        e "DefaultDisplayType" [] [PCData "1" (* qxl *)];
++        (* The documentation for DefaultDisplayType is wrong.  See
++         * https://bugzilla.redhat.com/show_bug.cgi?id=1260590#c7 for
++         * correct information.
++         *)
++        e "DefaultDisplayType" [] [PCData "2" (* qxl *)];
+ 
+         e "Section" ["ovf:id", vm_uuid; "ovf:required", "false";
+                      "xsi:type", "ovf:OperatingSystemSection_Type"] [
+-- 
+1.8.3.1
+

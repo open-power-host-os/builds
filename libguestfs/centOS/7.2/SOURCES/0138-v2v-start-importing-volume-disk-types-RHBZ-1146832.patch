@@ -1,0 +1,70 @@
+From 88d41fa8dd122a9f90430a4615497dcc29c10231 Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Tue, 14 Apr 2015 16:59:57 +0200
+Subject: [PATCH] v2v: start importing "volume" disk types (RHBZ#1146832)
+
+Import disks stored as "file"-type volumes.
+
+Side effect: a guest converted to libvirt using virt-v2v can be
+converted again using virt-v2v.
+
+(cherry picked from commit 08b1ba35cfaa526982911fe9f355ed9c168d942d)
+---
+ v2v/input_libvirtxml.ml | 34 ++++++++++++++++++++++++++++++++--
+ 1 file changed, 32 insertions(+), 2 deletions(-)
+
+diff --git a/v2v/input_libvirtxml.ml b/v2v/input_libvirtxml.ml
+index 357c46f..16a8115 100644
+--- a/v2v/input_libvirtxml.ml
++++ b/v2v/input_libvirtxml.ml
+@@ -180,8 +180,8 @@ let parse_libvirt_xml ?conn ~verbose xml =
+         | "" -> None
+         | format -> Some format in
+ 
+-      (* The <disk type='...'> attribute may be 'block', 'file' or
+-       * 'network'.  We ignore any other types.
++      (* The <disk type='...'> attribute may be 'block', 'file',
++       * 'network' or 'volume'.  We ignore any other types.
+        *)
+       match xpath_to_string "@type" "" with
+       | "block" ->
+@@ -213,6 +213,36 @@ let parse_libvirt_xml ?conn ~verbose xml =
+           warning ~prog (f_"network <disk> with <source protocol='%s'> was ignored")
+             protocol
+         )
++      | "volume" ->
++        let pool = xpath_to_string "source/@pool" "" in
++        let vol = xpath_to_string "source/@volume" "" in
++        if pool <> "" && vol <> "" then (
++          let xml = Domainxml.vol_dumpxml ?conn pool vol in
++          let doc = Xml.parse_memory xml in
++          let xpathctx = Xml.xpath_new_context doc in
++
++          let xpath_to_string expr default =
++            let obj = Xml.xpath_eval_expression xpathctx expr in
++            if Xml.xpathobj_nr_nodes obj < 1 then default
++            else (
++              let node = Xml.xpathobj_node doc obj 0 in
++              Xml.node_as_string node
++            ) in
++
++          (* Use the format specified in the volume itself. *)
++          let format =
++            match xpath_to_string "/volume/target/format/@type" "" with
++            | "" -> None
++            | format -> Some format in
++
++          match xpath_to_string "/volume/@type" "" with
++          | "" | "file" ->
++            let path = xpath_to_string "/volume/target/path/text()" "" in
++            if path <> "" then
++              add_disk path format controller (P_source_file path)
++          | vol_type ->
++            warning ~prog (f_"<disk type='volume'> with <volume type='%s'> was ignored") vol_type
++        )
+       | disk_type ->
+         warning ~prog (f_"<disk type='%s'> was ignored") disk_type
+     done;
+-- 
+1.8.3.1
+

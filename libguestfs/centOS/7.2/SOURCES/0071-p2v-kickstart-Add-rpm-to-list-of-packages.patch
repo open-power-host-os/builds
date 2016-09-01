@@ -1,0 +1,29 @@
+From 19883e24c18210a4a483cabb0c3cdcaae55e1a3d Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 28 Oct 2014 11:21:08 +0000
+Subject: [PATCH] p2v: kickstart: Add rpm to list of packages.
+
+Avoids RHBZ#1089566.
+
+(cherry picked from commit 8efbe49df6d53666bd5a6031f45f45ceb1408fb8)
+---
+ p2v/p2v.ks.in | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/p2v/p2v.ks.in b/p2v/p2v.ks.in
+index 4173975..9f55e18 100644
+--- a/p2v/p2v.ks.in
++++ b/p2v/p2v.ks.in
+@@ -45,6 +45,9 @@ __REPOS__
+ 
+ @core
+ 
++# rpm must be installed, else you'll hit RHBZ#1089566.
++rpm
++
+ # Note you must have a kernel, else the boot menu won't work:
+ kernel
+ 
+-- 
+1.8.3.1
+

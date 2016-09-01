@@ -1,0 +1,151 @@
+From f8a041846bd596276dc37cabd217d5f37312256c Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 7 Sep 2015 17:18:41 +0100
+Subject: [PATCH] v2v: windows: Warn if Group Policy or AV software may result
+ in 7B boot failure (RHBZ#1260689).
+
+Check if the Windows guest has Group Policy Objects installed, or one
+of several popular pieces of anti-virus software.  If we are
+installing a virtio block driver, then experience has shown this may
+cause a 7B boot failure.
+
+Print a warning when this combination happens.
+
+The warnings look like this:
+
+[  19.9] Converting Windows Server 2008 R2 Enterprise to run on KVM
+virt-v2v: warning: this guest has Windows Group Policy Objects (GPO) and a
+new virtio block device driver was installed.  In some circumstances, Group
+Policy may prevent new drivers from working (resulting in a 7B boot error).
+ If this happens, try disabling Group Policy before doing the conversion.
+virt-v2v: warning: this guest has Anti-Virus (AV) software and a new virtio
+block device driver was installed.  In some circumstances, AV may prevent
+new drivers from working (resulting in a 7B boot error).  If this happens,
+try disabling AV before doing the conversion.
+virt-v2v: This guest has virtio drivers installed.
+
+(cherry picked from commit 8e28d6b18860f8ff4e02489317749a723fa145ab)
+---
+ mllib/common_utils.ml  |  6 +++++
+ mllib/common_utils.mli |  2 ++
+ v2v/convert_windows.ml | 60 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 68 insertions(+)
+
+diff --git a/mllib/common_utils.ml b/mllib/common_utils.ml
+index 8f0f065..198a5fb 100644
+--- a/mllib/common_utils.ml
++++ b/mllib/common_utils.ml
+@@ -58,6 +58,12 @@ let le32_of_int i =
+   String.unsafe_set s 3 (Char.unsafe_chr (Int64.to_int c3));
+   s
+ 
++let isxdigit = function
++  | '0'..'9' -> true
++  | 'a'..'f' -> true
++  | 'A'..'F' -> true
++  | _ -> false
++
+ type wrap_break_t = WrapEOS | WrapSpace | WrapNL
+ 
+ let rec wrap ?(chan = stdout) ?(indent = 0) str =
+diff --git a/mllib/common_utils.mli b/mllib/common_utils.mli
+index ad2b4c7..ed7de7f 100644
+--- a/mllib/common_utils.mli
++++ b/mllib/common_utils.mli
+@@ -32,6 +32,8 @@ val div_roundup64 : int64 -> int64 -> int64
+ val int_of_le32 : string -> int64
+ val le32_of_int : int64 -> string
+ 
++val isxdigit : char -> bool
++
+ val wrap : ?chan:out_channel -> ?indent:int -> string -> unit
+ (** Wrap text. *)
+ 
+diff --git a/v2v/convert_windows.ml b/v2v/convert_windows.ml
+index e3d3a39..36cf8c1 100644
+--- a/v2v/convert_windows.ml
++++ b/v2v/convert_windows.ml
+@@ -41,6 +41,14 @@ module G = Guestfs
+ 
+ type ('a, 'b) maybe = Either of 'a | Or of 'b
+ 
++(* Antivirus regexps that match on inspect.i_apps.app2_name fields. *)
++let av_rex =
++  let alternatives = [
++    "virus"; (* generic *)
++    "Kaspersky"; "McAfee"; "Norton"; "Sophos";
++  ] in
++  Str.regexp_case_fold (String.concat "\\|" alternatives)
++
+ let convert ~verbose ~keep_serial_console (g : G.guestfs) inspect source =
+   (* Get the data directory. *)
+   let virt_tools_data_dir =
+@@ -103,6 +111,47 @@ let convert ~verbose ~keep_serial_console (g : G.guestfs) inspect source =
+   (*----------------------------------------------------------------------*)
+   (* Inspect the Windows guest. *)
+ 
++  (* Warn if Windows guest appears to be using group policy. *)
++  let has_group_policy =
++    let check_group_policy root =
++      try
++        let node =
++          get_node root
++                   ["Microsoft"; "Windows"; "CurrentVersion"; "Group Policy";
++                    "History"] in
++        let children = g#hivex_node_children node in
++        let children = Array.to_list children in
++        let children =
++          List.map (fun { G.hivex_node_h = h } -> g#hivex_node_name h)
++                   children in
++        (* Just assume any children looking like "{<GUID>}" mean that
++         * some GPOs were installed.
++         *
++         * In future we might want to look for nodes which match:
++         * History\{<GUID>}\<N> where <N> is a small integer (the order
++         * in which policy objects were applied.
++         *
++         * For an example registry containing GPOs, see RHBZ#1219651.
++         * See also: https://support.microsoft.com/en-us/kb/201453
++         *)
++        let is_gpo_guid name =
++          let len = String.length name in
++          len > 3 && name.[0] = '{' && isxdigit name.[1] && name.[len-1] = '}'
++        in
++        List.exists is_gpo_guid children
++      with
++        Not_found -> false
++    in
++    with_hive "software" ~write:false check_group_policy in
++
++  (* Warn if Windows guest has AV installed. *)
++  let has_antivirus =
++    let check_app { G.app2_name = name } =
++      try ignore (Str.search_forward av_rex name 0); true
++      with Not_found -> false
++    in
++    List.exists check_app inspect.i_apps in
++
+   (* Open the software hive (readonly) and find the Xen PV uninstaller,
+    * if it exists.
+    *)
+@@ -488,6 +537,17 @@ echo uninstalling Xen PV driver
+ 
+   fix_ntfs_heads ();
+ 
++  (* Warn if installation of virtio block drivers might conflict with
++   * group policy or AV software causing a boot 0x7B error (RHBZ#1260689).
++   *)
++  let () =
++    if block_driver = Virtio_blk then (
++      if has_group_policy then
++        warning ~prog (f_"this guest has Windows Group Policy Objects (GPO) and a new virtio block device driver was installed.  In some circumstances, Group Policy may prevent new drivers from working (resulting in a 7B boot error).  If this happens, try disabling Group Policy before doing the conversion.");
++      if has_antivirus then
++        warning ~prog (f_"this guest has Anti-Virus (AV) software and a new virtio block device driver was installed.  In some circumstances, AV may prevent new drivers from working (resulting in a 7B boot error).  If this happens, try disabling AV before doing the conversion.");
++    ) in
++
+   (* Return guest capabilities. *)
+   let guestcaps = {
+     gcaps_block_bus = block_driver;
+-- 
+1.8.3.1
+

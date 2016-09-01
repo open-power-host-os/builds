@@ -1,0 +1,28 @@
+From ae37727f7181009851f1c9559d709231481be638 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 1 Jul 2015 11:01:43 +0100
+Subject: [PATCH] v2v: Fix detection of Win2008R2 drivers (RHBZ#1234351).
+
+This fixes commit 47b5f245bec908f803f0a89c3b1e3166cfe33aad.
+
+(cherry picked from commit a324ae2ad72f2a2188eb0d4398c9e6548c499c5a)
+---
+ v2v/utils.ml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/v2v/utils.ml b/v2v/utils.ml
+index a301c56..000ec12 100644
+--- a/v2v/utils.ml
++++ b/v2v/utils.ml
+@@ -229,7 +229,7 @@ let find_virtio_win_drivers ~verbose virtio_win =
+               (6, 0, Vwd_server)
+             else if pathelem "w7" || pathelem "win7" then
+               (6, 1, Vwd_client)
+-            else if pathelem "2k8r2" || pathelem "win2008" then
++            else if pathelem "2k8r2" || pathelem "win2008r2" then
+               (6, 1, Vwd_server)
+             else if pathelem "w8" || pathelem "win8" then
+               (6, 2, Vwd_client)
+-- 
+1.8.3.1
+

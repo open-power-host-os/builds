@@ -1,0 +1,31 @@
+From be8fb07e4bc291529f9e069e68bb2ea1ebc5cd4e Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 25 Jun 2015 20:54:06 +0100
+Subject: [PATCH] v2v: Increase the timeout of VMware curl connections
+ (RHBZ#1146007).
+
+On certain webservers these appear to go beyond even 600 seconds (10
+minutes).
+
+(cherry picked from commit 801832e6764097466c1156a9be2d829f8401c6d9)
+---
+ v2v/input_libvirt_vcenter_https.ml | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/v2v/input_libvirt_vcenter_https.ml b/v2v/input_libvirt_vcenter_https.ml
+index d0d860e..b4a656f 100644
+--- a/v2v/input_libvirt_vcenter_https.ml
++++ b/v2v/input_libvirt_vcenter_https.ml
+@@ -250,7 +250,8 @@ let map_source_to_uri ?readahead verbose password uri scheme server path =
+     let json_params = [
+       "file.driver", JSON.String "https";
+       "file.url", JSON.String url;
+-      "file.timeout", JSON.Int 600;
++      (* https://bugzilla.redhat.com/show_bug.cgi?id=1146007#c10 *)
++      "file.timeout", JSON.Int 2000;
+     ] in
+ 
+     let json_params =
+-- 
+1.8.3.1
+

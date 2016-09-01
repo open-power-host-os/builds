@@ -1,0 +1,27 @@
+From ff5f1cbfc2b9bc92454695313e2f28c832e2c880 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 20 Nov 2014 10:08:51 +0000
+Subject: [PATCH] v2v: linux: Remap device names in /boot/grub2/device.map
+ (RHBZ#1165975).
+
+Thanks: Junquin Zhou
+(cherry picked from commit 7b8c6e762e10033b174f8554145d48489718b8b5)
+---
+ v2v/convert_linux.ml | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/v2v/convert_linux.ml b/v2v/convert_linux.ml
+index 6c483c2..e85a0d5 100644
+--- a/v2v/convert_linux.ml
++++ b/v2v/convert_linux.ml
+@@ -1287,6 +1287,7 @@ let rec convert ~verbose ~keep_serial_console (g : G.guestfs) inspect source =
+       "/files/etc/sysconfig/grub/GRUB_CMDLINE_LINUX";
+       "/files/etc/default/grub/GRUB_CMDLINE_LINUX";
+       "/files/etc/default/grub/GRUB_CMDLINE_LINUX_DEFAULT";
++      "/files/boot/grub2/device.map/*[label() != \"#comment\"]";
+     ] in
+ 
+     (* Which of these paths actually exist? *)
+-- 
+1.8.3.1
+

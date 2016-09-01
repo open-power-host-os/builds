@@ -1,0 +1,293 @@
+From ab0f4d6925bfac4cb65c6d6e6e050d5366a8163b Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 22 Oct 2014 12:00:36 +0100
+Subject: [PATCH] v2v: -i libvirtxml: Fix handling of nbd sources
+ (RHBZ#1153589).
+
+Previously I modified the parse_libvirt_xml function to get rid of the
+awkward 'map_source*' functions, and have the callers map over and
+modify the source disks afterwards.  However this broke the case where
+an "nbd:..." URL was returned by parse_libvirt_xml, since the callers
+might try to map this URL (eg. turning it into an absolute path).
+This broke virt-p2v specifically.
+
+This commit changes parse_libvirt_xml to return a list of tuples
+containing disk information, giving the callers more information with
+which to do the mapping.
+
+This fixes commit 3596165282ccf2c5896894ec4e9a71c6da788463.
+
+(cherry picked from commit ad78d1492b02eaf5d810e2f9d012a5fed4f4124b)
+---
+ v2v/input_libvirt_other.ml         |  5 ++++-
+ v2v/input_libvirt_vcenter_https.ml | 44 ++++++++++++++++++++++++--------------
+ v2v/input_libvirt_xen_ssh.ml       | 10 ++++++---
+ v2v/input_libvirtxml.ml            | 38 +++++++++++++++++++++-----------
+ v2v/input_libvirtxml.mli           | 17 +++++++++++++--
+ 5 files changed, 80 insertions(+), 34 deletions(-)
+
+diff --git a/v2v/input_libvirt_other.ml b/v2v/input_libvirt_other.ml
+index a771aa1..9f3eedb 100644
+--- a/v2v/input_libvirt_other.ml
++++ b/v2v/input_libvirt_other.ml
+@@ -70,7 +70,10 @@ object
+      *)
+     let xml = Domainxml.dumpxml ?conn:libvirt_uri guest in
+ 
+-    Input_libvirtxml.parse_libvirt_xml ~verbose xml
++    let source, disks = Input_libvirtxml.parse_libvirt_xml ~verbose xml in
++    let disks =
++      List.map (fun { Input_libvirtxml.p_source_disk = disk } -> disk) disks in
++    { source with s_disks = disks }
+ end
+ 
+ let input_libvirt_other = new input_libvirt_other
+diff --git a/v2v/input_libvirt_vcenter_https.ml b/v2v/input_libvirt_vcenter_https.ml
+index 71c2edd..56097e0 100644
+--- a/v2v/input_libvirt_vcenter_https.ml
++++ b/v2v/input_libvirt_vcenter_https.ml
+@@ -24,6 +24,7 @@ open Common_utils
+ open Types
+ open Xml
+ open Utils
++open Input_libvirtxml
+ open Input_libvirt_other
+ 
+ open Printf
+@@ -235,20 +236,28 @@ object
+      * that the domain is not running.  (RHBZ#1138586)
+      *)
+     let xml = Domainxml.dumpxml ?conn:libvirt_uri guest in
+-    let { s_disks = disks } as source =
+-      Input_libvirtxml.parse_libvirt_xml ~verbose xml in
++    let source, disks = parse_libvirt_xml ~verbose xml in
+ 
+     (* Save the original source paths, so that we can remap them again
+      * in [#adjust_overlay_parameters].
+      *)
+     List.iter (
+-      fun { s_disk_id = id; s_qemu_uri = path } ->
+-        Hashtbl.add saved_source_paths id path
++      function
++      | { p_source = P_source_dev _ } ->
++        (* Should never happen ... *)
++        error (f_"source disk has <source dev=...> attribute in XML")
++      | { p_source_disk = { s_disk_id = id }; p_source = P_dont_rewrite } ->
++        Hashtbl.add saved_source_paths id None
++      | { p_source_disk = { s_disk_id = id }; p_source = P_source_file path } ->
++        Hashtbl.add saved_source_paths id (Some path)
+     ) disks;
+ 
++    let readahead = readahead_for_conversion in
+     let disks = List.map (
+-      fun ({ s_qemu_uri = path } as disk) ->
+-        let readahead = readahead_for_conversion in
++      function
++      | { p_source = P_source_dev _ } -> assert false
++      | { p_source_disk = disk; p_source = P_dont_rewrite } -> disk
++      | { p_source_disk = disk; p_source = P_source_file path } ->
+         let qemu_uri = map_source_to_uri ?readahead
+ 	  verbose parsed_uri scheme server path in
+ 
+@@ -265,18 +274,21 @@ object
+     let orig_path =
+       try Hashtbl.find saved_source_paths overlay.ov_source.s_disk_id
+       with Not_found -> failwith "internal error in adjust_overlay_parameters" in
+-    let backing_qemu_uri =
++    match orig_path with
++    | None -> ()
++    | Some orig_path ->
+       let readahead = readahead_for_copying in
+-      map_source_to_uri ?readahead
+-        verbose parsed_uri scheme server orig_path in
++      let backing_qemu_uri =
++        map_source_to_uri ?readahead
++          verbose parsed_uri scheme server orig_path in
+ 
+-    (* Rebase the qcow2 overlay to adjust the readahead parameter. *)
+-    let cmd =
+-      sprintf "qemu-img rebase -u -b %s %s"
+-        (quote backing_qemu_uri) (quote overlay.ov_overlay_file) in
+-    if verbose then printf "%s\n%!" cmd;
+-    if Sys.command cmd <> 0 then
+-      warning ~prog (f_"qemu-img rebase failed (ignored)")
++      (* Rebase the qcow2 overlay to adjust the readahead parameter. *)
++      let cmd =
++        sprintf "qemu-img rebase -u -b %s %s"
++          (quote backing_qemu_uri) (quote overlay.ov_overlay_file) in
++      if verbose then printf "%s\n%!" cmd;
++      if Sys.command cmd <> 0 then
++        warning ~prog (f_"qemu-img rebase failed (ignored)")
+ end
+ 
+ let input_libvirt_vcenter_https = new input_libvirt_vcenter_https
+diff --git a/v2v/input_libvirt_xen_ssh.ml b/v2v/input_libvirt_xen_ssh.ml
+index 8b836a5..e1600a0 100644
+--- a/v2v/input_libvirt_xen_ssh.ml
++++ b/v2v/input_libvirt_xen_ssh.ml
+@@ -24,6 +24,7 @@ open Common_utils
+ open Types
+ open Xml
+ open Utils
++open Input_libvirtxml
+ open Input_libvirt_other
+ 
+ open Printf
+@@ -45,8 +46,7 @@ object
+      * that the domain is not running.  (RHBZ#1138586)
+      *)
+     let xml = Domainxml.dumpxml ?conn:libvirt_uri guest in
+-    let { s_disks = disks } as source =
+-      Input_libvirtxml.parse_libvirt_xml ~verbose xml in
++    let source, disks = parse_libvirt_xml ~verbose xml in
+ 
+     (* Map the <source/> filename (which is relative to the remote
+      * Xen server) to an ssh URI.  This is a JSON URI looking something
+@@ -61,7 +61,11 @@ object
+      *   "file.host_key_check": "no"
+      *)
+     let disks = List.map (
+-      fun ({ s_qemu_uri = path } as disk) ->
++      function
++      | { p_source_disk = disk; p_source = P_dont_rewrite } ->
++        disk
++      | { p_source_disk = disk; p_source = P_source_dev path }
++      | { p_source_disk = disk; p_source = P_source_file path } ->
+         (* Construct the JSON parameters. *)
+         let json_params = [
+           "file.driver", JSON.String "ssh";
+diff --git a/v2v/input_libvirtxml.ml b/v2v/input_libvirtxml.ml
+index 0cfd75c..c71260f 100644
+--- a/v2v/input_libvirtxml.ml
++++ b/v2v/input_libvirtxml.ml
+@@ -24,6 +24,15 @@ open Common_utils
+ open Types
+ open Utils
+ 
++type parsed_disk = {
++  p_source_disk : source_disk;
++  p_source : parsed_source;
++}
++and parsed_source =
++| P_source_dev of string
++| P_source_file of string
++| P_dont_rewrite
++
+ let parse_libvirt_xml ~verbose xml =
+   if verbose then
+     printf "libvirt xml is:\n%s\n" xml;
+@@ -105,12 +114,13 @@ let parse_libvirt_xml ~verbose xml =
+     let get_disks, add_disk =
+       let disks = ref [] and i = ref 0 in
+       let get_disks () = List.rev !disks in
+-      let add_disk qemu_uri format target_dev =
++      let add_disk qemu_uri format target_dev p_source =
+         incr i;
+         disks :=
+-          { s_disk_id = !i;
+-            s_qemu_uri = qemu_uri; s_format = format;
+-            s_target_dev = target_dev } :: !disks
++          { p_source_disk = { s_disk_id = !i;
++                              s_qemu_uri = qemu_uri; s_format = format;
++                              s_target_dev = target_dev };
++            p_source = p_source } :: !disks
+       in
+       get_disks, add_disk
+     in
+@@ -141,11 +151,11 @@ let parse_libvirt_xml ~verbose xml =
+       | "block" ->
+         let path = xpath_to_string "source/@dev" "" in
+         if path <> "" then
+-          add_disk path format target_dev
++          add_disk path format target_dev (P_source_dev path)
+       | "file" ->
+         let path = xpath_to_string "source/@file" "" in
+         if path <> "" then
+-          add_disk path format target_dev
++          add_disk path format target_dev (P_source_file path)
+       | "network" ->
+         (* We only handle <source protocol="nbd"> here, and that is
+          * intended only for virt-p2v.  Any other network disk is
+@@ -160,7 +170,7 @@ let parse_libvirt_xml ~verbose xml =
+              * XXX Quoting, although it's not needed for virt-p2v.
+              *)
+             let path = sprintf "nbd:%s:%d" host port in
+-            add_disk path format target_dev
++            add_disk path format target_dev (P_dont_rewrite)
+           )
+         | "" -> ()
+         | protocol ->
+@@ -236,17 +246,18 @@ let parse_libvirt_xml ~verbose xml =
+     done;
+     List.rev !nics in
+ 
+-  {
++  ({
+     s_dom_type = dom_type;
+     s_name = name; s_orig_name = name;
+     s_memory = memory;
+     s_vcpu = vcpu;
+     s_features = features;
+     s_display = display;
+-    s_disks = disks;
++    s_disks = [];
+     s_removables = removables;
+     s_nics = nics;
+-  }
++   },
++   disks)
+ 
+ class input_libvirtxml verbose file =
+ object
+@@ -257,7 +268,7 @@ object
+   method source () =
+     let xml = read_whole_file file in
+ 
+-    let { s_disks = disks } as source = parse_libvirt_xml ~verbose xml in
++    let source, disks = parse_libvirt_xml ~verbose xml in
+ 
+     (* When reading libvirt XML from a file (-i libvirtxml) we allow
+      * paths to disk images in the libvirt XML to be relative (to the XML
+@@ -267,7 +278,10 @@ object
+      *)
+     let dir = Filename.dirname (absolute_path file) in
+     let disks = List.map (
+-      fun ({ s_qemu_uri = path } as disk) ->
++      function
++      | { p_source_disk = disk; p_source = P_dont_rewrite } -> disk
++      | { p_source_disk = disk; p_source = P_source_dev _ } -> disk
++      | { p_source_disk = disk; p_source = P_source_file path } ->
+         let path =
+           if not (Filename.is_relative path) then path else dir // path in
+         { disk with s_qemu_uri = path }
+diff --git a/v2v/input_libvirtxml.mli b/v2v/input_libvirtxml.mli
+index 5c10df0..e450899 100644
+--- a/v2v/input_libvirtxml.mli
++++ b/v2v/input_libvirtxml.mli
+@@ -18,8 +18,21 @@
+ 
+ (** [-i libvirtxml] source. *)
+ 
+-val parse_libvirt_xml : verbose:bool -> string -> Types.source
+-(** Take libvirt XML and parse it into a {!Types.source} structure.
++type parsed_disk = {
++  p_source_disk : Types.source_disk;    (** Source disk. *)
++  p_source : parsed_source;         (** <source dev|file attribute> *)
++}
++and parsed_source =
++| P_source_dev of string             (** <source dev> *)
++| P_source_file of string            (** <source file> *)
++| P_dont_rewrite                     (** s_qemu_uri is already set. *)
++
++val parse_libvirt_xml : verbose:bool -> string -> Types.source * parsed_disk list
++(** Take libvirt XML and parse it into a {!Types.source} structure and a
++    list of source disks.
++
++    {b Note} the [source.s_disks] field is an empty list.  The caller
++    must map over the parsed disks and update the [source.s_disks] field.
+ 
+     This function is also used by {!Input_libvirt}, hence it is
+     exported. *)
+-- 
+1.8.3.1
+

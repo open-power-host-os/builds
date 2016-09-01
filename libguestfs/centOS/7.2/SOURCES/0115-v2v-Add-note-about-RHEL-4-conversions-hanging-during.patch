@@ -1,0 +1,44 @@
+From 6c03f770b86348ec3ce8283e3df245cb22b716e8 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 30 Mar 2015 13:22:58 +0100
+Subject: [PATCH] v2v: Add note about RHEL 4 conversions hanging during SELinux
+ relabelling.
+
+(cherry picked from commit d4ab702dad39fe1f609ee17661f6bfa3a11dee31)
+---
+ v2v/virt-v2v.pod | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/v2v/virt-v2v.pod b/v2v/virt-v2v.pod
+index 2e49fbf..e3f97f2 100644
+--- a/v2v/virt-v2v.pod
++++ b/v2v/virt-v2v.pod
+@@ -618,6 +618,25 @@ below.
+  Windows        Drivers are installed from /usr/share/virtio-win
+                 if present
+ 
++=head1 RHEL 4
++
++=head2 SELinux relabel appears to hang forever
++
++In RHEL E<le> 4.7 there was a bug which causes SELinux relabelling
++to appear to hang forever at:
++
++ *** Warning -- SELinux relabel is required. ***
++ *** Disabling security enforcement.         ***
++ *** Relabeling could take a very long time, ***
++ *** depending on file system size.          ***
++
++In reality it is waiting for you to press a key (but there is no
++visual indication of this).  You can either hit the C<[Return]> key,
++at which point the guest will finish relabelling and reboot, or you
++can install policycoreutils E<ge> 1.18.1-4.13 before starting the v2v
++conversion.  See also
++L<https://bugzilla.redhat.com/show_bug.cgi?id=244636>
++
+ =head1 WINDOWS
+ 
+ =head2 Boot failure: 0x0000007B
+-- 
+1.8.3.1
+

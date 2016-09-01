@@ -1,0 +1,52 @@
+From f66959c79ab2d0ed26d9012024ac0ee4068b2aab Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 7 Apr 2015 16:58:40 +0100
+Subject: [PATCH] v2v: Add support for REG_MULTI_SZ (multiple strings) to
+ registry editor.
+
+(cherry picked from commit 4fd70eab4ff7d9a8e49db2938a80dcef45db150c)
+---
+ mllib/regedit.ml  | 8 ++++++++
+ mllib/regedit.mli | 1 +
+ 2 files changed, 9 insertions(+)
+
+diff --git a/mllib/regedit.ml b/mllib/regedit.ml
+index 673b215..0291fe4 100644
+--- a/mllib/regedit.ml
++++ b/mllib/regedit.ml
+@@ -30,6 +30,7 @@ and regtype =
+ | REG_EXPAND_SZ of string
+ | REG_BINARY of string
+ | REG_DWORD of int32
++| REG_MULTI_SZ of string list
+ 
+ (* Take a 7 bit ASCII string and encode it as UTF16LE. *)
+ let encode_utf16le str =
+@@ -97,5 +98,12 @@ and import_value g node = function
+     g#hivex_node_set_value node key 3L bin
+   | key, REG_DWORD dw ->
+     g#hivex_node_set_value node key 4L (le32_of_int (Int64.of_int32 dw))
++  | key, REG_MULTI_SZ ss ->
++    (* http://blogs.msdn.com/oldnewthing/archive/2009/10/08/9904646.aspx *)
++    List.iter (fun s -> assert (s <> "")) ss;
++    let ss = ss @ [""] in
++    let ss = List.map (fun s -> encode_utf16le s ^ "\000\000") ss in
++    let ss = String.concat "" ss in
++    g#hivex_node_set_value node key 7L ss
+ 
+ let reg_import g root = List.iter (import_key g root)
+diff --git a/mllib/regedit.mli b/mllib/regedit.mli
+index 1f43cdd..985e405 100644
+--- a/mllib/regedit.mli
++++ b/mllib/regedit.mli
+@@ -47,6 +47,7 @@ and regtype =
+ | REG_EXPAND_SZ of string               (** String with %env% *)
+ | REG_BINARY of string                  (** Blob of binary data *)
+ | REG_DWORD of int32                    (** Little endian 32 bit integer *)
++| REG_MULTI_SZ of string list           (** List of strings *)
+ (* There are more types in the Registry, but we don't support them here... *)
+ (** Registry value type and data.
+ 
+-- 
+1.8.3.1
+

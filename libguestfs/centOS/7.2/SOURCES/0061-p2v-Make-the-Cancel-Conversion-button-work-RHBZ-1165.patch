@@ -1,0 +1,122 @@
+From 34bc94a474600195a8f0bd5450a5d7523afb86ee Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 20 Nov 2014 16:08:43 +0000
+Subject: [PATCH] p2v: Make the "Cancel Conversion" button work (RHBZ#1165569).
+
+This relies on the remote to keep sending us data.  If it hangs, then
+the cancel button won't work.  This could also be fixed by introducing
+a timeout to the read syscall.
+
+(cherry picked from commit 25b979a0c4a5942aaf62fcbe0e48d7526bd5e9b0)
+---
+ p2v/conversion.c | 15 ++++++++++++++-
+ p2v/gui.c        | 12 +++++++++++-
+ p2v/p2v.h        |  1 +
+ 3 files changed, 26 insertions(+), 2 deletions(-)
+
+diff --git a/p2v/conversion.c b/p2v/conversion.c
+index 6f414de..cb2deed 100644
+--- a/p2v/conversion.c
++++ b/p2v/conversion.c
+@@ -86,6 +86,8 @@ get_conversion_error (void)
+   return conversion_error;
+ }
+ 
++static volatile sig_atomic_t stop = 0;
++
+ #pragma GCC diagnostic ignored "-Wsuggest-attribute=noreturn"
+ int
+ start_conversion (struct config *config,
+@@ -271,7 +273,7 @@ start_conversion (struct config *config,
+   /* Read output from the virt-v2v process and echo it through the
+    * notify function, until virt-v2v closes the connection.
+    */
+-  for (;;) {
++  while (!stop) {
+     char buf[257];
+     ssize_t r;
+ 
+@@ -290,6 +292,11 @@ start_conversion (struct config *config,
+       notify_ui (NOTIFY_REMOTE_MESSAGE, buf);
+   }
+ 
++  if (stop) {
++    set_conversion_error ("cancelled by user");
++    goto out;
++  }
++
+   if (notify_ui)
+     notify_ui (NOTIFY_STATUS, _("Control connection closed by remote."));
+ 
+@@ -301,6 +308,12 @@ start_conversion (struct config *config,
+   return ret;
+ }
+ 
++void
++cancel_conversion (void)
++{
++  stop = 1;
++}
++
+ /* Send a shell-quoted string to remote. */
+ static int
+ send_quoted (mexp_h *h, const char *s)
+diff --git a/p2v/gui.c b/p2v/gui.c
+index 523b028..194f9fb 100644
+--- a/p2v/gui.c
++++ b/p2v/gui.c
+@@ -1058,6 +1058,7 @@ static void set_log_dir (const char *remote_dir);
+ static void set_status (const char *msg);
+ static void add_v2v_output (const char *msg);
+ static void *start_conversion_thread (void *data);
++static void cancel_conversion_clicked (GtkWidget *w, gpointer data);
+ static void reboot_clicked (GtkWidget *w, gpointer data);
+ 
+ static void
+@@ -1105,6 +1106,8 @@ create_running_dialog (void)
+   /* Signals. */
+   g_signal_connect_swapped (G_OBJECT (run_dlg), "destroy",
+                             G_CALLBACK (gtk_main_quit), NULL);
++  g_signal_connect (G_OBJECT (cancel_button), "clicked",
++                    G_CALLBACK (cancel_conversion_clicked), NULL);
+   g_signal_connect (G_OBJECT (reboot_button), "clicked",
+                     G_CALLBACK (reboot_clicked), NULL);
+ }
+@@ -1118,7 +1121,7 @@ show_running_dialog (void)
+ 
+   /* Show the running dialog. */
+   gtk_widget_show_all (run_dlg);
+-  gtk_widget_set_sensitive (cancel_button, FALSE);
++  gtk_widget_set_sensitive (cancel_button, TRUE);
+   gtk_widget_set_sensitive (reboot_button, FALSE);
+ }
+ 
+@@ -1364,6 +1367,13 @@ notify_ui_callback (int type, const char *data)
+ }
+ 
+ static void
++cancel_conversion_clicked (GtkWidget *w, gpointer data)
++{
++  /* This makes start_conversion return an error (eventually). */
++  cancel_conversion ();
++}
++
++static void
+ reboot_clicked (GtkWidget *w, gpointer data)
+ {
+   sync ();
+diff --git a/p2v/p2v.h b/p2v/p2v.h
+index 6067d5f..c3ca0f6 100644
+--- a/p2v/p2v.h
++++ b/p2v/p2v.h
+@@ -97,6 +97,7 @@ extern int start_conversion (struct config *, void (*notify_ui) (int type, const
+ #define NOTIFY_REMOTE_MESSAGE 2  /* log message from remote virt-v2v */
+ #define NOTIFY_STATUS         3  /* stage in conversion process */
+ extern const char *get_conversion_error (void);
++extern void cancel_conversion (void);
+ 
+ /* ssh.c */
+ extern int test_connection (struct config *);
+-- 
+1.8.3.1
+

@@ -1,0 +1,52 @@
+From d4713b68fb4c09b4004460ad1840d75e6a3ba86c Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 6 Jul 2015 10:47:45 +0100
+Subject: [PATCH] v2v: Catch real exception thrown by failing aug_get
+ (RHBZ#1239053).
+
+When converting the old Perl virt-v2v code, I made a silly mistake
+with the exception that aug_get throws when it doesn't find any node.
+It throws a 'Guestfs.Error' exception, not 'Not_found'.
+
+As a result of this, the exception was escaping and the proper error
+message was not displayed.  With a malformed grub configuration you
+would see this error:
+
+  $ virt-v2v -i disk centos-6.img -o null
+  [...]
+  virt-v2v: error: libguestfs error: aug_get: no matching node
+
+After applying this patch:
+
+  $ virt-v2v -i disk centos-6.img -o null
+  [...]
+  virt-v2v: error: no kernels were found in the grub configuration.
+
+  This probably indicates that virt-v2v was unable to parse the grub
+  configuration of this guest.
+
+which is the correct error message.
+
+(cherry picked from commit 659d56db3cc4333e7410cac6720c20b3b7fa66ad)
+---
+ v2v/convert_linux.ml | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/v2v/convert_linux.ml b/v2v/convert_linux.ml
+index 8264e80..c110825 100644
+--- a/v2v/convert_linux.ml
++++ b/v2v/convert_linux.ml
+@@ -290,7 +290,9 @@ let rec convert ~verbose ~keep_serial_console (g : G.guestfs) inspect source =
+               let expr =
+                 sprintf "/files%s/title[%d]/kernel" grub_config (idx+1) in
+               Some expr
+-            with Not_found -> None in
++            with G.Error msg
++                 when string_find msg "aug_get: no matching node" >= 0 ->
++              None in
+ 
+           (* If a default kernel was set, put it at the beginning of the paths
+            * list.  If not set, assume the first kernel always boots (?)
+-- 
+1.8.3.1
+

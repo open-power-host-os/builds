@@ -1,0 +1,76 @@
+From 1cfdb89206039d93e5bc203e1d7d4a12077020e3 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 10 Jun 2015 13:38:11 +0100
+Subject: [PATCH] p2v: Fix parsing of p2v.memory parameter (RHBZ#1229262).
+
+The sscanf call always failed because we checked for the wrong return
+code.
+
+We don't need to allocate two characters for the mem_code field since
+sscanf doesn't append a nul byte.
+
+This commit also allows you to use lowercase 'm' or 'g' as a memory
+unit.
+
+Also clarify the documentation: the memory unit must be given.
+
+(cherry picked from commit bb5b23c1519a3901909a5ed51ce2f88e0904cb85)
+---
+ p2v/kernel.c     | 12 +++++++-----
+ p2v/virt-p2v.pod |  9 ++++++---
+ 2 files changed, 13 insertions(+), 8 deletions(-)
+
+diff --git a/p2v/kernel.c b/p2v/kernel.c
+index d7664d5..d9fe50d 100644
+--- a/p2v/kernel.c
++++ b/p2v/kernel.c
+@@ -104,19 +104,21 @@ kernel_configuration (struct config *config, char **cmdline, int cmdline_source)
+ 
+   p = get_cmdline_key (cmdline, "p2v.memory");
+   if (p) {
+-    char mem_code[2];
++    char mem_code;
+ 
+-    if (sscanf (p, "%" SCNu64 "%c", &config->memory, mem_code) != 1) {
++    if (sscanf (p, "%" SCNu64 "%c", &config->memory, &mem_code) != 2) {
+       fprintf (stderr, "%s: cannot parse p2v.memory from kernel command line\n",
+                guestfs_int_program_name);
+       exit (EXIT_FAILURE);
+     }
+     config->memory *= 1024;
+-    if (mem_code[0] == 'M' || mem_code[0] == 'G')
++    if (mem_code == 'M' || mem_code == 'm'
++        || mem_code == 'G' || mem_code == 'g')
+       config->memory *= 1024;
+-    if (mem_code[0] == 'G')
++    if (mem_code == 'G' || mem_code == 'g')
+       config->memory *= 1024;
+-    if (mem_code[0] != 'M' && mem_code[0] != 'G') {
++    if (mem_code != 'M' && mem_code != 'm'
++        && mem_code != 'G' && mem_code != 'g') {
+       fprintf (stderr, "%s: p2v.memory on kernel command line must be followed by 'G' or 'M'\n",
+                guestfs_int_program_name);
+       exit (EXIT_FAILURE);
+diff --git a/p2v/virt-p2v.pod b/p2v/virt-p2v.pod
+index dd44a1c..a70b39c 100644
+--- a/p2v/virt-p2v.pod
++++ b/p2v/virt-p2v.pod
+@@ -342,9 +342,12 @@ use the same as the number of physical CPUs.
+ 
+ =item B<p2v.memory=NN(M|G)>
+ 
+-The size of the guest memory.  You can specify this in megabytes or
+-gigabytes by using (eg) C<p2v.memory=1024M> or C<p2v.memory=1G>.  The
+-default is to use the same amount of RAM as on the physical machine.
++The size of the guest memory.  You must specify the unit as either
++megabytes or gigabytes by using (eg) C<p2v.memory=1024M> or
++C<p2v.memory=1G>.
++
++The default is to use the same amount of RAM as on the physical
++machine.
+ 
+ =item B<p2v.debug>
+ 
+-- 
+1.8.3.1
+

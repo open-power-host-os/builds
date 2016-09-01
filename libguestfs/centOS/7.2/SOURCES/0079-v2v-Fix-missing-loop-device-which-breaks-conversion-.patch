@@ -1,0 +1,54 @@
+From ea14134fc6b3305d28f317170e3c0daec00628ac Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Fri, 5 Dec 2014 13:52:25 +0000
+Subject: [PATCH] v2v: Fix missing loop device which breaks conversion of RHEL
+ 3 guests (RHBZ#1171130).
+
+(cherry picked from commit 1bd779c983d62f36bf50ad613928cf209f98fbce)
+---
+ v2v/convert_linux.ml | 26 +++++++++++++++++++++-----
+ 1 file changed, 21 insertions(+), 5 deletions(-)
+
+diff --git a/v2v/convert_linux.ml b/v2v/convert_linux.ml
+index 5852022..a4897ca 100644
+--- a/v2v/convert_linux.ml
++++ b/v2v/convert_linux.ml
+@@ -883,14 +883,30 @@ let rec convert ~verbose ~keep_serial_console (g : G.guestfs) inspect source =
+         (* loop is a module in RHEL 5. Try to load it. Doesn't matter
+          * for other OSs if it doesn't exist, but RHEL 5 will complain:
+          *   "All of your loopback devices are in use."
+-         *
+-         * XXX RHEL 3 unfortunately will give this error anyway.
+-         * mkinitrd runs the nash command `findlodev' which is
+-         * essentially incompatible with modern kernels that don't
+-         * have fixed /dev/loopN devices.
+          *)
+         (try g#modprobe "loop" with G.Error _ -> ());
+ 
++        (* On RHEL 3 we have to take extra gritty to get a working
++         * loopdev.  mkinitrd runs the nash command `findlodev'
++         * which does this:
++         *
++         * for (devNum = 0; devNum < 256; devNum++) {
++         *   sprintf(devName, "/dev/loop%s%d", separator, devNum);
++         *   if ((fd = open(devName, O_RDONLY)) < 0) return 0;
++         *   if (ioctl(fd, LOOP_GET_STATUS, &loopInfo)) {
++         *     close(fd);
++         *     printf("%s\n", devName);
++         *     return 0;
++         * // etc
++         *
++         * In a modern kernel, /dev/loop<N> isn't created until it is
++         * used.  But we can create /dev/loop0 manually.  Note we have
++         * to do this in the appliance /dev.  (RHBZ#1171130)
++         *)
++        if family = `RHEL_family && inspect.i_major_version = 3 then
++          ignore (g#debug "sh" [| "mknod"; "-m"; "0666";
++                                  "/dev/loop0"; "b"; "7"; "0" |]);
++
+         (* RHEL 4 mkinitrd determines if the root filesystem is on LVM
+          * by checking if the device name (after following symlinks)
+          * starts with /dev/mapper. However, on recent kernels/udevs,
+-- 
+1.8.3.1
+

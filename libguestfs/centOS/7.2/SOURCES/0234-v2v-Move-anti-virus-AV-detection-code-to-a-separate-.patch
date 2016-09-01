@@ -1,0 +1,171 @@
+From b89803fe63459fbbbfcd7777e293c2be22a9565e Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 9 Sep 2015 13:11:42 +0100
+Subject: [PATCH] v2v: Move anti-virus (AV) detection code to a separate
+ module.
+
+This is just code refactoring of earlier
+commit 8e28d6b18860f8ff4e02489317749a723fa145ab.
+
+(cherry picked from commit 6734fce8c8a1da083cc259d98e088fe78076dd24)
+---
+ po/POTFILES-ml           |  1 +
+ v2v/Makefile.am          |  3 +++
+ v2v/convert_windows.ml   | 16 ++--------------
+ v2v/detect_antivirus.ml  | 39 +++++++++++++++++++++++++++++++++++++++
+ v2v/detect_antivirus.mli | 23 +++++++++++++++++++++++
+ 5 files changed, 68 insertions(+), 14 deletions(-)
+ create mode 100644 v2v/detect_antivirus.ml
+ create mode 100644 v2v/detect_antivirus.mli
+
+diff --git a/po/POTFILES-ml b/po/POTFILES-ml
+index 3597d1b..fe177e0 100644
+--- a/po/POTFILES-ml
++++ b/po/POTFILES-ml
+@@ -87,6 +87,7 @@ v2v/OVF.ml
+ v2v/cmdline.ml
+ v2v/convert_linux.ml
+ v2v/convert_windows.ml
++v2v/detect_antivirus.ml
+ v2v/domainxml.ml
+ v2v/input_disk.ml
+ v2v/input_libvirt.ml
+diff --git a/v2v/Makefile.am b/v2v/Makefile.am
+index 87e3c3b..77051f6 100644
+--- a/v2v/Makefile.am
++++ b/v2v/Makefile.am
+@@ -39,6 +39,8 @@ CLEANFILES = *~ *.cmi *.cmo *.cmx *.cmxa *.o virt-v2v
+ SOURCES_MLI = \
+ 	convert_linux.mli \
+ 	convert_windows.mli \
++	detect_antivirus.ml \
++	detect_antivirus.mli \
+ 	DOM.mli \
+ 	domainxml.mli \
+ 	input_disk.mli \
+@@ -73,6 +75,7 @@ SOURCES_ML = \
+ 	kvmuid.ml \
+ 	OVF.ml \
+ 	linux.ml \
++	detect_antivirus.ml \
+ 	modules_list.ml \
+ 	input_disk.ml \
+ 	input_libvirtxml.ml \
+diff --git a/v2v/convert_windows.ml b/v2v/convert_windows.ml
+index 36cf8c1..3982700 100644
+--- a/v2v/convert_windows.ml
++++ b/v2v/convert_windows.ml
+@@ -23,6 +23,7 @@ open Common_utils
+ 
+ open Regedit
+ 
++open Detect_antivirus
+ open Utils
+ open Types
+ 
+@@ -41,14 +42,6 @@ module G = Guestfs
+ 
+ type ('a, 'b) maybe = Either of 'a | Or of 'b
+ 
+-(* Antivirus regexps that match on inspect.i_apps.app2_name fields. *)
+-let av_rex =
+-  let alternatives = [
+-    "virus"; (* generic *)
+-    "Kaspersky"; "McAfee"; "Norton"; "Sophos";
+-  ] in
+-  Str.regexp_case_fold (String.concat "\\|" alternatives)
+-
+ let convert ~verbose ~keep_serial_console (g : G.guestfs) inspect source =
+   (* Get the data directory. *)
+   let virt_tools_data_dir =
+@@ -145,12 +138,7 @@ let convert ~verbose ~keep_serial_console (g : G.guestfs) inspect source =
+     with_hive "software" ~write:false check_group_policy in
+ 
+   (* Warn if Windows guest has AV installed. *)
+-  let has_antivirus =
+-    let check_app { G.app2_name = name } =
+-      try ignore (Str.search_forward av_rex name 0); true
+-      with Not_found -> false
+-    in
+-    List.exists check_app inspect.i_apps in
++  let has_antivirus = detect_antivirus inspect in
+ 
+   (* Open the software hive (readonly) and find the Xen PV uninstaller,
+    * if it exists.
+diff --git a/v2v/detect_antivirus.ml b/v2v/detect_antivirus.ml
+new file mode 100644
+index 0000000..747b225
+--- /dev/null
++++ b/v2v/detect_antivirus.ml
+@@ -0,0 +1,39 @@
++(* virt-v2v
++ * Copyright (C) 2015 Red Hat Inc.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License along
++ * with this program; if not, write to the Free Software Foundation, Inc.,
++ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++ *)
++
++(* Detect anti-virus (AV) software installed in Windows guests. *)
++
++let rex_virus     = Str.regexp_case_fold "virus" (* generic *)
++let rex_kaspersky = Str.regexp_case_fold "kaspersky"
++let rex_mcafee    = Str.regexp_case_fold "mcafee"
++let rex_norton    = Str.regexp_case_fold "norton"
++let rex_sophos    = Str.regexp_case_fold "sophos"
++
++let rec detect_antivirus { Types.i_type = t; i_apps = apps } =
++  assert (t = "windows");
++  List.exists check_app apps
++
++and check_app { Guestfs.app2_name = name } =
++  name      =~ rex_virus     ||
++  name      =~ rex_kaspersky ||
++  name      =~ rex_mcafee    ||
++  name      =~ rex_norton    ||
++  name      =~ rex_sophos
++
++and (=~) str rex =
++  try ignore (Str.search_forward rex str 0); true with Not_found -> false
+diff --git a/v2v/detect_antivirus.mli b/v2v/detect_antivirus.mli
+new file mode 100644
+index 0000000..9cd5997
+--- /dev/null
++++ b/v2v/detect_antivirus.mli
+@@ -0,0 +1,23 @@
++(* virt-v2v
++ * Copyright (C) 2015 Red Hat Inc.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License along
++ * with this program; if not, write to the Free Software Foundation, Inc.,
++ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++ *)
++
++(** Detect anti-virus (AV) software installed in Windows guests. *)
++
++val detect_antivirus : Types.inspect -> bool
++(** Return [true] if anti-virus (AV) software was detected in
++    this Windows guest. *)
+-- 
+1.8.3.1
+

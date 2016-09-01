@@ -1,0 +1,35 @@
+From d79d6b9331e5ecbec35b001ab2127e11c55f1d05 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 18 Nov 2014 13:53:13 +0000
+Subject: [PATCH] v2v: linux: Print block device map in verbose mode.
+
+Very useful for debugging device mapping problems.
+
+(cherry picked from commit e25f68c47efaab886ada330b7ab596681705b02b)
+---
+ v2v/convert_linux.ml | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/v2v/convert_linux.ml b/v2v/convert_linux.ml
+index 44b6c7f..2f97ca1 100644
+--- a/v2v/convert_linux.ml
++++ b/v2v/convert_linux.ml
+@@ -1263,6 +1263,15 @@ let rec convert ~verbose ~keep_serial_console (g : G.guestfs) inspect source =
+           "xvd" ^ drive_name i, block_prefix_after_conversion ^ drive_name i
+       ) source.s_disks in
+ 
++    if verbose then (
++      printf "block device map:\n";
++      List.iter (
++        fun (source_dev, target_dev) ->
++          printf "\t%s\t-> %s\n" source_dev target_dev
++      ) (List.sort (fun (a,_) (b,_) -> compare a b) map);
++      flush stdout
++    );
++
+     (* Possible Augeas paths to search for device names. *)
+     let paths = [
+       (* /etc/fstab *)
+-- 
+1.8.3.1
+

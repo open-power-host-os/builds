@@ -1,0 +1,39 @@
+From 988f8abfaebd7ab4e8ff7aa61ea28f738de1c652 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 16 Apr 2015 10:58:46 -0400
+Subject: [PATCH] Update timestamps on a couple of generated files.
+
+---
+ gobject/Makefile.inc | 2 +-
+ java/Makefile.inc    | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/gobject/Makefile.inc b/gobject/Makefile.inc
+index f2152f2..c25db44 100644
+--- a/gobject/Makefile.inc
++++ b/gobject/Makefile.inc
+@@ -3,7 +3,7 @@
+ #   generator/ *.ml
+ # ANY CHANGES YOU MAKE TO THIS FILE WILL BE LOST.
+ #
+-# Copyright (C) 2009-2014 Red Hat Inc.
++# Copyright (C) 2009-2015 Red Hat Inc.
+ #
+ # This program is free software; you can redistribute it and/or modify
+ # it under the terms of the GNU General Public License as published by
+diff --git a/java/Makefile.inc b/java/Makefile.inc
+index 614caaa..794af01 100644
+--- a/java/Makefile.inc
++++ b/java/Makefile.inc
+@@ -3,7 +3,7 @@
+ #   generator/ *.ml
+ # ANY CHANGES YOU MAKE TO THIS FILE WILL BE LOST.
+ #
+-# Copyright (C) 2009-2014 Red Hat Inc.
++# Copyright (C) 2009-2015 Red Hat Inc.
+ #
+ # This program is free software; you can redistribute it and/or modify
+ # it under the terms of the GNU General Public License as published by
+-- 
+1.8.3.1
+

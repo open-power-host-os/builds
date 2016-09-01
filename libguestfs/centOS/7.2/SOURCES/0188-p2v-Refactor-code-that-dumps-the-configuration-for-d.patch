@@ -1,0 +1,207 @@
+From 8c60ca8a5593415c93dc5e82ee15a4b5a8cd0423 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Wed, 10 Jun 2015 14:03:43 +0100
+Subject: [PATCH] p2v: Refactor code that dumps the configuration for
+ debugging.
+
+This is just code motion.
+
+(cherry picked from commit 4c8bbc45bedce9d9eab1b95c1ec4c3b3082fddd9)
+---
+ p2v/config.c     | 70 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ p2v/conversion.c | 68 ++++--------------------------------------------------
+ p2v/p2v.h        |  3 +++
+ 3 files changed, 77 insertions(+), 64 deletions(-)
+
+diff --git a/p2v/config.c b/p2v/config.c
+index 495bca2..b32b5ca 100644
+--- a/p2v/config.c
++++ b/p2v/config.c
+@@ -103,3 +103,73 @@ free_config (struct config *c)
+   free (c->output_storage);
+   free (c);
+ }
++
++/* Print the conversion parameters and other important information. */
++void
++print_config (struct config *config, FILE *fp)
++{
++  size_t i;
++
++  fprintf (fp, "local version   .  %s\n", PACKAGE_VERSION);
++  fprintf (fp, "remote version  .  %d.%d.%d\n",
++           v2v_major, v2v_minor, v2v_release);
++  fprintf (fp, "remote debugging   %s\n",
++           config->verbose ? "true" : "false");
++  fprintf (fp, "conversion server  %s\n",
++           config->server ? config->server : "none");
++  fprintf (fp, "port . . . . . .   %d\n", config->port);
++  fprintf (fp, "username . . . .   %s\n",
++           config->username ? config->username : "none");
++  fprintf (fp, "password . . . .   %s\n",
++           config->password && strlen (config->password) > 0 ? "***" : "none");
++  fprintf (fp, "sudo . . . . . .   %s\n",
++           config->sudo ? "true" : "false");
++  fprintf (fp, "guest name . . .   %s\n",
++           config->guestname ? config->guestname : "none");
++  fprintf (fp, "vcpus  . . . . .   %d\n", config->vcpus);
++  fprintf (fp, "memory . . . . .   %" PRIu64 "\n", config->memory);
++  fprintf (fp, "flags  . . . . .  %s%s%s\n",
++           config->flags & FLAG_ACPI ? " acpi" : "",
++           config->flags & FLAG_APIC ? " apic" : "",
++           config->flags & FLAG_PAE  ? " pae"  : "");
++  fprintf (fp, "disks  . . . . .  ");
++  if (config->disks != NULL) {
++    for (i = 0; config->disks[i] != NULL; ++i)
++      fprintf (fp, " %s", config->disks[i]);
++  }
++  fprintf (fp, "\n");
++  fprintf (fp, "removable  . . .  ");
++  if (config->removable != NULL) {
++    for (i = 0; config->removable[i] != NULL; ++i)
++      fprintf (fp, " %s", config->removable[i]);
++  }
++  fprintf (fp, "\n");
++  fprintf (fp, "interfaces . . .  ");
++  if (config->interfaces != NULL) {
++    for (i = 0; config->interfaces[i] != NULL; ++i)
++      fprintf (fp, " %s", config->interfaces[i]);
++  }
++  fprintf (fp, "\n");
++  fprintf (fp, "network map  . .  ");
++  if (config->network_map != NULL) {
++    for (i = 0; config->network_map[i] != NULL; ++i)
++      fprintf (fp, " %s", config->network_map[i]);
++  }
++  fprintf (fp, "\n");
++  fprintf (fp, "output . . . . .   %s\n",
++           config->output ? config->output : "none");
++  fprintf (fp, "output alloc . .   ");
++  switch (config->output_allocation) {
++  case OUTPUT_ALLOCATION_NONE:         fprintf (fp, "none"); break;
++  case OUTPUT_ALLOCATION_SPARSE:       fprintf (fp, "sparse"); break;
++  case OUTPUT_ALLOCATION_PREALLOCATED: fprintf (fp, "preallocated"); break;
++  default: fprintf (fp, "unknown? (%d)", config->output_allocation);
++  }
++  fprintf (fp, "\n");
++  fprintf (fp, "output conn  . .   %s\n",
++           config->output_connection ? config->output_connection : "none");
++  fprintf (fp, "output format  .   %s\n",
++           config->output_format ? config->output_format : "none");
++  fprintf (fp, "output storage .   %s\n",
++           config->output_storage ? config->output_storage : "none");
++}
+diff --git a/p2v/conversion.c b/p2v/conversion.c
+index 6c03ab9..b1cb2e7 100644
+--- a/p2v/conversion.c
++++ b/p2v/conversion.c
+@@ -58,7 +58,6 @@ static int wait_qemu_nbd (int nbd_local_port, int timeout_seconds);
+ static void cleanup_data_conns (struct data_conn *data_conns, size_t nr);
+ static char *generate_libvirt_xml (struct config *, struct data_conn *);
+ static const char *map_interface_to_network (struct config *, const char *interface);
+-static void debug_parameters (struct config *);
+ 
+ static char *conversion_error;
+ 
+@@ -109,7 +108,10 @@ start_conversion (struct config *config,
+   struct tm tm;
+   mexp_h *control_h = NULL;
+ 
+-  debug_parameters (config);
++#if DEBUG_STDERR
++  print_config (config, stderr);
++  fprintf (stderr, "\n");
++#endif
+ 
+   for (i = 0; config->disks[i] != NULL; ++i) {
+     data_conns[i].h = NULL;
+@@ -800,65 +802,3 @@ map_interface_to_network (struct config *config, const char *interface)
+   /* No mapping found. */
+   return "default";
+ }
+-
+-static void
+-debug_parameters (struct config *config)
+-{
+-#if DEBUG_STDERR
+-  size_t i;
+-
+-  /* Print the conversion parameters and other important information. */
+-  fprintf (stderr, "local version   .  %s\n", PACKAGE_VERSION);
+-  fprintf (stderr, "remote version  .  %d.%d.%d\n",
+-           v2v_major, v2v_minor, v2v_release);
+-  fprintf (stderr, "remote debugging   %s\n",
+-           config->verbose ? "true" : "false");
+-  fprintf (stderr, "conversion server  %s\n",
+-           config->server ? config->server : "none");
+-  fprintf (stderr, "port . . . . . .   %d\n", config->port);
+-  fprintf (stderr, "username . . . .   %s\n",
+-           config->username ? config->username : "none");
+-  fprintf (stderr, "password . . . .   %s\n",
+-           config->password && strlen (config->password) > 0 ? "***" : "none");
+-  fprintf (stderr, "sudo . . . . . .   %s\n",
+-           config->sudo ? "true" : "false");
+-  fprintf (stderr, "guest name . . .   %s\n",
+-           config->guestname ? config->guestname : "none");
+-  fprintf (stderr, "vcpus  . . . . .   %d\n", config->vcpus);
+-  fprintf (stderr, "memory . . . . .   %" PRIu64 "\n", config->memory);
+-  fprintf (stderr, "disks  . . . . .  ");
+-  if (config->disks != NULL) {
+-    for (i = 0; config->disks[i] != NULL; ++i)
+-      fprintf (stderr, " %s", config->disks[i]);
+-  }
+-  fprintf (stderr, "\n");
+-  fprintf (stderr, "removable  . . .  ");
+-  if (config->removable != NULL) {
+-    for (i = 0; config->removable[i] != NULL; ++i)
+-      fprintf (stderr, " %s", config->removable[i]);
+-  }
+-  fprintf (stderr, "\n");
+-  fprintf (stderr, "interfaces . . .  ");
+-  if (config->interfaces != NULL) {
+-    for (i = 0; config->interfaces[i] != NULL; ++i)
+-      fprintf (stderr, " %s", config->interfaces[i]);
+-  }
+-  fprintf (stderr, "\n");
+-  fprintf (stderr, "network map  . .  ");
+-  if (config->network_map != NULL) {
+-    for (i = 0; config->network_map[i] != NULL; ++i)
+-      fprintf (stderr, " %s", config->network_map[i]);
+-  }
+-  fprintf (stderr, "\n");
+-  fprintf (stderr, "output . . . . .   %s\n",
+-           config->output ? config->output : "none");
+-  fprintf (stderr, "output alloc . .   %d\n", config->output_allocation);
+-  fprintf (stderr, "output conn  . .   %s\n",
+-           config->output_connection ? config->output_connection : "none");
+-  fprintf (stderr, "output format  .   %s\n",
+-           config->output_format ? config->output_format : "none");
+-  fprintf (stderr, "output storage .   %s\n",
+-           config->output_storage ? config->output_storage : "none");
+-  fprintf (stderr, "\n");
+-#endif
+-}
+diff --git a/p2v/p2v.h b/p2v/p2v.h
+index 41d305d..a588893 100644
+--- a/p2v/p2v.h
++++ b/p2v/p2v.h
+@@ -19,6 +19,8 @@
+ #ifndef P2V_H
+ #define P2V_H
+ 
++#include <stdio.h>
++
+ /* Send various debug information to stderr.  Harmless and useful, so
+  * can be left enabled in production builds.
+  */
+@@ -84,6 +86,7 @@ struct config {
+ extern struct config *new_config (void);
+ extern struct config *copy_config (struct config *);
+ extern void free_config (struct config *);
++extern void print_config (struct config *, FILE *);
+ 
+ /* kernel-cmdline.c */
+ extern char **parse_cmdline_string (const char *cmdline);
+-- 
+1.8.3.1
+

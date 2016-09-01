@@ -1,0 +1,67 @@
+From 9dc43745b5330e5cd56b882f72ba160ab80cf7b1 Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Wed, 12 Nov 2014 09:50:59 +0100
+Subject: [PATCH] daemon: check xfs label lengths (RHBZ#1162966).
+
+Similar to commit 52f9cd4882135910ea06e1e50ac6441d455c9ab1, but for xfs
+filesystems.
+
+(cherry picked from commit 57547dcdcfb27bdd988d8a561dc2178ea1d23517)
+---
+ daemon/daemon.h | 4 ++++
+ daemon/labels.c | 6 ++++++
+ daemon/xfs.c    | 6 ++++++
+ 3 files changed, 16 insertions(+)
+
+diff --git a/daemon/daemon.h b/daemon/daemon.h
+index 0ccbc9e..f442efd 100644
+--- a/daemon/daemon.h
++++ b/daemon/daemon.h
+@@ -253,6 +253,10 @@ extern void main_loop (int sock) __attribute__((noreturn));
+ /*-- in xattr.c --*/
+ extern int copy_xattrs (const char *src, const char *dest);
+ 
++/*-- in xfs.c --*/
++/* Documented in xfs_admin(8). */
++#define XFS_LABEL_MAX 12
++
+ /* ordinary daemon functions use these to indicate errors
+  * NB: you don't need to prefix the string with the current command,
+  * it is added automatically by the client-side RPC stubs.
+diff --git a/daemon/labels.c b/daemon/labels.c
+index f417c57..cfcb4df 100644
+--- a/daemon/labels.c
++++ b/daemon/labels.c
+@@ -118,6 +118,12 @@ xfslabel (const char *device, const char *label)
+     return -1;
+   }
+ 
++  if (strlen (label) > XFS_LABEL_MAX) {
++    reply_with_error ("%s: xfs labels are limited to %d bytes",
++                      label, XFS_LABEL_MAX);
++    return -1;
++  }
++
+   r = command (NULL, &err, str_xfs_admin, "-L", label, device, NULL);
+   if (r == -1) {
+     reply_with_error ("%s", err);
+diff --git a/daemon/xfs.c b/daemon/xfs.c
+index 725f7b3..687013b 100644
+--- a/daemon/xfs.c
++++ b/daemon/xfs.c
+@@ -498,6 +498,12 @@ do_xfs_admin (const char *device,
+   }
+ 
+   if (optargs_bitmask & GUESTFS_XFS_ADMIN_LABEL_BITMASK) {
++    if (strlen (label) > XFS_LABEL_MAX) {
++      reply_with_error ("%s: xfs labels are limited to %d bytes",
++                        label, XFS_LABEL_MAX);
++      return -1;
++    }
++
+     ADD_ARG (argv, i, "-L");
+     ADD_ARG (argv, i, label);
+   }
+-- 
+1.8.3.1
+

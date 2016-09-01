@@ -1,0 +1,37 @@
+From 7f13b7cbc515fbd9af4c28ae184f3e66ce573d63 Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Mon, 24 Aug 2015 18:25:10 +0200
+Subject: [PATCH] v2v: ignore missing kernels from grub (RHBZ#1230412)
+
+Raise a warning for each kernel specified in grub which does not
+actually exist, keep going on with the conversion using the remaining
+(existing) kernels.
+
+(cherry picked from commit 74f0b45ddf35f1cb1684702e9d3318d77fc3b520)
+---
+ v2v/convert_linux.ml | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/v2v/convert_linux.ml b/v2v/convert_linux.ml
+index c110825..19cdabc 100644
+--- a/v2v/convert_linux.ml
++++ b/v2v/convert_linux.ml
+@@ -357,7 +357,14 @@ let rec convert ~verbose ~keep_serial_console (g : G.guestfs) inspect source =
+                 statbuf.G.st_dev = s.G.st_dev && statbuf.G.st_ino = s.G.st_ino
+             ) installed_kernels in
+           Some kernel
+-        with Not_found -> None
++        with
++        | Not_found -> None
++        | G.Error msg as exn ->
++          (* If it isn't "no such file or directory", then re-raise it. *)
++          if g#last_errno () <> G.Errno.errno_ENOENT then raise exn;
++          warning ~prog (f_"ignoring kernel %s in grub, as it does not exist.")
++            vmlinuz;
++          None
+     ) vmlinuzes in
+ 
+   if verbose then (
+-- 
+1.8.3.1
+

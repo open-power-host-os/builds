@@ -1,0 +1,119 @@
+From 2392578b6774594eb33188606fd64c415055be63 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 2 Oct 2014 16:44:07 +0100
+Subject: [PATCH] RHEL 7: Revert "launch: libvirt: Use qemu-bridge-helper to
+ implement a full network (RHBZ#1148012)."
+
+This reverts commit 224de20b9a8d5ea56f6337f19b4ca237bb88eca0.
+---
+ src/guestfs.pod      | 10 ----------
+ src/launch-libvirt.c | 44 +++++++++++++++++++++-----------------------
+ 2 files changed, 21 insertions(+), 33 deletions(-)
+
+diff --git a/src/guestfs.pod b/src/guestfs.pod
+index 3c1ad46..81347f3 100644
+--- a/src/guestfs.pod
++++ b/src/guestfs.pod
+@@ -1419,16 +1419,6 @@ On Fedora, install C<kernel-debuginfo> for the C<vmlinux> file
+ (containing symbols).  Make sure the symbols precisely match the
+ kernel being used.
+ 
+-=head3 network_bridge
+-
+-The libvirt backend supports:
+-
+- export LIBGUESTFS_BACKEND_SETTINGS=network_bridge=virbrX
+-
+-This allows you to override the bridge that is connected to when the
+-network is enabled.  The default is C<virbr0>.  See also
+-L</guestfs_set_network>.
+-
+ =head2 ATTACHING TO RUNNING DAEMONS
+ 
+ I<Note (1):> This is B<highly experimental> and has a tendency to eat
+diff --git a/src/launch-libvirt.c b/src/launch-libvirt.c
+index 79bc6fd..026fd5a 100644
+--- a/src/launch-libvirt.c
++++ b/src/launch-libvirt.c
+@@ -105,7 +105,6 @@ struct backend_libvirt_data {
+   char *selinux_label;
+   char *selinux_imagelabel;
+   bool selinux_norelabel_disks;
+-  char *network_bridge;
+   char name[DOMAIN_NAME_LEN];   /* random name */
+   bool is_kvm;                  /* false = qemu, true = kvm (from capabilities)*/
+   unsigned long qemu_version;   /* qemu version (from libvirt) */
+@@ -332,12 +331,6 @@ launch_libvirt (guestfs_h *g, void *datav, const char *libvirt_uri)
+     guestfs_get_backend_setting (g, "internal_libvirt_imagelabel");
+   data->selinux_norelabel_disks =
+     guestfs___get_backend_setting_bool (g, "internal_libvirt_norelabel_disks");
+-  if (g->enable_network) {
+-    data->network_bridge =
+-      guestfs_get_backend_setting (g, "network_bridge");
+-    if (!data->network_bridge)
+-      data->network_bridge = safe_strdup (g, "virbr0");
+-  }
+   guestfs_pop_error_handler (g);
+ 
+   /* Locate and/or build the appliance. */
+@@ -1267,19 +1260,6 @@ construct_libvirt_xml_devices (guestfs_h *g,
+       } end_element ();
+     } end_element ();
+ 
+-    /* Connect to libvirt bridge (see: RHBZ#1148012). */
+-    if (g->enable_network) {
+-      start_element ("interface") {
+-        attribute ("type", "bridge");
+-        start_element ("source") {
+-          attribute ("bridge", params->data->network_bridge);
+-        } end_element ();
+-        start_element ("model") {
+-          attribute ("type", "virtio");
+-        } end_element ();
+-      } end_element ();
+-    }
+-
+   } end_element (); /* </devices> */
+ 
+   return 0;
+@@ -1661,6 +1641,27 @@ construct_libvirt_xml_qemu_cmdline (guestfs_h *g,
+       attribute ("value", tmpdir);
+     } end_element ();
+ 
++    /* Workaround because libvirt user networking cannot specify "net="
++     * parameter.
++     */
++    if (g->enable_network) {
++      start_element ("qemu:arg") {
++        attribute ("value", "-netdev");
++      } end_element ();
++
++      start_element ("qemu:arg") {
++        attribute ("value", "user,id=usernet,net=169.254.0.0/16");
++      } end_element ();
++
++      start_element ("qemu:arg") {
++        attribute ("value", "-device");
++      } end_element ();
++
++      start_element ("qemu:arg") {
++        attribute ("value", VIRTIO_NET ",netdev=usernet");
++      } end_element ();
++    }
++
+     /* The qemu command line arguments requested by the caller. */
+     for (hp = g->hv_params; hp; hp = hp->next) {
+       start_element ("qemu:arg") {
+@@ -1745,9 +1746,6 @@ shutdown_libvirt (guestfs_h *g, void *datav, int check_for_errors)
+   free (data->selinux_imagelabel);
+   data->selinux_imagelabel = NULL;
+ 
+-  free (data->network_bridge);
+-  data->network_bridge = NULL;
+-
+   free (data->uefi_code);
+   data->uefi_code = NULL;
+   free (data->uefi_vars);
+-- 
+1.8.3.1
+

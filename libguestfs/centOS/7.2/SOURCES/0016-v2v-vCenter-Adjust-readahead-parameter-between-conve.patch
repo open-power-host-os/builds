@@ -1,0 +1,123 @@
+From d783c57507d76ba18d61c3bfb7c867cf3d69d612 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 20 Oct 2014 18:34:48 +0100
+Subject: [PATCH] v2v: vCenter: Adjust readahead parameter between conversion
+ and copying phases (RHBZ#1151033) (RHBZ#1153589).
+
+Previously we fixed RHBZ#1151033 by increasing the cURL readahead
+parameter to a large value.  Unfortunately this is too large -- and
+hence slow -- for the conversion phase, which broke on slow vCenter
+servers (RHBZ#1153589).
+
+What we do now is to perform the conversion phase with the default
+readahead (2MB) to ensure stability, since performance of the
+conversion phase is not critical.  Then before copying we change the
+readahead to the larger value (64MB) to ensure efficient copying.
+
+(cherry picked from commit 9281dc7d44b7b02c6470a61425aa177e6525ee88)
+---
+ v2v/input_libvirt.ml | 29 ++++++++++++++++++++++++++++-
+ v2v/vCenter.ml       | 10 +++++++---
+ v2v/vCenter.mli      |  2 +-
+ 3 files changed, 36 insertions(+), 5 deletions(-)
+
+diff --git a/v2v/input_libvirt.ml b/v2v/input_libvirt.ml
+index 9d2869f..93d96b7 100644
+--- a/v2v/input_libvirt.ml
++++ b/v2v/input_libvirt.ml
+@@ -79,6 +79,9 @@ class input_libvirt_vcenter_https
+ object
+   inherit input_libvirt verbose libvirt_uri guest
+ 
++  val mutable mapf = fun ?readahead uri format -> uri, format
++  val saved_uri = Hashtbl.create 13
++
+   method source () =
+     if verbose then printf "input_libvirt_vcenter_https: source()\n%!";
+ 
+@@ -91,7 +94,15 @@ object
+     let { s_disks = disks } as source =
+       Input_libvirtxml.parse_libvirt_xml ~verbose xml in
+ 
+-    let mapf = VCenter.map_path_to_uri verbose parsed_uri scheme server in
++    (* Save the mapf function and the original s_qemu_uri fields, so
++     * we can get them in the adjust_overlay_parameters method below.
++     *)
++    mapf <- VCenter.map_path_to_uri verbose parsed_uri scheme server;
++    List.iter (
++      fun disk ->
++        Hashtbl.add saved_uri disk.s_disk_id (disk.s_qemu_uri, disk.s_format)
++    ) disks;
++
+     let disks = List.map (
+       fun ({ s_qemu_uri = uri; s_format = format } as disk) ->
+         let uri, format = mapf uri format in
+@@ -99,6 +110,22 @@ object
+     ) disks in
+ 
+     { source with s_disks = disks }
++
++  (* See RHBZ#1151033 and RHBZ#1153589 for why this is necessary. *)
++  method adjust_overlay_parameters overlay =
++    let orig_uri, orig_format =
++      try Hashtbl.find saved_uri overlay.ov_source.s_disk_id
++      with Not_found -> failwith "internal error in adjust_overlay_parameters" in
++    let backing_file, _ =
++      mapf ~readahead:(64 * 1024 * 1024) orig_uri orig_format in
++
++    (* Rebase the qcow2 overlay to adjust the readahead parameter. *)
++    let cmd =
++      sprintf "qemu-img rebase -u -b %s %s"
++        (quote backing_file) (quote overlay.ov_overlay_file) in
++    if verbose then printf "%s\n%!" cmd;
++    if Sys.command cmd <> 0 then
++      warning ~prog (f_"qemu-img rebase failed, see earlier errors")
+ end
+ 
+ (* Subclass specialized for handling Xen over SSH. *)
+diff --git a/v2v/vCenter.ml b/v2v/vCenter.ml
+index c04247e..dc29863 100644
+--- a/v2v/vCenter.ml
++++ b/v2v/vCenter.ml
+@@ -44,7 +44,7 @@ let session_cookie = ref ""
+  * XXX Need to handle templates.  The file is called "-delta.vmdk" in
+  * place of "-flat.vmdk".
+  *)
+-let rec map_path_to_uri verbose uri scheme server path format =
++let rec map_path_to_uri verbose uri scheme server ?readahead path format =
+   if not (Str.string_match esx_re path 0) then
+     path, format
+   else (
+@@ -84,11 +84,15 @@ let rec map_path_to_uri verbose uri scheme server path format =
+       "file.driver", JSON.String "https";
+       "file.url", JSON.String url;
+       "file.timeout", JSON.Int 600;
+-      (* Choose a large readahead.  See: RHBZ#1151033 *)
+-      "file.readahead", JSON.Int (64 * 1024 * 1024);
+     ] in
+ 
+     let json_params =
++      match readahead with
++      | None -> json_params
++      | Some readahead ->
++        ("file.readahead", JSON.Int readahead) :: json_params in
++
++    let json_params =
+       if sslverify then json_params
+       else ("file.sslverify", JSON.String "off") :: json_params in
+ 
+diff --git a/v2v/vCenter.mli b/v2v/vCenter.mli
+index e504098..06ba452 100644
+--- a/v2v/vCenter.mli
++++ b/v2v/vCenter.mli
+@@ -18,6 +18,6 @@
+ 
+ (** Functions for dealing with ESX. *)
+ 
+-val map_path_to_uri : bool -> Xml.uri -> string -> string -> string -> string option -> string * string option
++val map_path_to_uri : bool -> Xml.uri -> string -> string -> ?readahead:int -> string -> string option -> string * string option
+ (** Map a VMware path like "[datastore1] guest/guest.vmdk" to the
+     URL where we can fetch the data. *)
+-- 
+1.8.3.1
+

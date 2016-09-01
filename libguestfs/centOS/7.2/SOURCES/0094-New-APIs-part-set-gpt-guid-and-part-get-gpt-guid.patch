@@ -1,0 +1,126 @@
+From 3aab860529f7d13b00b3689fa79c72b12d2f9770 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 5 Feb 2015 08:08:06 +0000
+Subject: [PATCH] New APIs: part-set-gpt-guid and part-get-gpt-guid
+
+In GPT, each partition has a GUID assigned randomly.  Allow this GUID
+to be written and read.
+
+Note this is different from the GUID type code which is used to
+identify the type of the partition.
+
+(cherry picked from commit 40c133b2c81666f6dde43704e66bf59206d5c111)
+---
+ daemon/parted.c      | 33 +++++++++++++++++++++++++++++++++
+ generator/actions.ml | 36 ++++++++++++++++++++++++++++++++++++
+ src/MAX_PROC_NR      |  2 +-
+ 3 files changed, 70 insertions(+), 1 deletion(-)
+
+diff --git a/daemon/parted.c b/daemon/parted.c
+index 76c0ce9..36844b8 100644
+--- a/daemon/parted.c
++++ b/daemon/parted.c
+@@ -784,6 +784,32 @@ do_part_set_gpt_type (const char *device, int partnum, const char *guid)
+   return 0;
+ }
+ 
++int
++do_part_set_gpt_guid (const char *device, int partnum, const char *guid)
++{
++  if (partnum <= 0) {
++    reply_with_error ("partition number must be >= 1");
++    return -1;
++  }
++
++  CLEANUP_FREE char *typecode = NULL;
++  if (asprintf (&typecode, "%i:%s", partnum, guid) == -1) {
++    reply_with_perror ("asprintf");
++    return -1;
++  }
++
++  CLEANUP_FREE char *err = NULL;
++  int r = commandf (NULL, &err, COMMAND_FLAG_FOLD_STDOUT_ON_STDERR,
++                    str_sgdisk, device, "-u", typecode, NULL);
++
++  if (r == -1) {
++    reply_with_error ("%s %s -u %s: %s", str_sgdisk, device, typecode, err);
++    return -1;
++  }
++
++  return 0;
++}
++
+ static char *
+ sgdisk_info_extract_field (const char *device, int partnum, const char *field,
+                            char *(*extract) (const char *path))
+@@ -894,6 +920,13 @@ do_part_get_gpt_type (const char *device, int partnum)
+ }
+ 
+ char *
++do_part_get_gpt_guid (const char *device, int partnum)
++{
++  return sgdisk_info_extract_field (device, partnum,
++                                    "Partition unique GUID", extract_uuid);
++}
++
++char *
+ do_part_get_name (const char *device, int partnum)
+ {
+   CLEANUP_FREE char *parttype;
+diff --git a/generator/actions.ml b/generator/actions.ml
+index 593e51b..825acf9 100644
+--- a/generator/actions.ml
++++ b/generator/actions.ml
+@@ -11995,6 +11995,42 @@ This is the same as the C<lstat(2)> system call." };
+     longdesc = "\
+ This is the internal call which implements C<guestfs_lstatnslist>." };
+ 
++  { defaults with
++    name = "part_set_gpt_guid";
++    style = RErr, [Device "device"; Int "partnum"; GUID "guid"], [];
++    proc_nr = Some 446;
++    optional = Some "gdisk";
++    tests = [
++      InitGPT, Always, TestLastFail (
++        [["part_set_gpt_guid"; "/dev/sda"; "1"; "f"]]), [];
++      InitGPT, Always, TestResultString (
++        [["part_set_gpt_guid"; "/dev/sda"; "1";
++          "01234567-89AB-CDEF-0123-456789ABCDEF"];
++         ["part_get_gpt_guid"; "/dev/sda"; "1"]],
++        "01234567-89AB-CDEF-0123-456789ABCDEF"), [];
++    ];
++    shortdesc = "set the GUID of a GPT partition";
++    longdesc = "\
++Set the GUID of numbered GPT partition C<partnum> to C<guid>.  Return an
++error if the partition table of C<device> isn't GPT, or if C<guid> is not a
++valid GUID." };
++
++  { defaults with
++    name = "part_get_gpt_guid";
++    style = RString "guid", [Device "device"; Int "partnum"], [];
++    proc_nr = Some 447;
++    optional = Some "gdisk";
++    tests = [
++      InitGPT, Always, TestResultString (
++        [["part_set_gpt_guid"; "/dev/sda"; "1";
++          "01234567-89AB-CDEF-0123-456789ABCDEF"];
++         ["part_get_gpt_guid"; "/dev/sda"; "1"]],
++        "01234567-89AB-CDEF-0123-456789ABCDEF"), [];
++    ];
++    shortdesc = "get the GUID of a GPT partition";
++    longdesc = "\
++Return the GUID of numbered GPT partition C<partnum>." };
++
+ ]
+ 
+ (* Non-API meta-commands available only in guestfish.
+diff --git a/src/MAX_PROC_NR b/src/MAX_PROC_NR
+index 5721413..e9b7520 100644
+--- a/src/MAX_PROC_NR
++++ b/src/MAX_PROC_NR
+@@ -1 +1 @@
+-423
++447
+-- 
+1.8.3.1
+

@@ -1,0 +1,226 @@
+From 3a6b509b9468c8698917c13aa3d6dd35c77299f0 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 30 Apr 2015 13:44:35 +0100
+Subject: [PATCH] v2v: efi: Model firmware in source metadata.
+
+Also modify the input_* drivers so they pull out the firmware from the
+metadata.  Currently this is only possible for `-i ova', since libvirt
+does not expose it (RHBZ#1217444).
+
+(cherry picked from commit ef77725081331b0a1b84ca32f6cb38a91873989f)
+---
+ v2v/input_disk.ml                     |  1 +
+ v2v/input_libvirtxml.ml               |  1 +
+ v2v/input_ova.ml                      | 12 ++++++++++++
+ v2v/test-v2v-i-ova-formats.expected   |  1 +
+ v2v/test-v2v-i-ova-formats.ovf        |  2 +-
+ v2v/test-v2v-i-ova-gz.expected        |  1 +
+ v2v/test-v2v-i-ova-two-disks.expected |  1 +
+ v2v/test-v2v-print-source.sh          |  1 +
+ v2v/types.ml                          | 12 ++++++++++++
+ v2v/types.mli                         | 10 ++++++++++
+ 10 files changed, 41 insertions(+), 1 deletion(-)
+
+diff --git a/v2v/input_disk.ml b/v2v/input_disk.ml
+index c308907..453268a 100644
+--- a/v2v/input_disk.ml
++++ b/v2v/input_disk.ml
+@@ -85,6 +85,7 @@ class input_disk verbose input_format disk = object
+       s_memory = 2048L *^ 1024L *^ 1024L; (* 2048 MB *)
+       s_vcpu = 1;                         (* 1 vCPU is a safe default *)
+       s_features = [ "acpi"; "apic"; "pae" ];
++      s_firmware = UnknownFirmware;       (* causes virt-v2v to autodetect *)
+       s_display =
+         Some { s_display_type = Window; s_keymap = None; s_password = None;
+                s_listen = LNone; s_port = None };
+diff --git a/v2v/input_libvirtxml.ml b/v2v/input_libvirtxml.ml
+index 9834313..0f21bb3 100644
+--- a/v2v/input_libvirtxml.ml
++++ b/v2v/input_libvirtxml.ml
+@@ -348,6 +348,7 @@ let parse_libvirt_xml ?conn ~verbose xml =
+     s_memory = memory;
+     s_vcpu = vcpu;
+     s_features = features;
++    s_firmware = UnknownFirmware; (* XXX until RHBZ#1217444 is fixed *)
+     s_display = display;
+     s_sound = sound;
+     s_disks = [];
+diff --git a/v2v/input_ova.ml b/v2v/input_ova.ml
+index 84ac57e..8deedda 100644
+--- a/v2v/input_ova.ml
++++ b/v2v/input_ova.ml
+@@ -176,6 +176,8 @@ object
+     Xml.xpath_register_ns xpathctx
+       "rasd" "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_ResourceAllocationSettingData";
+     Xml.xpath_register_ns xpathctx
++      "vmw" "http://www.vmware.com/schema/ovf";
++    Xml.xpath_register_ns xpathctx
+       "vssd" "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_VirtualSystemSettingData";
+ 
+     let xpath_to_string expr default =
+@@ -211,6 +213,15 @@ object
+     (* Search for number of vCPUs. *)
+     let vcpu = xpath_to_int "/ovf:Envelope/ovf:VirtualSystem/ovf:VirtualHardwareSection/ovf:Item[rasd:ResourceType/text()=3]/rasd:VirtualQuantity/text()" 1 in
+ 
++    (* BIOS or EFI firmware? *)
++    let firmware = xpath_to_string "/ovf:Envelope/ovf:VirtualSystem/ovf:VirtualHardwareSection/vmw:Config[@vmw:key=\"firmware\"]/@vmw:value" "bios" in
++    let firmware =
++      match firmware with
++      | "bios" -> BIOS
++      | "efi" -> UEFI
++      | s ->
++         error (f_"unknown Config:firmware value %s (expected \"bios\" or \"efi\")") s in
++
+     (* Helper function to return the parent controller of a disk. *)
+     let parent_controller id =
+       let expr = sprintf "/ovf:Envelope/ovf:VirtualSystem/ovf:VirtualHardwareSection/ovf:Item[rasd:InstanceID/text()=%d]/rasd:ResourceType/text()" id in
+@@ -358,6 +369,7 @@ object
+       s_memory = memory;
+       s_vcpu = vcpu;
+       s_features = []; (* XXX *)
++      s_firmware = firmware;
+       s_display = None; (* XXX *)
+       s_sound = None;
+       s_disks = disks;
+diff --git a/v2v/test-v2v-i-ova-formats.expected b/v2v/test-v2v-i-ova-formats.expected
+index 68a761e..22e6136 100644
+--- a/v2v/test-v2v-i-ova-formats.expected
++++ b/v2v/test-v2v-i-ova-formats.expected
+@@ -5,6 +5,7 @@ hypervisor type: vmware
+          memory: 1073741824 (bytes)
+        nr vCPUs: 1
+    CPU features: 
++       firmware: uefi
+         display: 
+           sound: 
+ disks:
+diff --git a/v2v/test-v2v-i-ova-formats.ovf b/v2v/test-v2v-i-ova-formats.ovf
+index 3c685f4..4827c7e 100644
+--- a/v2v/test-v2v-i-ova-formats.ovf
++++ b/v2v/test-v2v-i-ova-formats.ovf
+@@ -118,7 +118,7 @@
+       </Item>
+       <vmw:Config ovf:required="false" vmw:key="cpuHotAddEnabled" vmw:value="false"/>
+       <vmw:Config ovf:required="false" vmw:key="cpuHotRemoveEnabled" vmw:value="false"/>
+-      <vmw:Config ovf:required="false" vmw:key="firmware" vmw:value="bios"/>
++      <vmw:Config ovf:required="false" vmw:key="firmware" vmw:value="efi"/>
+       <vmw:Config ovf:required="false" vmw:key="virtualICH7MPresent" vmw:value="false"/>
+       <vmw:Config ovf:required="false" vmw:key="virtualSMCPresent" vmw:value="false"/>
+       <vmw:Config ovf:required="false" vmw:key="memoryHotAddEnabled" vmw:value="false"/>
+diff --git a/v2v/test-v2v-i-ova-gz.expected b/v2v/test-v2v-i-ova-gz.expected
+index 4eeb74d..e6ef699 100644
+--- a/v2v/test-v2v-i-ova-gz.expected
++++ b/v2v/test-v2v-i-ova-gz.expected
+@@ -5,6 +5,7 @@ hypervisor type: vmware
+          memory: 1073741824 (bytes)
+        nr vCPUs: 1
+    CPU features: 
++       firmware: bios
+         display: 
+           sound: 
+ disks:
+diff --git a/v2v/test-v2v-i-ova-two-disks.expected b/v2v/test-v2v-i-ova-two-disks.expected
+index f54f370..c45f266 100644
+--- a/v2v/test-v2v-i-ova-two-disks.expected
++++ b/v2v/test-v2v-i-ova-two-disks.expected
+@@ -5,6 +5,7 @@ hypervisor type: vmware
+          memory: 1073741824 (bytes)
+        nr vCPUs: 1
+    CPU features: 
++       firmware: bios
+         display: 
+           sound: 
+ disks:
+diff --git a/v2v/test-v2v-print-source.sh b/v2v/test-v2v-print-source.sh
+index 5abd391..e7a8382 100755
+--- a/v2v/test-v2v-print-source.sh
++++ b/v2v/test-v2v-print-source.sh
+@@ -58,6 +58,7 @@ hypervisor type: test
+          memory: 1073741824 (bytes)
+        nr vCPUs: 1
+    CPU features: 
++       firmware: unknown
+         display: 
+           sound: 
+ disks:
+diff --git a/v2v/types.ml b/v2v/types.ml
+index 00ff526..d173c91 100644
+--- a/v2v/types.ml
++++ b/v2v/types.ml
+@@ -27,12 +27,17 @@ type source = {
+   s_memory : int64;
+   s_vcpu : int;
+   s_features : string list;
++  s_firmware : source_firmware;
+   s_display : source_display option;
+   s_sound : source_sound option;
+   s_disks : source_disk list;
+   s_removables : source_removable list;
+   s_nics : source_nic list;
+ }
++and source_firmware =
++  | BIOS
++  | UEFI
++  | UnknownFirmware
+ and source_disk = {
+   s_disk_id : int;
+   s_qemu_uri : string;
+@@ -77,6 +82,7 @@ hypervisor type: %s
+          memory: %Ld (bytes)
+        nr vCPUs: %d
+    CPU features: %s
++       firmware: %s
+         display: %s
+           sound: %s
+ disks:
+@@ -91,6 +97,7 @@ NICs:
+     s.s_memory
+     s.s_vcpu
+     (String.concat "," s.s_features)
++    (string_of_source_firmware s.s_firmware)
+     (match s.s_display with
+     | None -> ""
+     | Some display -> string_of_source_display display)
+@@ -101,6 +108,11 @@ NICs:
+     (String.concat "\n" (List.map string_of_source_removable s.s_removables))
+     (String.concat "\n" (List.map string_of_source_nic s.s_nics))
+ 
++and string_of_source_firmware = function
++  | BIOS -> "bios"
++  | UEFI -> "uefi"
++  | UnknownFirmware -> "unknown"
++
+ and string_of_source_disk { s_qemu_uri = qemu_uri; s_format = format;
+                             s_controller = controller } =
+   sprintf "\t%s%s%s"
+diff --git a/v2v/types.mli b/v2v/types.mli
+index 1b3a9cf..ade1edb 100644
+--- a/v2v/types.mli
++++ b/v2v/types.mli
+@@ -27,6 +27,7 @@ type source = {
+   s_memory : int64;                     (** Memory size (bytes). *)
+   s_vcpu : int;                         (** Number of CPUs. *)
+   s_features : string list;             (** Machine features. *)
++  s_firmware : source_firmware;         (** Firmware (BIOS or EFI). *)
+   s_display : source_display option;    (** Guest display. *)
+   s_sound : source_sound option;        (** Sound card. *)
+   s_disks : source_disk list;           (** Disk images. *)
+@@ -35,6 +36,15 @@ type source = {
+ }
+ (** The source: metadata, disk images. *)
+ 
++and source_firmware =
++  | BIOS                                (** PC BIOS or default firmware *)
++  | UEFI                                (** UEFI *)
++  | UnknownFirmware                     (** Unknown: try to autodetect. *)
++(** The firmware from the source metadata.  Note that
++    [UnknownFirmware] state corresponds to disks (where we have no
++    metadata) and temporarily also to libvirt because of
++    RHBZ#1217444. *)
++
+ and source_disk = {
+   s_disk_id : int;                      (** A unique ID for each source disk. *)
+   s_qemu_uri : string;                  (** QEMU URI of source disk. *)
+-- 
+1.8.3.1
+

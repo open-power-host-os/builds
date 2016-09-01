@@ -1,0 +1,38 @@
+From db9af482e1afb7b776de08084c3e6c491ca6937f Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Fri, 21 Dec 2012 15:50:11 +0000
+Subject: [PATCH] RHEL 7: Remove libguestfs live (RHBZ#798980).
+
+This isn't supported in RHEL 7.
+---
+ src/launch-unix.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/src/launch-unix.c b/src/launch-unix.c
+index 489a046..7956bed 100644
+--- a/src/launch-unix.c
++++ b/src/launch-unix.c
+@@ -37,6 +37,12 @@
+ static int
+ launch_unix (guestfs_h *g, void *datav, const char *sockpath)
+ {
++  error (g,
++	 "launch: In RHEL, only the 'libvirt' or 'direct' method is supported.\n"
++	 "In particular, \"libguestfs live\" is not supported.");
++  return -1;
++
++#if 0
+   int r, daemon_sock = -1;
+   struct sockaddr_un addr;
+   uint32_t size;
+@@ -102,6 +108,7 @@ launch_unix (guestfs_h *g, void *datav, const char *sockpath)
+     g->conn = NULL;
+   }
+   return -1;
++#endif
+ }
+ 
+ static int
+-- 
+1.8.3.1
+

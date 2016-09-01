@@ -1,0 +1,158 @@
+From 3c01371a9da481bcd16519df28462ff073a49b20 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 30 Apr 2015 14:26:30 +0100
+Subject: [PATCH] v2v: Dump inspect and guestcaps structs when running in
+ verbose mode.
+
+This helps with debugging.
+
+(cherry picked from commit 086f71c7d86b0321ebbf36e1fb77644e783a7491)
+---
+ v2v/types.ml  | 45 +++++++++++++++++++++++++++++++++++++++++++++
+ v2v/types.mli |  4 ++++
+ v2v/v2v.ml    | 16 +++++++++++-----
+ 3 files changed, 60 insertions(+), 5 deletions(-)
+
+diff --git a/v2v/types.ml b/v2v/types.ml
+index 9dbdac0..01c65a3 100644
+--- a/v2v/types.ml
++++ b/v2v/types.ml
+@@ -233,6 +233,31 @@ type inspect = {
+   i_uefi : bool;
+ }
+ 
++let string_of_inspect inspect =
++  sprintf "\
++i_root = %s
++i_type = %s
++i_distro = %s
++i_arch = %s
++i_major_version = %d
++i_minor_version = %d
++i_package_format = %s
++i_package_management = %s
++i_product_name = %s
++i_product_variant = %s
++i_uefi = %b
++" inspect.i_root
++  inspect.i_type
++  inspect.i_distro
++  inspect.i_arch
++  inspect.i_major_version
++  inspect.i_minor_version
++  inspect.i_package_format
++  inspect.i_package_management
++  inspect.i_product_name
++  inspect.i_product_variant
++  inspect.i_uefi
++
+ type mpstat = {
+   mp_dev : string;
+   mp_path : string;
+@@ -251,6 +276,26 @@ and guestcaps_block_type = Virtio_blk | IDE
+ and guestcaps_net_type = Virtio_net | E1000 | RTL8139
+ and guestcaps_video_type = QXL | Cirrus
+ 
++let string_of_guestcaps gcaps =
++  sprintf "\
++gcaps_block_bus = %s
++gcaps_net_bus = %s
++gcaps_video = %s
++gcaps_arch = %s
++gcaps_acpi = %b
++" (match gcaps.gcaps_block_bus with
++   | Virtio_blk -> "virtio"
++   | IDE -> "ide")
++  (match gcaps.gcaps_net_bus with
++   | Virtio_net -> "virtio-net"
++   | E1000 -> "e1000"
++   | RTL8139 -> "rtl8139")
++  (match gcaps.gcaps_video with
++   | QXL -> "qxl"
++   | Cirrus -> "cirrus")
++  gcaps.gcaps_arch
++  gcaps.gcaps_acpi
++
+ class virtual input verbose = object
+   method virtual as_options : string
+   method virtual source : unit -> source
+diff --git a/v2v/types.mli b/v2v/types.mli
+index 16f5808..9fc9e29 100644
+--- a/v2v/types.mli
++++ b/v2v/types.mli
+@@ -154,6 +154,8 @@ type inspect = {
+ }
+ (** Inspection information. *)
+ 
++val string_of_inspect : inspect -> string
++
+ type guestcaps = {
+   gcaps_block_bus : guestcaps_block_type;
+   gcaps_net_bus : guestcaps_net_type;
+@@ -173,6 +175,8 @@ and guestcaps_block_type = Virtio_blk | IDE
+ and guestcaps_net_type = Virtio_net | E1000 | RTL8139
+ and guestcaps_video_type = QXL | Cirrus
+ 
++val string_of_guestcaps : guestcaps -> string
++
+ class virtual input : bool -> object
+   method virtual as_options : string
+   (** Converts the input object back to the equivalent command line options.
+diff --git a/v2v/v2v.ml b/v2v/v2v.ml
+index 3c0c4aa..eb1c66e 100644
+--- a/v2v/v2v.ml
++++ b/v2v/v2v.ml
+@@ -215,7 +215,7 @@ let rec main () =
+ 
+   (* Inspection - this also mounts up the filesystems. *)
+   msg (f_"Inspecting the overlay");
+-  let inspect = inspect_source g root_choice in
++  let inspect = inspect_source ~verbose g root_choice in
+ 
+   (* The guest free disk space check and the target free space
+    * estimation both require statvfs information from mountpoints, so
+@@ -262,7 +262,9 @@ let rec main () =
+         error (f_"virt-v2v is unable to convert this guest type (%s/%s)")
+           inspect.i_type inspect.i_distro in
+     if verbose then printf "picked conversion module %s\n%!" conversion_name;
+-    convert ~verbose ~keep_serial_console g inspect source in
++    let guestcaps = convert ~verbose ~keep_serial_console g inspect source in
++    if verbose then printf "%s%!" (string_of_guestcaps guestcaps);
++    guestcaps in
+ 
+   (* Did we manage to install virtio drivers? *)
+   if not quiet then (
+@@ -426,7 +428,7 @@ let rec main () =
+   if debug_gc then
+     Gc.compact ()
+ 
+-and inspect_source g root_choice =
++and inspect_source ~verbose g root_choice =
+   let roots = g#inspect_os () in
+   let roots = Array.to_list roots in
+ 
+@@ -538,7 +540,8 @@ and inspect_source g root_choice =
+     let devices = Array.to_list (g#list_devices ()) in
+     List.exists is_uefi_bootable_device devices in
+ 
+-  { i_root = root;
++  let inspect = {
++    i_root = root;
+     i_type = g#inspect_get_type root;
+     i_distro = g#inspect_get_distro root;
+     i_arch = g#inspect_get_arch root;
+@@ -551,7 +554,10 @@ and inspect_source g root_choice =
+     i_mountpoints = mps;
+     i_apps = apps;
+     i_apps_map = apps_map;
+-    i_uefi = uefi; }
++    i_uefi = uefi
++  } in
++  if verbose then printf "%s%!" (string_of_inspect inspect);
++  inspect
+ 
+ (* Conversion can fail if there is no space on the guest filesystems
+  * (RHBZ#1139543).  To avoid this situation, check there is some
+-- 
+1.8.3.1
+

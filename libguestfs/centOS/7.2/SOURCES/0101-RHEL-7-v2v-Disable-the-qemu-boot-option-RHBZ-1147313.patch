@@ -1,0 +1,78 @@
+From c8eca5fd761f8eb7822ccb765d3e9138d9bcb738 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 30 Sep 2014 10:50:27 +0100
+Subject: [PATCH] RHEL 7: v2v: Disable the --qemu-boot option (RHBZ#1147313).
+
+This cannot work because there is no Gtk or SDL output mode
+in RHEL 7's qemu-kvm.
+
+In addition you will have to edit the -display option in the
+qemu script.
+---
+ v2v/cmdline.ml   |  4 +++-
+ v2v/virt-v2v.pod | 13 -------------
+ 2 files changed, 3 insertions(+), 14 deletions(-)
+
+diff --git a/v2v/cmdline.ml b/v2v/cmdline.ml
+index 01f3335..14c3fb9 100644
+--- a/v2v/cmdline.ml
++++ b/v2v/cmdline.ml
+@@ -168,7 +168,7 @@ let parse_cmdline () =
+     "-os",       Arg.Set_string output_storage, "storage " ^ s_"Set output storage location";
+     "--password-file", Arg.Set_string password_file, "file " ^ s_"Use password from file";
+     "--print-source", Arg.Set print_source, " " ^ s_"Print source and stop";
+-    "--qemu-boot", Arg.Set qemu_boot,       " " ^ s_"Boot in qemu (-o qemu only)";
++    "--qemu-boot", Arg.Set qemu_boot,       " " ^ s_"This option cannot be used in RHEL";
+     "-q",        Arg.Set quiet,             " " ^ s_"Quiet output";
+     "--quiet",   Arg.Set quiet,             ditto;
+     "--root",    Arg.String set_root_choice,"ask|... " ^ s_"How to choose root filesystem";
+@@ -364,6 +364,8 @@ read the man page virt-v2v(1).
+       if not (is_directory output_storage) then
+         error (f_"-os %s: output directory does not exist or is not a directory")
+           output_storage;
++      if qemu_boot then
++        error (f_"-o qemu: the --qemu-boot option cannot be used in RHEL");
+       Output_qemu.output_qemu verbose output_storage qemu_boot
+ 
+     | `RHEV ->
+diff --git a/v2v/virt-v2v.pod b/v2v/virt-v2v.pod
+index 5f4d42e..9edb2ca 100644
+--- a/v2v/virt-v2v.pod
++++ b/v2v/virt-v2v.pod
+@@ -139,11 +139,6 @@ Since C<guest-domain.xml> contains the path(s) to the guest disk
+ image(s) you do not need to specify the name of the disk image on the
+ command line.
+ 
+-To convert a local disk image and immediately boot it in local
+-qemu, do:
+-
+- virt-v2v -i disk disk.img -o qemu -os /var/tmp --qemu-boot
+-
+ =head1 OPTIONS
+ 
+ =over 4
+@@ -350,9 +345,6 @@ This is similar to I<-o local>, except that a shell script is written
+ which you can use to boot the guest in qemu.  The converted disks and
+ shell script are written to the directory specified by I<-os>.
+ 
+-When using this output mode, you can also specify the I<--qemu-boot>
+-option which boots the guest under qemu immediately.
+-
+ =item B<-o rhev>
+ 
+ Set the output method to I<rhev>.
+@@ -436,11 +428,6 @@ Print information about the source guest and stop.  This option is
+ useful when you are setting up network and bridge maps.
+ See L</NETWORKS AND BRIDGES>.
+ 
+-=item B<--qemu-boot>
+-
+-When using I<-o qemu> only, this boots the guest immediately after
+-virt-v2v finishes.
+-
+ =item B<-q>
+ 
+ =item B<--quiet>
+-- 
+1.8.3.1
+

@@ -1,0 +1,35 @@
+From da3c6e70aa08edafcc8396a4c3e007a263d7d956 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 20 Oct 2014 14:01:25 +0100
+Subject: [PATCH] appliance: Set udev.event-timeout to override default too low
+ udev setting.
+
+Unfortunately udev removed the udevtimeout setting on the kernel
+command line.  This means the default timeout was being set back to 30
+seconds, which is way too low for remote disks.
+
+However it was re-added (2014-07-29) as udev.event-timeout.  Set both
+to be sure.
+
+Note this requires systemd >= 216.
+
+(cherry picked from commit 0b49defc2b4307e1f9159b862637978129aaed29)
+---
+ src/launch.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/launch.c b/src/launch.c
+index dba68fd..9fadce8 100644
+--- a/src/launch.c
++++ b/src/launch.c
+@@ -353,6 +353,7 @@ guestfs___appliance_command_line (guestfs_h *g, const char *appliance_dev,
+      " efi-rtc=noprobe"
+ #endif
+      " udevtimeout=6000"/* for slow systems (RHBZ#480319, RHBZ#1096579) */
++     " udev.event-timeout=6000" /* for newer udevd */
+      " no_timer_check"  /* fix for RHBZ#502058 */
+      "%s"               /* lpj */
+      " acpi=off"        /* we don't need ACPI, turn it off */
+-- 
+1.8.3.1
+

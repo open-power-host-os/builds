@@ -1,0 +1,60 @@
+From ba00d355b0721b3780482bdb7b8ab0f6c14c136b Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 3 Sep 2015 16:12:22 +0100
+Subject: [PATCH] p2v: Clear previous version and driver information when
+ testing connection (RHBZ#1227609).
+
+When calling test_connection to test the connection to a conversion
+server, we also query for the remote server's version and driver
+information (using 'virt-v2v --version' and
+'virt-v2v --machine-readable').
+
+However we didn't clear the existing information from previous runs.
+
+One consequence of this was that if you used the back button in the
+GUI, the list of output drivers would be repopulated two or more
+times.  https://bugzilla.redhat.com/show_bug.cgi?id=1227609
+
+Another is that connecting to a different server could confuse
+test_connection into thinking the connection was successful (because
+of data from the previous run) when in fact it was not.
+
+Thanks: Tingting Zheng for finding the original bug.
+(cherry picked from commit 6246bebf82e2bd097aa476dad101416faf03240f)
+---
+ p2v/ssh.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/p2v/ssh.c b/p2v/ssh.c
+index 9a596ab..26e73ba 100644
+--- a/p2v/ssh.c
++++ b/p2v/ssh.c
+@@ -345,6 +345,11 @@ test_connection (struct config *config)
+   if (h == NULL)
+     return -1;
+ 
++  /* Clear any previous version information since we may be connecting
++   * to a different server.
++   */
++  v2v_major = v2v_minor = v2v_release = 0;
++
+   /* Send 'virt-v2v --version' command and hope we get back a version string.
+    * Note old virt-v2v did not understand -V option.
+    */
+@@ -439,6 +444,13 @@ test_connection (struct config *config)
+     return -1;
+   }
+ 
++  /* Clear any previous driver information since we may be connecting
++   * to a different server.
++   */
++  guestfs_int_free_string_list (input_drivers);
++  guestfs_int_free_string_list (output_drivers);
++  input_drivers = output_drivers = NULL;
++
+   /* Get virt-v2v features.  See: v2v/cmdline.ml */
+   if (mexp_printf (h, "%svirt-v2v --machine-readable\n",
+                    config->sudo ? "sudo " : "") == -1) {
+-- 
+1.8.3.1
+

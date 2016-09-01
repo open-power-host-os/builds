@@ -1,0 +1,61 @@
+From 711b61de5bca9c1375a24827a4fd47072b94a82c Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Fri, 28 Aug 2015 12:05:12 +0100
+Subject: [PATCH] v2v: vcenter: Change function get_datacenter -> get_dcPath.
+
+In vCenter, the datacenter is identified by a path, and the parameter
+used for this is called 'dcPath'.  Rename the function to avoid any
+confusion about what we're getting here.
+
+This is just renaming function/variable names and has no other effect.
+
+(cherry picked from commit 1585bb5beeff8325a950eea6331e42b5df64226d)
+---
+ v2v/input_libvirt_vcenter_https.ml | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/v2v/input_libvirt_vcenter_https.ml b/v2v/input_libvirt_vcenter_https.ml
+index b4a656f..3ccbc17 100644
+--- a/v2v/input_libvirt_vcenter_https.ml
++++ b/v2v/input_libvirt_vcenter_https.ml
+@@ -170,14 +170,14 @@ and run_curl_get_lines curl_args =
+   Unix.unlink config_file;
+   lines
+ 
+-(* Helper function to extract the datacenter from a URI. *)
+-let get_datacenter uri scheme =
++(* Helper function to extract the dcPath from a URI. *)
++let get_dcPath uri scheme =
+   let default_dc = "ha-datacenter" in
+   match scheme with
+   | "vpx" ->           (* Hopefully the first part of the path. *)
+     (match uri.uri_path with
+     | None ->
+-      warning ~prog (f_"vcenter: URI (-ic parameter) contains no path, so we cannot determine the datacenter name");
++      warning ~prog (f_"vcenter: URI (-ic parameter) contains no path, so we cannot determine the dcPath (datacenter name)");
+       default_dc
+     | Some path ->
+       let path =
+@@ -217,8 +217,8 @@ let map_source_to_uri ?readahead verbose password uri scheme server path =
+     let datastore = Str.matched_group 1 path
+     and path = Str.matched_group 2 path in
+ 
+-    (* Get the datacenter. *)
+-    let datacenter = get_datacenter uri scheme in
++    (* Get the dcPath. *)
++    let dcPath = get_dcPath uri scheme in
+ 
+     let port =
+       match uri.uri_port with
+@@ -230,7 +230,7 @@ let map_source_to_uri ?readahead verbose password uri scheme server path =
+       sprintf
+         "https://%s%s/folder/%s-flat.vmdk?dcPath=%s&dsName=%s"
+         server port
+-        (uri_quote path) (uri_quote datacenter) (uri_quote datastore) in
++        (uri_quote path) (uri_quote dcPath) (uri_quote datastore) in
+ 
+     (* If no_verify=1 was passed in the libvirt URI, then we have to
+      * turn off certificate verification here too.
+-- 
+1.8.3.1
+

@@ -1,0 +1,64 @@
+From 42e5227c61c134bd73b6df0b56f36b68eb59de95 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 19 May 2015 16:36:42 +0100
+Subject: [PATCH] p2v: Force systemd default target to be multi-user (text
+ mode).
+
+(cherry picked from commit 10cb9b9545424d98687a46c23abdc0e3ff77de76)
+---
+ p2v/p2v.ks.in             | 8 ++++++--
+ p2v/p2v.service           | 2 +-
+ p2v/virt-p2v-make-disk.in | 1 +
+ 3 files changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/p2v/p2v.ks.in b/p2v/p2v.ks.in
+index 58cca5e..a3b63ab 100644
+--- a/p2v/p2v.ks.in
++++ b/p2v/p2v.ks.in
+@@ -104,8 +104,6 @@ base64 -d > /etc/systemd/system/p2v.service <<EOF
+ __BASE64_P2V_SERVICE__
+ EOF
+ 
+-systemctl enable p2v.service
+-
+ # Base64-decoding of virt-p2v binary
+ # md5(virt-p2v) = __MD5SUM_VIRT_P2V__
+ 
+@@ -123,6 +121,12 @@ sed -i 's/^ExecStart=\(.*\)/ExecStart=\1 -a root/' \
+ # Reserve tty1 as a getty so we can document it clearly
+ echo ReserveVT=1 >> /etc/systemd/logind.conf
+ 
++# Force text mode
++systemctl set-default multi-user.target
++
++# Start p2v service
++systemctl enable p2v.service
++
+ %end
+ 
+ %post --nochroot
+diff --git a/p2v/p2v.service b/p2v/p2v.service
+index 3a8f6ae..4ff055c 100644
+--- a/p2v/p2v.service
++++ b/p2v/p2v.service
+@@ -28,4 +28,4 @@ ExecStart=/usr/bin/launch-virt-p2v
+ RemainAfterExit=yes
+ 
+ [Install]
+-WantedBy=graphical.target
++WantedBy=multi-user.target
+diff --git a/p2v/virt-p2v-make-disk.in b/p2v/virt-p2v-make-disk.in
+index 28d6e75..316c224 100644
+--- a/p2v/virt-p2v-make-disk.in
++++ b/p2v/virt-p2v-make-disk.in
+@@ -163,6 +163,7 @@ virt-builder "$osversion"                                       \
+     --chmod 0755:/usr/bin/launch-virt-p2v                       \
+     --upload "$datadir"/p2v.service:/etc/systemd/system/        \
+     --mkdir /etc/systemd/system/default.target.wants            \
++    --link /usr/lib/systemd/system/multi-user.target:/etc/systemd/system/default.target \
+     --link /etc/systemd/system/p2v.service:/etc/systemd/system/default.target.wants/p2v.service \
+     --edit '/usr/lib/systemd/system/getty@.service:
+         s/^ExecStart=(.*)/ExecStart=$1 -a root/
+-- 
+1.8.3.1
+

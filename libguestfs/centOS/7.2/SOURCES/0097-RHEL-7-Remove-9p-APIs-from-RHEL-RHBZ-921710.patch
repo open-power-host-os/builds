@@ -1,0 +1,346 @@
+From 12e1dd161e5283e8f0790ed93ad05b40ddcd860f Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Thu, 18 Jul 2013 18:31:53 +0100
+Subject: [PATCH] RHEL 7: Remove 9p APIs from RHEL (RHBZ#921710).
+
+---
+ Makefile.am          |   2 +-
+ daemon/9p.c          | 223 ---------------------------------------------------
+ daemon/Makefile.am   |   1 -
+ generator/actions.ml |  23 ------
+ gobject/Makefile.inc |   2 -
+ po/POTFILES          |   2 -
+ 6 files changed, 1 insertion(+), 252 deletions(-)
+ delete mode 100644 daemon/9p.c
+
+diff --git a/Makefile.am b/Makefile.am
+index d55d8d6..207bcb1 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -59,7 +59,7 @@ SUBDIRS += tests/xfs
+ SUBDIRS += tests/charsets
+ SUBDIRS += tests/xml
+ SUBDIRS += tests/mount-local
+-SUBDIRS += tests/9p
++#SUBDIRS += tests/9p
+ SUBDIRS += tests/rsync
+ SUBDIRS += tests/bigdirs
+ SUBDIRS += tests/disk-labels
+diff --git a/daemon/9p.c b/daemon/9p.c
+deleted file mode 100644
+index fefbb71..0000000
+--- a/daemon/9p.c
++++ /dev/null
+@@ -1,223 +0,0 @@
+-/* libguestfs - the guestfsd daemon
+- * Copyright (C) 2011 Red Hat Inc.
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License as published by
+- * the Free Software Foundation; either version 2 of the License, or
+- * (at your option) any later version.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, write to the Free Software
+- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+- */
+-
+-#include <config.h>
+-
+-#include <stdio.h>
+-#include <stdlib.h>
+-#include <string.h>
+-#include <unistd.h>
+-#include <limits.h>
+-#include <errno.h>
+-#include <sys/types.h>
+-#include <sys/stat.h>
+-#include <dirent.h>
+-#include <fcntl.h>
+-
+-#include "daemon.h"
+-#include "actions.h"
+-
+-#define BUS_PATH "/sys/bus/virtio/drivers/9pnet_virtio"
+-GUESTFSD_EXT_CMD(str_mount, mount);
+-
+-static char *read_whole_file (const char *filename);
+-
+-/* https://bugzilla.redhat.com/show_bug.cgi?id=714981#c1 */
+-char **
+-do_list_9p (void)
+-{
+-  DECLARE_STRINGSBUF (r);
+-
+-  DIR *dir;
+-
+-  dir = opendir (BUS_PATH);
+-  if (!dir) {
+-    perror ("opendir: " BUS_PATH);
+-    if (errno != ENOENT) {
+-      reply_with_perror ("opendir: " BUS_PATH);
+-      return NULL;
+-    }
+-
+-    /* If this directory doesn't exist, it probably means that
+-     * the virtio driver isn't loaded.  Don't return an error
+-     * in this case, but return an empty list.
+-     */
+-    if (end_stringsbuf (&r) == -1)
+-      return NULL;
+-
+-    return r.argv;
+-  }
+-
+-  while (1) {
+-    struct dirent *d;
+-
+-    errno = 0;
+-    d = readdir (dir);
+-    if (d == NULL) break;
+-
+-    if (STRPREFIX (d->d_name, "virtio")) {
+-      char mount_tag_path[256];
+-      snprintf (mount_tag_path, sizeof mount_tag_path,
+-                BUS_PATH "/%s/mount_tag", d->d_name);
+-
+-      /* A bit unclear, but it looks like the virtio transport allows
+-       * the mount tag length to be unlimited (or up to 65536 bytes).
+-       * See: linux/include/linux/virtio_9p.h
+-       */
+-      CLEANUP_FREE char *mount_tag = read_whole_file (mount_tag_path);
+-      if (mount_tag == 0)
+-        continue;
+-
+-      if (add_string (&r, mount_tag) == -1) {
+-        closedir (dir);
+-        return NULL;
+-      }
+-    }
+-  }
+-
+-  /* Check readdir didn't fail */
+-  if (errno != 0) {
+-    reply_with_perror ("readdir: /sys/block");
+-    free_stringslen (r.argv, r.size);
+-    closedir (dir);
+-    return NULL;
+-  }
+-
+-  /* Close the directory handle */
+-  if (closedir (dir) == -1) {
+-    reply_with_perror ("closedir: /sys/block");
+-    free_stringslen (r.argv, r.size);
+-    return NULL;
+-  }
+-
+-  /* Sort the tags. */
+-  if (r.size > 0)
+-    sort_strings (r.argv, r.size);
+-
+-  /* NULL terminate the list */
+-  if (end_stringsbuf (&r) == -1)
+-    return NULL;
+-
+-  return r.argv;
+-}
+-
+-/* Read whole file into dynamically allocated array.  If there is an
+- * error, DON'T call reply_with_perror, just return NULL.  Returns a
+- * \0-terminated string.
+- */
+-static char *
+-read_whole_file (const char *filename)
+-{
+-  char *r = NULL;
+-  size_t alloc = 0, size = 0;
+-  int fd;
+-
+-  fd = open (filename, O_RDONLY|O_CLOEXEC);
+-  if (fd == -1) {
+-    perror (filename);
+-    return NULL;
+-  }
+-
+-  while (1) {
+-    alloc += 256;
+-    char *r2 = realloc (r, alloc);
+-    if (r2 == NULL) {
+-      perror ("realloc");
+-      free (r);
+-      close (fd);
+-      return NULL;
+-    }
+-    r = r2;
+-
+-    /* The '- 1' in the size calculation ensures there is space below
+-     * to add \0 to the end of the input.
+-     */
+-    ssize_t n = read (fd, r + size, alloc - size - 1);
+-    if (n == -1) {
+-      fprintf (stderr, "read: %s: %m\n", filename);
+-      free (r);
+-      close (fd);
+-      return NULL;
+-    }
+-    if (n == 0)
+-      break;
+-    size += n;
+-  }
+-
+-  if (close (fd) == -1) {
+-    fprintf (stderr, "close: %s: %m\n", filename);
+-    free (r);
+-    return NULL;
+-  }
+-
+-  r[size] = '\0';
+-
+-  return r;
+-}
+-
+-/* Takes optional arguments, consult optargs_bitmask. */
+-int
+-do_mount_9p (const char *mount_tag, const char *mountpoint, const char *options)
+-{
+-  CLEANUP_FREE char *mp = NULL, *opts = NULL, *err = NULL;
+-  struct stat statbuf;
+-  int r;
+-
+-  ABS_PATH (mountpoint, , return -1);
+-
+-  mp = sysroot_path (mountpoint);
+-  if (!mp) {
+-    reply_with_perror ("malloc");
+-    return -1;
+-  }
+-
+-  /* Check the mountpoint exists and is a directory. */
+-  if (stat (mp, &statbuf) == -1) {
+-    reply_with_perror ("%s", mountpoint);
+-    return -1;
+-  }
+-  if (!S_ISDIR (statbuf.st_mode)) {
+-    reply_with_perror ("%s: mount point is not a directory", mountpoint);
+-    return -1;
+-  }
+-
+-  /* Add trans=virtio to the options. */
+-  if ((optargs_bitmask & GUESTFS_MOUNT_9P_OPTIONS_BITMASK) &&
+-      STRNEQ (options, "")) {
+-    if (asprintf (&opts, "trans=virtio,%s", options) == -1) {
+-      reply_with_perror ("asprintf");
+-      return -1;
+-    }
+-  }
+-  else {
+-    opts = strdup ("trans=virtio");
+-    if (opts == NULL) {
+-      reply_with_perror ("strdup");
+-      return -1;
+-    }
+-  }
+-
+-  r = command (NULL, &err,
+-               str_mount, "-o", opts, "-t", "9p", mount_tag, mp, NULL);
+-  if (r == -1) {
+-    reply_with_error ("%s on %s: %s", mount_tag, mountpoint, err);
+-    return -1;
+-  }
+-
+-  return 0;
+-}
+diff --git a/daemon/Makefile.am b/daemon/Makefile.am
+index 8ccf322..ec6fc6f 100644
+--- a/daemon/Makefile.am
++++ b/daemon/Makefile.am
+@@ -77,7 +77,6 @@ noinst_PROGRAMS = guestfsd
+ endif
+ 
+ guestfsd_SOURCES = \
+-	9p.c \
+ 	acl.c \
+ 	actions.h \
+ 	available.c \
+diff --git a/generator/actions.ml b/generator/actions.ml
+index 825acf9..2f2ab66 100644
+--- a/generator/actions.ml
++++ b/generator/actions.ml
+@@ -9150,29 +9150,6 @@ This returns true iff the device exists and contains all zero bytes.
+ Note that for large devices this can take a long time to run." };
+ 
+   { defaults with
+-    name = "list_9p";
+-    style = RStringList "mounttags", [], [];
+-    proc_nr = Some 285;
+-    shortdesc = "list 9p filesystems";
+-    longdesc = "\
+-List all 9p filesystems attached to the guest.  A list of
+-mount tags is returned." };
+-
+-  { defaults with
+-    name = "mount_9p";
+-    style = RErr, [String "mounttag"; String "mountpoint"], [OString "options"];
+-    proc_nr = Some 286;
+-    camel_name = "Mount9P";
+-    shortdesc = "mount 9p filesystem";
+-    longdesc = "\
+-Mount the virtio-9p filesystem with the tag C<mounttag> on the
+-directory C<mountpoint>.
+-
+-If required, C<trans=virtio> will be automatically added to the options.
+-Any other options required can be passed in the optional C<options>
+-parameter." };
+-
+-  { defaults with
+     name = "list_dm_devices";
+     style = RStringList "devices", [], [];
+     proc_nr = Some 287;
+diff --git a/gobject/Makefile.inc b/gobject/Makefile.inc
+index c93dace..f2152f2 100644
+--- a/gobject/Makefile.inc
++++ b/gobject/Makefile.inc
+@@ -78,7 +78,6 @@ guestfs_gobject_headers= \
+   include/guestfs-gobject/optargs-mkfs_btrfs.h \
+   include/guestfs-gobject/optargs-mkswap.h \
+   include/guestfs-gobject/optargs-mktemp.h \
+-  include/guestfs-gobject/optargs-mount_9p.h \
+   include/guestfs-gobject/optargs-mount_local.h \
+   include/guestfs-gobject/optargs-ntfsclone_out.h \
+   include/guestfs-gobject/optargs-ntfsfix.h \
+@@ -156,7 +155,6 @@ guestfs_gobject_sources= \
+   src/optargs-mkfs_btrfs.c \
+   src/optargs-mkswap.c \
+   src/optargs-mktemp.c \
+-  src/optargs-mount_9p.c \
+   src/optargs-mount_local.c \
+   src/optargs-ntfsclone_out.c \
+   src/optargs-ntfsfix.c \
+diff --git a/po/POTFILES b/po/POTFILES
+index 1a088f5..7f3365c 100644
+--- a/po/POTFILES
++++ b/po/POTFILES
+@@ -14,7 +14,6 @@ cat/ls.c
+ cat/visit.c
+ customize/crypt-c.c
+ customize/perl_edit-c.c
+-daemon/9p.c
+ daemon/acl.c
+ daemon/augeas.c
+ daemon/available.c
+@@ -203,7 +202,6 @@ gobject/src/optargs-mkfs.c
+ gobject/src/optargs-mkfs_btrfs.c
+ gobject/src/optargs-mkswap.c
+ gobject/src/optargs-mktemp.c
+-gobject/src/optargs-mount_9p.c
+ gobject/src/optargs-mount_local.c
+ gobject/src/optargs-ntfsclone_out.c
+ gobject/src/optargs-ntfsfix.c
+-- 
+1.8.3.1
+

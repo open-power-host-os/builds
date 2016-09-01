@@ -1,0 +1,84 @@
+From 1156f17878c25ba3221105b339ab9ff298bd123d Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Fri, 24 Oct 2014 16:33:50 +0100
+Subject: [PATCH] RHEL 7: Disable alternate Augeas lenses.
+
+These are included in the RHEL 7.1 augeas package, and therefore
+not required in RHEL.
+
+See:
+https://www.redhat.com/archives/libguestfs/2014-October/msg00220.html
+---
+ appliance/Makefile.am | 2 --
+ daemon/augeas.c       | 5 ++++-
+ daemon/lvm-filter.c   | 4 ++--
+ 3 files changed, 6 insertions(+), 5 deletions(-)
+
+diff --git a/appliance/Makefile.am b/appliance/Makefile.am
+index 7b30bbe..c7eca20 100644
+--- a/appliance/Makefile.am
++++ b/appliance/Makefile.am
+@@ -82,8 +82,6 @@ supermin.d/daemon.tar.gz: ../daemon/guestfsd guestfsd.suppressions guestfs_lvm_c
+ 	mkdir -p tmp-d$(DAEMON_SUPERMIN_DIR) tmp-d/etc tmp-d/usr/share/guestfs
+ 	ln ../daemon/guestfsd tmp-d$(DAEMON_SUPERMIN_DIR)/guestfsd
+ 	ln $(srcdir)/guestfsd.suppressions tmp-d/etc/guestfsd.suppressions
+-	ln $(srcdir)/guestfs_lvm_conf.aug tmp-d/usr/share/guestfs/guestfs_lvm_conf.aug
+-	ln $(srcdir)/guestfs_shadow.aug tmp-d/usr/share/guestfs/guestfs_shadow.aug
+ 	( cd tmp-d && tar zcf - * ) > $@-t
+ 	rm -r tmp-d
+ 	mv $@-t $@
+diff --git a/daemon/augeas.c b/daemon/augeas.c
+index ce49726..7753e67 100644
+--- a/daemon/augeas.c
++++ b/daemon/augeas.c
+@@ -134,7 +134,7 @@ do_aug_init (const char *root, int flags)
+   }
+ 
+   /* Pass AUG_NO_ERR_CLOSE so we can display detailed errors. */
+-  aug = aug_init (buf, "/usr/share/guestfs/", flags | AUG_NO_ERR_CLOSE);
++  aug = aug_init (buf, NULL, flags | AUG_NO_ERR_CLOSE);
+ 
+   if (!aug) {
+     reply_with_error ("augeas initialization failed");
+@@ -148,6 +148,8 @@ do_aug_init (const char *root, int flags)
+     return -1;
+   }
+ 
++  /* We already have the needed lenses in RHEL 7 */
++#if 0
+   if (!augeas_is_version (1, 2, 1)) {
+     int r = aug_transform (aug, "guestfs_shadow", "/etc/shadow",
+                            0 /* = included */);
+@@ -166,6 +168,7 @@ do_aug_init (const char *root, int flags)
+       }
+     }
+   }
++#endif
+ 
+   return 0;
+ }
+diff --git a/daemon/lvm-filter.c b/daemon/lvm-filter.c
+index d82fde0..9e0f570 100644
+--- a/daemon/lvm-filter.c
++++ b/daemon/lvm-filter.c
+@@ -121,7 +121,7 @@ set_filter (char *const *filters)
+    * but do that only after having applied the transformation.
+    */
+   const int flags = AUG_NO_ERR_CLOSE | AUG_NO_LOAD;
+-  aug = aug_init (lvm_system_dir, "/usr/share/guestfs/", flags);
++  aug = aug_init (lvm_system_dir, NULL, flags);
+   if (!aug) {
+     reply_with_error ("augeas initialization failed");
+     return -1;
+@@ -132,7 +132,7 @@ set_filter (char *const *filters)
+     return -1;
+   }
+ 
+-  r = aug_transform (aug, "guestfs_lvm_conf", "/lvm/lvm.conf",
++  r = aug_transform (aug, "lvm", "/lvm/lvm.conf",
+                      0 /* = included */);
+   if (r == -1) {
+     AUGEAS_ERROR ("aug_transform");
+-- 
+1.8.3.1
+

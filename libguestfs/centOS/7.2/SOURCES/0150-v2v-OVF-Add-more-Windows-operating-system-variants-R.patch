@@ -1,0 +1,62 @@
+From 9fe190b2b31d4c0e7295bcac5fc1d019aac1fab1 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 20 Apr 2015 12:05:29 +0100
+Subject: [PATCH] v2v: OVF: Add more Windows operating system variants
+ (RHBZ#1213324).
+
+When generating OVF (eg. for -o rhev, -o vdsm) we have to put the
+operating system type into a particular field of the output, in a
+format that oVirt/RHEV will understand.  Add further Windows OS
+variants to this list.  The variants are derived by examining
+ovirt-engine sources.
+
+Thanks: Tingting Zheng for testing Windows conversions to RHEV and
+finding this bug.
+
+(cherry picked from commit 3c51302d691cc204e4d43f4ab9837095d424bf3b)
+---
+ v2v/OVF.ml | 21 ++++++++++++++++++++-
+ 1 file changed, 20 insertions(+), 1 deletion(-)
+
+diff --git a/v2v/OVF.ml b/v2v/OVF.ml
+index cbb8932..4a6ee8d 100644
+--- a/v2v/OVF.ml
++++ b/v2v/OVF.ml
+@@ -95,7 +95,10 @@ let get_vmtype = function
+ 
+   | _ -> `Server
+ 
+-(* Determine the ovf:OperatingSystemSection_Type from libguestfs inspection. *)
++(* Determine the ovf:OperatingSystemSection_Type from libguestfs
++ * inspection.  See ovirt-engine sources, file:
++ * frontend/webadmin/modules/uicompat/src/main/resources/org/ovirt/engine/ui/uicompat/Enums.properties
++ *)
+ and get_ostype = function
+   | { i_type = "linux"; i_distro = "rhel"; i_major_version = v;
+       i_arch = "i386" } ->
+@@ -142,6 +145,22 @@ and get_ostype = function
+       i_arch = "x86_64" } ->
+     "Windows2008R2x64"
+ 
++  | { i_type = "windows"; i_major_version = 6; i_minor_version = 2;
++      i_arch = "i386" } ->
++    "Windows8"
++
++  | { i_type = "windows"; i_major_version = 6; i_minor_version = 2;
++      i_arch = "x86_64"; i_product_variant = "Client" } ->
++    "Windows8x64"
++
++  | { i_type = "windows"; i_major_version = 6; i_minor_version = 2;
++      i_arch = "x86_64" } ->
++    "Windows2012x64"
++
++  | { i_type = "windows"; i_major_version = 6; i_minor_version = 3;
++      i_arch = "x86_64" } ->
++    "Windows2012R2x64"
++
+   | { i_type = typ; i_distro = distro;
+       i_major_version = major; i_minor_version = minor;
+       i_product_name = product } ->
+-- 
+1.8.3.1
+

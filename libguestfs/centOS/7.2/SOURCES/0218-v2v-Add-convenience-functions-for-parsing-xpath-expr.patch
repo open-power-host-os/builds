@@ -1,0 +1,73 @@
+From c99ff5f22228d143a0f3888a4f9bafb813f98078 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Fri, 28 Aug 2015 13:52:49 +0100
+Subject: [PATCH] v2v: Add convenience functions for parsing xpath expressions.
+
+(cherry picked from commit 00e1260d343e1f70d6541347ba61ecb072fef799)
+---
+ v2v/Makefile.am |  2 +-
+ v2v/utils.ml    | 34 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 35 insertions(+), 1 deletion(-)
+
+diff --git a/v2v/Makefile.am b/v2v/Makefile.am
+index 26955aa..98e54de 100644
+--- a/v2v/Makefile.am
++++ b/v2v/Makefile.am
+@@ -66,8 +66,8 @@ SOURCES_MLI = \
+ SOURCES_ML = \
+ 	stringMap.ml \
+ 	types.ml \
+-	utils.ml \
+ 	xml.ml \
++	utils.ml \
+ 	domainxml.ml \
+ 	DOM.ml \
+ 	kvmuid.ml \
+diff --git a/v2v/utils.ml b/v2v/utils.ml
+index 0e06913..e872ebe 100644
+--- a/v2v/utils.ml
++++ b/v2v/utils.ml
+@@ -61,6 +61,40 @@ let uri_quote str =
+   done;
+   String.concat "" (List.rev !xs)
+ 
++(* Parse an xpath expression and return a string/int.  Returns
++ * Some v or None if the expression doesn't match.
++ *)
++let xpath_string xpathctx expr =
++  let obj = Xml.xpath_eval_expression xpathctx expr in
++  if Xml.xpathobj_nr_nodes obj < 1 then None
++  else (
++    let node = Xml.xpathobj_node obj 0 in
++    Some (Xml.node_as_string node)
++  )
++let xpath_int xpathctx expr =
++  let obj = Xml.xpath_eval_expression xpathctx expr in
++  if Xml.xpathobj_nr_nodes obj < 1 then None
++  else (
++    let node = Xml.xpathobj_node obj 0 in
++    let str = Xml.node_as_string node in
++    try Some (int_of_string str)
++    with Failure "int_of_string" ->
++      error (f_"expecting XML expression to return an integer (expression: %s, matching string: %s)")
++            expr str
++  )
++
++(* Parse an xpath expression and return a string/int; if the expression
++ * doesn't match, return the default.
++ *)
++let xpath_string_default xpathctx expr default =
++  match xpath_string xpathctx expr with
++  | None -> default
++  | Some s -> s
++let xpath_int_default xpathctx expr default =
++  match xpath_int xpathctx expr with
++  | None -> default
++  | Some i -> i
++
+ external drive_name : int -> string = "v2v_utils_drive_name"
+ 
+ (* Map guest architecture found by inspection to the architecture
+-- 
+1.8.3.1
+

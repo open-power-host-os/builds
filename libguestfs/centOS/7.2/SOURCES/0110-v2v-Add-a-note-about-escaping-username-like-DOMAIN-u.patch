@@ -1,0 +1,32 @@
+From 7222c6d14b7d2c9eb5edb43da8ba83dbb002af71 Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Tue, 23 Dec 2014 15:29:26 +0000
+Subject: [PATCH] v2v: Add a note about escaping username like DOMAIN\user.
+
+Thanks: Ben Hooper.
+(cherry picked from commit 29df51d9bc24eaae9e42c3794b7dac9c78d8b3bd)
+---
+ v2v/virt-v2v.pod | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/v2v/virt-v2v.pod b/v2v/virt-v2v.pod
+index 9edb2ca..933955a 100644
+--- a/v2v/virt-v2v.pod
++++ b/v2v/virt-v2v.pod
+@@ -744,7 +744,12 @@ where:
+ 
+ =item C<user@>
+ 
+-is the (optional, but recommended) user to connect as
++is the (optional, but recommended) user to connect as.
++
++If the username contains a backslash (eg. C<DOMAIN\USER>) then you
++will need to URI-escape that character using C<%5c>: C<DOMAIN%5cUSER>
++(5c is the hexadecimal ASCII code for backslash.)  Other punctuation
++may also have to be escaped.
+ 
+ =item C<server>
+ 
+-- 
+1.8.3.1
+

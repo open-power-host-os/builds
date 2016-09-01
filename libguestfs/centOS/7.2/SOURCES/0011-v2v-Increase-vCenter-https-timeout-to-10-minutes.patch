@@ -1,0 +1,26 @@
+From 53f2552c819ab29e00464cf140778df7e6c678ee Mon Sep 17 00:00:00 2001
+From: "Richard W.M. Jones" <rjones@redhat.com>
+Date: Mon, 20 Oct 2014 14:03:13 +0100
+Subject: [PATCH] v2v: Increase vCenter https timeout to 10 minutes.
+
+(cherry picked from commit 9ddfbad814e55553d9d1cea08134311c12923cfe)
+---
+ v2v/vCenter.ml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/v2v/vCenter.ml b/v2v/vCenter.ml
+index d3869aa..c04247e 100644
+--- a/v2v/vCenter.ml
++++ b/v2v/vCenter.ml
+@@ -83,7 +83,7 @@ let rec map_path_to_uri verbose uri scheme server path format =
+     let json_params = [
+       "file.driver", JSON.String "https";
+       "file.url", JSON.String url;
+-      "file.timeout", JSON.Int 60;
++      "file.timeout", JSON.Int 600;
+       (* Choose a large readahead.  See: RHBZ#1151033 *)
+       "file.readahead", JSON.Int (64 * 1024 * 1024);
+     ] in
+-- 
+1.8.3.1
+
