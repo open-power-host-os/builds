@@ -4,7 +4,7 @@
 
 Name:       kimchi
 Version:    2.2.0
-Release:    1%{?dist}%{?pkvm_release}
+Release:    2%{?dist}%{?pkvm_release}
 Summary:    Kimchi server application
 BuildRoot:  %{_topdir}/BUILD/%{name}-%{version}-%{release}
 BuildArch:  noarch
@@ -51,7 +51,7 @@ Requires:   spice-html5
 
 %if 0%{?rhel} == 6
 Requires:   python-ordereddict
-Requires:   python-pillow
+Requires:   python-imaging
 BuildRequires:    python-unittest2
 %endif
 
@@ -94,6 +94,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Sep 01 2016 Mauro S. M. Rodrigues <maurosr@linux.vnet.ibm.com> - 2.2.0-2.pkvm3_1_1
+- Build August, 31st, 2016
+
 * Wed Aug 24 2016 <baseuser@ibm.com>
   Log from git:
 - 5d50e5308e1cf68c2c9530ea09e52856ef184aa3 Merge remote-tracking branch 'upstream/master' into powerkvm-v3.1.1

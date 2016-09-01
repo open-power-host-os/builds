@@ -412,7 +412,7 @@ Requires:      libvirt-daemon-kvm >= 1.2.8-3
 %ifarch aarch64
 Requires:      AAVMF
 %endif
-%ifarch aarch64 #%{power64}
+%ifarch aarch64 ppc64 ppc64p7
 # RHBZ#1177910
 Requires:      qemu-kvm-rhev
 %endif

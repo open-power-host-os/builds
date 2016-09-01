@@ -1,7 +1,7 @@
 Name:           novnc
 Version:        0.5.1
 %define ibm_release %{?repo}.2
-Release:        3%{?dist}%{?ibm_release}
+Release:        4%{?dist}%{?ibm_release}
 Summary:        VNC client using HTML5 (Web Sockets, Canvas) with encryption support
 Requires:       python-websockify
 
@@ -60,6 +60,9 @@ install -m 444 docs/novnc_server.1 %{buildroot}%{_mandir}/man1/
 %{_mandir}/man1/novnc_server.1*
 
 %changelog
+* Thu Sep 01 2016 Mauro S. M. Rodrigues <maurosr@linux.vnet.ibm.com> - 0.5.1-4.2
+- Build August, 31st, 2016
+
 * Mon Aug 29 2016 Mauro S. M. Rodrigues <maurosr@br.ibm.com> - 0.5.1-3
 - Add patches:
   0001-QEMU-RFB-extension-rfb.js-and-input.js-changes.patch

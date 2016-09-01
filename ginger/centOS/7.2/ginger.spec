@@ -4,7 +4,7 @@
 
 Name:       ginger
 Version:    2.2.0
-Release:    1%{?dist}%{?pkvm_release}
+Release:    2%{?dist}%{?pkvm_release}
 Summary:    Host management plugin for Wok - Webserver Originated from Kimchi
 BuildRoot:  %{_topdir}/BUILD/%{name}-%{version}-%{release}
 Group:      System Environment/Base
@@ -99,6 +99,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Sep 01 2016 Mauro S. M. Rodrigues <maurosr@linux.vnet.ibm.com> - 2.2.0-2.pkvm3_1_1
+- Build August, 31st, 2016
+
 * Wed Aug 24 2016 <baseuser@ibm.com>
   Log from git:
 - 4b9924f023099d28c919e55e0834860ca8342d06 Issue #381: 'make clean' does not revert its changes from 'make rpm'
