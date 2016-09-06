@@ -31,16 +31,16 @@ DISTRIBUTIONS = {
 
 
 class BuildManager(object):
-    def __init__(self):
-        self.packages_list = CONF.get('default').get('packages')
+    def __init__(self, packages=None):
+        self.packages_list = packages or CONF.get('default').get('packages')
         self.packages = None
-        self.distro = None
+        self._distro = self.get_distro()
         self.repositories = None
 
     def __call__(self):
         try:
-            self._distro = self._get_distro()
-            self.packages = self._prepare_packages()
+            self.prepare_packages()
+
         # distro related issues
         except (exception.DistributionNotSupportedError,
                 exception.DistributionVersionNotSupportedError,
@@ -56,7 +56,7 @@ class BuildManager(object):
 
         return self.build()
 
-    def _get_distro(self):
+    def get_distro(self):
         distro_metadata = utils.detect_distribution()
         distro_name = distro_metadata[0]
         # let's make this explicity to avoid catching for a TypeError
@@ -71,6 +71,7 @@ class BuildManager(object):
         scheduler = lib.scheduler.Scheduler()
         self._distro.build_packages(scheduler(self.packages))
 
-    def _prepare_packages(self):
-        return [package.Package(x, self._distro) for x in set(
+    def prepare_packages(self, download_source_code=True):
+        self.packages = [package.Package(
+            x, self._distro, download=download_source_code) for x in set(
                 self.packages_list)]
