@@ -40,29 +40,18 @@ def setup_versions_repository(versions_git_url, dest, version):
         LOG.info("Cloning into %s..." % dest)
         versions_repo = pygit2.clone_repository(versions_git_url,
                                                 dest)
-
     LOG.info("Trying to check versions Tag: %s", version)
     try:
-        versions_repo.checkout(version)
-    except ValueError:
-        pass
-    finally:
         for remote in versions_repo.remotes:
             remote.fetch()
             LOG.info("Fetched changes for %s" % remote.name)
-        # NOTE(maurosr): Get references and rearrange local master's HEAD
-        # we are always **assuming a fastforward**
-        remote = versions_repo.lookup_reference('refs/remotes/origin/master')
-        master = versions_repo.lookup_reference('refs/heads/master')
-        master.set_target(remote.target)
-        versions_repo.head.set_target(master.target)
-        LOG.info("Repository updated")
-        try:
-            # try again and then fail if can't find the reference
-            versions_repo.checkout(version)
-        except ValueError:
-            raise exception.RepositoryError(message="Could not find reference "
-                                            "%s on versions repo" % version)
+
+        versions_repo.checkout(version, strategy=pygit2.GIT_CHECKOUT_FORCE)
+        versions_repo.reset(versions_repo.head.target, pygit2.GIT_RESET_HARD)
+    except ValueError:
+        LOG.error("Failed to check into %s", version)
+        raise exception.RepositoryError(message="Could not find reference "
+                                        "%s on versions repo" % version)
 
 
 def main(args):
