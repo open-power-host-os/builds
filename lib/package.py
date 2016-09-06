@@ -31,7 +31,7 @@ DEPENDENCIES = "dependencies"
 
 class Package(object):
 
-    def __init__(self, package, distro, category=None):
+    def __init__(self, package, distro, category=None, download=True):
         self.name = package
         self.distro = distro
         self.category = category
@@ -48,8 +48,11 @@ class Package(object):
         self.package_file = os.path.join(self.package_dir, self.name,
                                          '%s.yaml' % self.name)
 
+        #TODO(maurosr): Improve this piece of code, actions shouldn't go in
+        # __init__, let's refactor in order to move the download action.
         self.load_package(package, distro)
-        self.download_source_code()
+        if download:
+            self.download_source_code()
 
     def download_source_code(self):
         print("%s: Downloading source code." % self.name)
