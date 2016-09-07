@@ -71,8 +71,10 @@ class Versions(object):
     def _get_git_log(self, repo, since_id):
         log = []
         for commit in repo.walk(repo.head.target, pygit2.GIT_SORT_TOPOLOGICAL):
-            log.append("%s %s" % (commit.hex[:7],
-                                  commit.message.split('\n')[0]))
+            commit_message = commit.message.split('\n')[0]
+            commit_message = commit_message.replace("'", "")
+            commit_message = commit_message.replace("\"", "")
+            log.append("%s %s" % (commit.hex[:7], commit_message))
             if commit.hex.startswith(since_id):
                 break
 
