@@ -65,8 +65,7 @@ class Versions(object):
 
     def _bump_spec(self, specfile, log):
         comment = "\n".join(log)
-        cmd = "rpmdev-bumpspec -c '%s' %s" % (comment.replace("'", "\'"),
-                                              specfile)
+        cmd = "rpmdev-bumpspec -c '%s' %s" % (comment, specfile)
         utils.run_command(cmd)
 
     def _get_git_log(self, repo, since_id):
