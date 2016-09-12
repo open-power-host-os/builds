@@ -35,6 +35,7 @@ RPM Based distributions
  - python-pygit2
  - svn
  - bzip2
+ - wget
 
 ::
 
@@ -141,4 +142,3 @@ Validating
 
 There is a whole repository dedicated to testing available at
 https://github.com/open-power-host-os/tests
-
