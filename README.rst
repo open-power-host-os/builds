@@ -39,7 +39,7 @@ RPM Based distributions
 
 ::
 
-# sudo yum install -y mock PyYAML git python-pygit2 svn bzip2
+# sudo yum install -y mock PyYAML git python-pygit2 svn bzip2 wget
 
 Settings
 --------
