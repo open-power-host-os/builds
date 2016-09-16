@@ -33,6 +33,7 @@ class Mock(build_system.PackageBuilder):
     def __init__(self, config):
         super(Mock, self).__init__()
         self.mock_config = config
+        self.root_dir = CONF.get('default').get('mock_root_dir')
         self.result_dir = CONF.get('default').get('result_dir')
         self.build_dir = None
         self.archive = None
@@ -45,6 +46,8 @@ class Mock(build_system.PackageBuilder):
         cmd = "%s -r %s --rebuild %s --no-clean --resultdir=%s" % (
             MOCK_BIN, self.mock_config, self.build_dir + "/*.rpm",
             self.build_dir)
+        if self.root_dir:
+            cmd += " --rootdir %s" % self.root_dir
 
         if package.rpmmacro:
             cmd = cmd + " --macro-file=%s" % package.rpmmacro
@@ -75,6 +78,8 @@ class Mock(build_system.PackageBuilder):
                                    package.specfile,
                                    self.archive,
                                    self.build_dir))
+        if self.root_dir:
+            cmd += " --rootdir %s" % self.root_dir
 
         utils.run_command(cmd)
 
@@ -94,6 +99,8 @@ class Mock(build_system.PackageBuilder):
 
     def _prepare_chroot(self, package):
         cmd = "%s --init -r %s " % (MOCK_BIN, self.mock_config)
+        if self.root_dir:
+            cmd += " --rootdir %s" % self.root_dir
 
         if package.build_files:
             files = []
@@ -105,10 +112,15 @@ class Mock(build_system.PackageBuilder):
         utils.run_command(cmd)
 
     def clean(self):
-        utils.run_command("%s --clean" % MOCK_BIN)
+        cmd = "%s --clean" % MOCK_BIN
+        if self.root_dir:
+            cmd += " --rootdir %s" % self.root_dir
+        utils.run_command(cmd)
 
     def _install_external_dependencies(self, package):
         cmd = "%s -r %s " % (MOCK_BIN, self.mock_config)
+        if self.root_dir:
+            cmd += " --rootdir %s" % self.root_dir
         if package.build_dependencies or package.dependencies:
             install = " --install"
             for dep in package.build_dependencies:
