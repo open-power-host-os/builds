@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from collections import OrderedDict
+
 
 class Scheduler(object):
     """
@@ -28,6 +30,9 @@ class Scheduler(object):
         return tuple(self._dfs(packages, []))
 
     def _dfs(self, packages, visited):
+        """
+        Return a list containing unique package names.
+        """
         order = []
         try:
             p = packages[0]
@@ -42,4 +47,4 @@ class Scheduler(object):
                     order.extend(self._dfs(p.build_dependencies, visited))
                 order.append(p)
                 order.extend(self._dfs(packages[1:], visited))
-        return order
+        return list(OrderedDict.fromkeys(order))
