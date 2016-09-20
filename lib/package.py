@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from functools import total_ordering
 import os
 import logging
 import urllib2
@@ -29,6 +30,7 @@ BUILD_DEPENDENCIES = "build_dependencies"
 DEPENDENCIES = "dependencies"
 
 
+@total_ordering
 class Package(object):
 
     def __init__(self, package, distro, category=None, download=True):
@@ -53,6 +55,12 @@ class Package(object):
         self.load_package(package, distro)
         if download:
             self.download_source_code()
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __lt__(self, other):
+        return self.name < other.name
 
     def download_source_code(self):
         print("%s: Downloading source code." % self.name)
