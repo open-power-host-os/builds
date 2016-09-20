@@ -33,7 +33,36 @@ DEPENDENCIES = "dependencies"
 @total_ordering
 class Package(object):
 
+    __created_packages = dict()
+
+
+    def __new__(cls, package_name, *args, **kwargs):
+        """
+        This avoids having multiple instances of the same package. That
+        would lead to problems when solving package dependencies, since
+        multiple packages may have the same dependency, and we do not
+        want it to be downloaded or built multiple times.
+        """
+        if package_name in cls.__created_packages.keys():
+            # @TODO(olavph) This calls __init__ again on a pre-existing object.
+            # Find a better way to do this.
+            package = cls.__created_packages[package_name]
+        else:
+            package = super(Package, cls).__new__(
+                cls, package_name, *args, **kwargs)
+            cls.__created_packages[package_name] = package
+        return package
+
     def __init__(self, package, distro, category=None, download=True):
+        try:
+            self.name
+        except AttributeError:
+            pass
+        else:
+            LOG.debug("Preventing re-initialization of existent package "
+                      "instance: %s" % package)
+            return
+
         self.name = package
         self.distro = distro
         self.category = category
@@ -43,6 +72,8 @@ class Package(object):
         self.build_dependencies = []
         self.result_packages = []
         self.repository = None
+
+        LOG.debug("Creating package instance: %s" % self)
 
         self.package_dir = os.path.join(
             config.COMPONENTS_DIRECTORY, self.category) if(
