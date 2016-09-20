@@ -62,6 +62,9 @@ class Package(object):
     def __lt__(self, other):
         return self.name < other.name
 
+    def __repr__(self):
+        return self.name
+
     def download_source_code(self):
         print("%s: Downloading source code." % self.name)
         if self.clone_url:
