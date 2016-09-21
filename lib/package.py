@@ -33,6 +33,22 @@ DEPENDENCIES = "dependencies"
 @total_ordering
 class Package(object):
 
+    __created_packages = dict()
+
+    @classmethod
+    def get_instance(cls, package_name, *args, **kwargs):
+        """
+        Get unique Package instance for package name, creating one on
+        first call.
+        """
+        if package_name in cls.__created_packages.keys():
+            package = cls.__created_packages[package_name]
+            LOG.debug("Getting existent package instance: %s" % package)
+        else:
+            package = Package(package_name, *args, **kwargs)
+            cls.__created_packages[package_name] = package
+        return package
+
     def __init__(self, package, distro, category=None, download=True):
         self.name = package
         self.distro = distro
@@ -116,11 +132,11 @@ class Package(object):
 
                 # list of dependencies
                 for dep in files.get('dependencies', []):
-                    self.dependencies.append(Package(dep, self.distro,
-                                                     category=DEPENDENCIES))
+                    self.dependencies.append(Package.get_instance(
+                        dep, self.distro, category=DEPENDENCIES))
 
                 for dep in files.get('build_dependencies', []):
-                    self.build_dependencies.append(Package(
+                    self.build_dependencies.append(Package.get_instance(
                         dep, self.distro, category=BUILD_DEPENDENCIES))
 
                 self.rpmmacro = files.get('rpmmacro', None)

@@ -72,6 +72,6 @@ class BuildManager(object):
         self._distro.build_packages(scheduler(self.packages))
 
     def prepare_packages(self, download_source_code=True):
-        self.packages = [package.Package(
+        self.packages = [package.Package.get_instance(
             x, self._distro, download=download_source_code) for x in set(
                 self.packages_list)]
