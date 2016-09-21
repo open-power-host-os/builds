@@ -101,74 +101,71 @@ class Package(object):
             with open(self.package_file, 'r') as package_file:
                 package_data = yaml.load(package_file).get('Package')
 
-                self.name = package_data.get('name')
-                self.clone_url = package_data.get('clone_url', None)
-                self.download_source = package_data.get('download_source', None)
+            self.name = package_data.get('name')
+            self.clone_url = package_data.get('clone_url', None)
+            self.download_source = package_data.get('download_source', None)
 
-                # Most packages keep their version in a VERSION file
-                # or in the .spec file. For those that don't, we need
-                # a custom file and regex.
-                version = package_data.get('version', {})
-                self.version_file_regex = (version.get('file'),
-                                           version.get('regex'))
+            # Most packages keep their version in a VERSION file
+            # or in the .spec file. For those that don't, we need
+            # a custom file and regex.
+            version = package_data.get('version', {})
+            self.version_file_regex = (version.get('file'),
+                                       version.get('regex'))
 
-                # NOTE(maurosr): Unfortunately some of the packages we build
-                # depend on a gziped file which changes according to the build
-                # version so we need to get that name somehow, grep the
-                # specfile would be uglier imho.
-                self.expects_source = package_data.get('expects_source')
+            # NOTE(maurosr): Unfortunately some of the packages we build
+            # depend on a gziped file which changes according to the build
+            # version so we need to get that name somehow, grep the
+            # specfile would be uglier imho.
+            self.expects_source = package_data.get('expects_source')
 
-                # NOTE(maurosr): branch and commit id are special cases for the
-                # future, we plan to use tags on every project for every build
-                # globally set in config.yaml, then this would allow some user
-                # customization to set their preferred commit id/branch or even
-                # a custom git tree.
-                self.branch = package_data.get('branch', None)
-                self.commit_id = package_data.get('commit_id', None)
+            # NOTE(maurosr): branch and commit id are special cases for the
+            # future, we plan to use tags on every project for every build
+            # globally set in config.yaml, then this would allow some user
+            # customization to set their preferred commit id/branch or even
+            # a custom git tree.
+            self.branch = package_data.get('branch', None)
+            self.commit_id = package_data.get('commit_id', None)
 
-                # load distro files
-                files = package_data.get('files').get(self.distro.lsb_name).get(
-                    self.distro.version)
+            # load distro files
+            files = package_data.get('files').get(self.distro.lsb_name).get(
+                self.distro.version)
 
-                self.build_files = files.get('build_files', None)
-                if self.build_files:
-                    self.build_files = os.path.join(self.package_dir,
-                                                    package_name,
-                                                    self.build_files)
-                self.download_build_files = files.get('download_build_files',
-                                                      None)
-                if self.download_build_files and self.download:
-                    self._download_build_files()
+            self.build_files = files.get('build_files', None)
+            if self.build_files:
+                self.build_files = os.path.join(
+                    self.package_dir, package_name, self.build_files)
+            self.download_build_files = files.get('download_build_files', None)
+            if self.download_build_files:
+                self._download_build_files()
 
-                # list of dependencies
-                for dep in files.get('dependencies', []):
-                    self.dependencies.append(Package.get_instance(
-                        dep, self.distro, category=DEPENDENCIES,
-                        download=self.download))
+            # list of dependencies
+            for dep in files.get('dependencies', []):
+                self.dependencies.append(Package.get_instance(
+                    dep, self.distro, category=DEPENDENCIES,
+                    download=self.download))
 
-                for dep in files.get('build_dependencies', []):
-                    self.build_dependencies.append(Package.get_instance(
-                        dep, self.distro, category=BUILD_DEPENDENCIES,
-                        download=self.download))
+            for dep in files.get('build_dependencies', []):
+                self.build_dependencies.append(Package.get_instance(
+                    dep, self.distro, category=BUILD_DEPENDENCIES,
+                    download=self.download))
 
-                self.rpmmacro = files.get('rpmmacro', None)
-                if self.rpmmacro:
-                    self.rpmmacro = os.path.join(self.package_dir,
-                                                 package_name,
-                                                 self.rpmmacro)
+            self.rpmmacro = files.get('rpmmacro', None)
+            if self.rpmmacro:
+                self.rpmmacro = os.path.join(
+                    self.package_dir, package_name, self.rpmmacro)
 
-                self.specfile = os.path.join(self.package_dir, package_name,
-                                             files.get('spec'))
+            self.specfile = os.path.join(self.package_dir, package_name,
+                                         files.get('spec'))
 
-                if os.path.isfile(self.specfile):
-                    LOG.info("Package found: %s for %s %s" % (
-                        self.name, self.distro.lsb_name, self.distro.version))
-                else:
-                    raise exception.PackageSpecError(
-                        package=self.name,
-                        distro=self.distro.lsb_name,
-                        distro_version=self.distro.version)
-                LOG.info("%s: Loaded package metadata successfully" % self.name)
+            if os.path.isfile(self.specfile):
+                LOG.info("Package found: %s for %s %s" % (
+                    self.name, self.distro.lsb_name, self.distro.version))
+            else:
+                raise exception.PackageSpecError(
+                    package=self.name,
+                    distro=self.distro.lsb_name,
+                    distro_version=self.distro.version)
+            LOG.info("%s: Loaded package metadata successfully" % self.name)
         except TypeError:
             raise exception.PackageDescriptorError(package=self.name)
         except IOError:
