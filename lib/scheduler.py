@@ -13,6 +13,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from collections import OrderedDict
+import logging
+
+LOG = logging.getLogger(__name__)
+
 
 class Scheduler(object):
     """
@@ -25,9 +30,15 @@ class Scheduler(object):
     """
     def __call__(self, packages):
         self.packages = packages
-        return tuple(self._dfs(packages, []))
+        LOG.info("Scheduling packages and their dependecies: %s" % packages)
+        ordered_packages = self._dfs(packages, [])
+        LOG.debug("Scheduled order: %s" % ordered_packages)
+        return tuple(ordered_packages)
 
     def _dfs(self, packages, visited):
+        """
+        Return a list containing unique package names.
+        """
         order = []
         try:
             p = packages[0]
@@ -42,4 +53,4 @@ class Scheduler(object):
                     order.extend(self._dfs(p.build_dependencies, visited))
                 order.append(p)
                 order.extend(self._dfs(packages[1:], visited))
-        return order
+        return list(OrderedDict.fromkeys(order))
