@@ -49,8 +49,8 @@ class Package(object):
             cls.__created_packages[package_name] = package
         return package
 
-    def __init__(self, package, distro, category=None, download=True):
-        self.name = package
+    def __init__(self, name, distro, category=None, download=True):
+        self.name = name
         self.distro = distro
         self.category = category
         self.download = download
@@ -71,7 +71,7 @@ class Package(object):
 
         #TODO(maurosr): Improve this piece of code, actions shouldn't go in
         # __init__, let's refactor in order to move the download action.
-        self.load_package(package, distro)
+        self.load_package(name, distro)
         if download:
             self.download_source_code()
 
@@ -99,16 +99,16 @@ class Package(object):
         """
         try:
             with open(self.package_file, 'r') as package_file:
-                package = yaml.load(package_file).get('Package')
+                package_data = yaml.load(package_file).get('Package')
 
-                self.name = package.get('name')
-                self.clone_url = package.get('clone_url', None)
-                self.download_source = package.get('download_source', None)
+                self.name = package_data.get('name')
+                self.clone_url = package_data.get('clone_url', None)
+                self.download_source = package_data.get('download_source', None)
 
                 # Most packages keep their version in a VERSION file
                 # or in the .spec file. For those that don't, we need
                 # a custom file and regex.
-                version = package.get('version', {})
+                version = package_data.get('version', {})
                 self.version_file_regex = (version.get('file'),
                                            version.get('regex'))
 
@@ -116,18 +116,18 @@ class Package(object):
                 # depend on a gziped file which changes according to the build
                 # version so we need to get that name somehow, grep the
                 # specfile would be uglier imho.
-                self.expects_source = package.get('expects_source')
+                self.expects_source = package_data.get('expects_source')
 
                 # NOTE(maurosr): branch and commit id are special cases for the
                 # future, we plan to use tags on every project for every build
                 # globally set in config.yaml, then this would allow some user
                 # customization to set their preferred commit id/branch or even
                 # a custom git tree.
-                self.branch = package.get('branch', None)
-                self.commit_id = package.get('commit_id', None)
+                self.branch = package_data.get('branch', None)
+                self.commit_id = package_data.get('commit_id', None)
 
                 # load distro files
-                files = package.get('files').get(self.distro.lsb_name).get(
+                files = package_data.get('files').get(self.distro.lsb_name).get(
                     self.distro.version)
 
                 self.build_files = files.get('build_files', None)
