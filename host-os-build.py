@@ -99,6 +99,7 @@ def main(args):
                 config.discover_software())
 
     except exception.RepositoryError as e:
+        LOG.exception("Script failed")
         return e.errno
     build_manager = manager.BuildManager()
     return build_manager()
