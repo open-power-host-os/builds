@@ -22,7 +22,7 @@ import exception
 LOG = logging.getLogger(__name__)
 
 
-def run_command(cmd, verbose=False, **kwargs):
+def run_command(cmd, **kwargs):
     LOG.info("Command: %s" % cmd)
     shell = kwargs.pop('shell', True)
 
@@ -33,9 +33,9 @@ def run_command(cmd, verbose=False, **kwargs):
     if process.returncode:
         raise exception.SubprocessError(cmd=cmd, returncode=process.returncode,
                                         stdout=output, stderr=error_output)
-    if verbose:
-        LOG.info("stdout: %s" % output)
-        LOG.info("stderr: %s" % error_output)
+
+    LOG.debug("stdout: %s" % output)
+    LOG.debug("stderr: %s" % error_output)
 
 
 def detect_distribution():
