@@ -89,8 +89,9 @@ def main(args):
                          verbose=conf.get('default').get('verbose'))
     try:
         version = conf.get('default').get('build_version')
-        setup_versions_repository(config.VERSIONS_REPOSITORY,
-                                  config.COMPONENTS_DIRECTORY, version)
+        setup_versions_repository(
+            conf.get('default').get('build_versions_repository_url'),
+            config.COMPONENTS_DIRECTORY, version)
 
         # rediscovery software if it was not set
         conf['default']['packages'] = conf['default']['packages'] if (
