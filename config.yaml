@@ -2,4 +2,4 @@ default:
  branch: 'powerkvm-v3.1.1'
  log_file: "/var/log/host-os/builds.log"
  repositories_path: "/var/lib/host-os/repositories"
- build_version: 'latest'
+ build_version: 'master'
