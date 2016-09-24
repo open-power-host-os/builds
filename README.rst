@@ -24,8 +24,8 @@ RPM Based distributions
 
 ::
 
-# sudo yum install --downloadonly --downloaddir=. epel-release
-# sudo yum localinstall epel-release-7-5.noarch.rpm # Note the version may change.
+$ sudo yum install --downloadonly --downloaddir=. epel-release
+$ sudo yum localinstall epel-release-7-5.noarch.rpm # Note the version may change.
 
 * Install
 
@@ -39,7 +39,7 @@ RPM Based distributions
 
 ::
 
-# sudo yum install -y mock PyYAML git python-pygit2 svn bzip2 wget
+$ sudo yum install -y mock PyYAML git python-pygit2 svn bzip2 wget
 
 Settings
 --------
@@ -48,13 +48,13 @@ Settings
 
 ::
 
-# sudo ppc64_cpu --smt=off
+$ sudo ppc64_cpu --smt=off
 
 * Setup environment and user
 
 ::
 
-# sudo python setup_environment.py LOGIN
+$ sudo python setup_environment.py LOGIN
 
 Naturally, you need to replace LOGIN by the user name you'll use to run
 host-os-build.py, which should not run using root user, even if that user
@@ -67,20 +67,20 @@ Running
 
 ::
 
-# python host-os-build.py --package libvirt
+$ python host-os-build.py --package libvirt
 
 * Build all software
 
 ::
 
-# python host-os-build.py --verbose
+$ python host-os-build.py --verbose
 
 Note the --verbose parameter to get all the log messages in the console. Instead
 of the standard ordinary messages. Please see --help for more options.
 
 ::
 
-# python host-os-build.py --help
+$ python host-os-build.py --help
 
 
 Using the RPMs
@@ -129,7 +129,7 @@ You can use the following command to install, for instance, libseccomp's RPM:
 
 ::
 
-# sudo yum localinstall result/libseccomp-2.3.1-0.el7.centos.1.ppc64le.rpm
+$ sudo yum localinstall result/libseccomp-2.3.1-0.el7.centos.1.ppc64le.rpm
 
 Note that some of those packages are debuginfo which are recommended in order to
 provide useful information for bugs in the case of any failures.
