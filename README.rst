@@ -56,8 +56,8 @@ $ sudo ppc64_cpu --smt=off
 
 $ sudo python setup_environment.py LOGIN
 
-Naturally, you need to replace LOGIN by the user name you'll use to run
-host-os-build.py, which should not run using root user, even if that user
+Naturally, you need to replace ``LOGIN`` by the user name you'll use to run
+``host-os-build.py``, which should not run using root user, even if that user
 doesn't exists yet.
 
 Running
@@ -75,8 +75,8 @@ $ python host-os-build.py --package libvirt
 
 $ python host-os-build.py --verbose
 
-Note the --verbose parameter to get all the log messages in the console. Instead
-of the standard ordinary messages. Please see --help for more options.
+Note the ``--verbose`` parameter to get all the log messages in the console. Instead
+of the standard ordinary messages. Please see ``--help`` for more options.
 
 ::
 
@@ -87,7 +87,7 @@ Using the RPMs
 --------------
 We decided that's is a little bit intrusive to install all the produced RPMs
 since some of them may not fit your needs. At the end of the process
-you'll see a new results directory inside this project's root.
+you'll see a new ``results`` directory inside this project's root.
 
 A suggested set of packages tested is the following:
  - kernel
