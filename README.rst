@@ -1,14 +1,15 @@
 Build the best of OpenPOWER platform virtualization
 ***************************************************
 
-Considering the speed of the development of new features, or even Hardware is
-created in the OpenPOWER ecosystem, it's a challenge to get them in the
-traditional stable GNU/Linux distribution scenario.
+Considering the speed of the development of new features, or even
+Hardware is created in the OpenPOWER ecosystem, it's a challenge to
+get them in the traditional stable GNU/Linux distribution scenario.
 
-open-power-host-os/builds repository is an open source collaboration effort that
-aims to help administrators to build and deploy the latest and greatest
-capabilities in the OpenPOWER world through a build script that provides
-software well packaged and designed for the `Supported GNU/Linux distributions`_
+open-power-host-os/builds repository is an open source collaboration
+effort that aims to help administrators to build and deploy the latest
+and greatest capabilities in the OpenPOWER world through a build
+script that provides software well packaged and designed for the
+`Supported GNU/Linux distributions`_
 
 Supported GNU/Linux distributions
 ---------------------------------
@@ -20,6 +21,7 @@ Installation
 
 RPM Based distributions
 ^^^^^^^^^^^^^^^^^^^^^^^
+
 * Install epel repository (Extra Packages for Enterprise Linux):
 
 ::
@@ -56,9 +58,9 @@ $ sudo ppc64_cpu --smt=off
 
 $ sudo python setup_environment.py LOGIN
 
-Naturally, you need to replace ``LOGIN`` by the user name you'll use to run
-``host-os-build.py``, which should not run using root user, even if that user
-doesn't exist yet.
+Naturally, you need to replace ``LOGIN`` by the user name you'll use
+to run ``host-os-build.py``, which should not run using root user,
+even if that user doesn't exist yet.
 
 Running
 -------
@@ -75,8 +77,9 @@ $ python host-os-build.py --package libvirt
 
 $ python host-os-build.py --verbose
 
-Note the ``--verbose`` parameter to get all the log messages in the console. Instead
-of the standard ordinary messages. Please see ``--help`` for more options.
+Note the ``--verbose`` parameter to get all the log messages in the
+console. Instead of the standard ordinary messages. Please see
+``--help`` for more options.
 
 ::
 
@@ -85,11 +88,14 @@ $ python host-os-build.py --help
 
 Using the RPMs
 --------------
-We decided that's is a little bit intrusive to install all the produced RPMs
-since some of them may not fit your needs. At the end of the process
-you'll see a new ``result`` directory inside this project's root.
+
+We decided that's is a little bit intrusive to install all the
+produced RPMs since some of them may not fit your needs. At the end of
+the process you'll see a new ``result`` directory inside this
+project's root.
 
 A suggested set of packages tested is the following:
+
  - kernel
  - libseccomp
  - libvirt
@@ -125,17 +131,19 @@ A suggested set of packages tested is the following:
  - qemu-system-x86
  - SLOF
 
-You can use the following command to install, for instance, libseccomp's RPM:
+You can use the following command to install, for instance,
+libseccomp's RPM:
 
 ::
 
 $ sudo yum localinstall result/libseccomp-2.3.1-0.el7.centos.1.ppc64le.rpm
 
-Note that some of those packages are debuginfo which are recommended in order to
-provide useful information for bugs in the case of any failures.
+Note that some of those packages are debuginfo which are recommended
+in order to provide useful information for bugs in the case of any
+failures.
 
-Also no version is informed on the list above to make it valid even for future
-versions with minor version changes.
+Also no version is informed on the list above to make it valid even
+for future versions with minor version changes.
 
 Validating
 ----------
