@@ -29,17 +29,17 @@ $ sudo yum localinstall epel-release-7-5.noarch.rpm # Note the version may chang
 
 * Install
 
- - mock
- - PyYAML
- - git
- - python-pygit2
- - svn
  - bzip2
+ - git
+ - mock
+ - python-pygit2
+ - PyYAML
+ - svn
  - wget
 
 ::
 
-$ sudo yum install -y mock PyYAML git python-pygit2 svn bzip2 wget
+$ sudo yum install -y bzip2 git mock pyton-pygit2 PyYAML svn wget
 
 Settings
 --------
@@ -91,38 +91,38 @@ you'll see a new results directory inside this project's root.
 
 A suggested set of packages tested is the following:
  - kernel
+ - libseccomp
+ - libvirt
+ - libvirt-client
+ - libvirt-daemon
+ - libvirt-daemon-config-network
+ - libvirt-daemon-config-nwfilter
+ - libvirt-daemon-driver-interface
+ - libvirt-daemon-driver-lxc
+ - libvirt-daemon-driver-network
+ - libvirt-daemon-driver-nodedev
+ - libvirt-daemon-driver-nwfilter
+ - libvirt-daemon-driver-qemu
+ - libvirt-daemon-driver-secret
+ - libvirt-daemon-driver-storage
+ - libvirt-daemon-kvm
+ - libvirt-daemon-lxc
+ - libvirt-daemon-qemu
+ - libvirt-debuginfo
+ - libvirt-devel
+ - libvirt-docs
+ - libvirt-lock-sanlock
+ - libvirt-login-shell
+ - libvirt-nss
  - qemu
+ - qemu-common
+ - qemu-debuginfo
+ - qemu-guest-agent
+ - qemu-img
+ - qemu-kvm
  - qemu-kvm-tools
  - qemu-system-ppc
- - qemu-guest-agent
  - qemu-system-x86
- - qemu-kvm
- - qemu-debuginfo
- - qemu-common
- - qemu-img
- - libseccomp
- - libvirt-daemon-kvm
- - libvirt-lock-sanlock
- - libvirt-docs
- - libvirt-daemon-driver-nodedev
- - libvirt-daemon-driver-interface
- - libvirt-daemon-driver-network
- - libvirt-daemon-qemu
- - libvirt
- - libvirt-nss
- - libvirt-devel
- - libvirt-debuginfo
- - libvirt-client
- - libvirt-daemon-driver-nwfilter
- - libvirt-daemon-driver-secret
- - libvirt-daemon-driver-qemu
- - libvirt-daemon-config-network
- - libvirt-daemon-lxc
- - libvirt-login-shell
- - libvirt-daemon
- - libvirt-daemon-config-nwfilter
- - libvirt-daemon-driver-storage
- - libvirt-daemon-driver-lxc
  - SLOF
 
 You can use the following command to install, for instance, libseccomp's RPM:
