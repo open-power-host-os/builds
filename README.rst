@@ -58,7 +58,7 @@ $ sudo python setup_environment.py LOGIN
 
 Naturally, you need to replace ``LOGIN`` by the user name you'll use to run
 ``host-os-build.py``, which should not run using root user, even if that user
-doesn't exists yet.
+doesn't exist yet.
 
 Running
 -------
