@@ -87,7 +87,7 @@ Using the RPMs
 --------------
 We decided that's is a little bit intrusive to install all the produced RPMs
 since some of them may not fit your needs. At the end of the process
-you'll see a new ``results`` directory inside this project's root.
+you'll see a new ``result`` directory inside this project's root.
 
 A suggested set of packages tested is the following:
  - kernel
