@@ -21,9 +21,6 @@ import yaml
 
 LOG = logging.getLogger(__name__)
 COMPONENTS_DIRECTORY = os.path.join(os.getcwd(), "components")
-# NOTE(maurosr): This was made a constant cause it doesn't make any sense to
-# let it be a configurable value.
-VERSIONS_REPOSITORY = "https://github.com/open-power-host-os/versions.git"
 
 config_parser = None
 
@@ -117,6 +114,8 @@ class ConfigParser(object):
         parser.add_argument('--keep-builddir',
                             help='Keep build directory and its logs and '
                             'artifacts.', action='store_true')
+        parser.add_argument('--build-versions-repository-url',
+                            help='Build versions repository URL')
         parser.add_argument('--build-version',
                             help='Select build version from versions '
                                  'repository')
