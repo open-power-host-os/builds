@@ -31,7 +31,7 @@ def get_reference(repository, short_reference_string):
     Get repository reference (branch, tag) based on a short reference
     suffix string.
     """
-    prefixes = ["refs/tags", "refs/heads"]
+    prefixes = ["refs/tags", "refs/heads", "refs/remotes"]
     for remote in repository.remotes:
         prefixes.append(os.path.join("refs/remotes", remote.name))
     for prefix in prefixes:
