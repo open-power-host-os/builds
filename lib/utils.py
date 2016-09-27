@@ -77,19 +77,3 @@ def run_command(cmd, **kwargs):
     LOG.debug("stderr: %s" % error_output)
 
     return output
-
-
-def detect_distribution():
-    # TODO(maurosr): Replace platform module by some alternative like distro
-    # (https://github.com/nir0s/distro) or maybe just implementing our own
-    # solution => platform module is deprecated in python 3.5 and will be
-    # removed in python 3.7
-    distro, version, _ = platform.linux_distribution(full_distribution_name=0)
-    arch_and_endianess = platform.machine()
-
-    # NOTE(maurosr): when it fails to detect the distro it defaults to the
-    # distro and version arguments passsed as parameters - their default
-    # values are empty strings.
-    if not distro or not version or not arch_and_endianess:
-        raise exception.DistributionDetectionError
-    return (distro, version, arch_and_endianess)

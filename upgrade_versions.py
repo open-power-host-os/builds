@@ -22,6 +22,7 @@ import sys
 import pygit2
 
 from lib import config
+from lib import distro_utils
 from lib import exception
 from lib import log_helper
 from lib import manager
@@ -212,10 +213,14 @@ def main(args):
     CONF = utils.setup_default_config()
     utils.setup_versions_repository(CONF)
     packages_to_update = CONF.get('default').get('packages') or PACKAGES
+    distro = distro_utils.get_distro(
+        CONF.get('default').get('distro_name'),
+        CONF.get('default').get('distro_version'),
+        CONF.get('default').get('arch_and_endianness'))
 
     LOG.info("Checking for updates in packages versions: %s",
              ", ".join(packages_to_update))
-    bm = manager.BuildManager(packages_to_update)
+    bm = manager.BuildManager(packages_to_update, distro)
     bm.prepare_packages(download_source_code=False)
 
     for pkg in bm.packages:

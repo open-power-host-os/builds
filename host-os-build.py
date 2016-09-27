@@ -17,6 +17,7 @@ import os
 import sys
 
 from lib import config
+from lib import distro_utils
 from lib import exception
 from lib import log_helper
 from lib import manager
@@ -33,9 +34,13 @@ def main(args):
     utils.setup_versions_repository(CONF)
     packages_to_build = (CONF.get('default').get('packages')
                          or config.discover_software())
+    distro = distro_utils.get_distro(
+        CONF.get('default').get('distro_name'),
+        CONF.get('default').get('distro_version'),
+        CONF.get('default').get('arch_and_endianness'))
 
     LOG.info("Building packages: %s", ", ".join(packages_to_build))
-    build_manager = manager.BuildManager(packages_to_build)
+    build_manager = manager.BuildManager(packages_to_build, distro)
     return build_manager()
 
 if __name__ == '__main__':

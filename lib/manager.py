@@ -23,16 +23,12 @@ from lib import utils
 
 LOG = logging.getLogger(__name__)
 
-DISTRIBUTIONS = {
-    "centos": lib.centos.CentOS,
-}
-
 
 class BuildManager(object):
-    def __init__(self, packages_names):
+    def __init__(self, packages_names, distro):
         self.packages_names = packages_names
         self.packages = None
-        self._distro = self.get_distro()
+        self.distro = distro
         self.repositories = None
 
     def __call__(self):
@@ -54,22 +50,11 @@ class BuildManager(object):
 
         return self.build()
 
-    def get_distro(self):
-        distro_metadata = utils.detect_distribution()
-        distro_name = distro_metadata[0]
-        # let's make this explicity to avoid catching for a TypeError
-        # exception which could be raised from the attempt to instantiate
-        # the distro object.
-        if not DISTRIBUTIONS.get(distro_name):
-            raise exception.DistributionNotSupportedError(
-                distribution=distro_name)
-        return DISTRIBUTIONS.get(distro_name)(*distro_metadata)
-
     def build(self):
         scheduler = lib.scheduler.Scheduler()
-        self._distro.build_packages(scheduler(self.packages))
+        self.distro.build_packages(scheduler(self.packages))
 
     def prepare_packages(self, download_source_code=True):
         self.packages = [package.Package.get_instance(
-            x, self._distro, download=download_source_code) for x in set(
+            x, self.distro, download=download_source_code) for x in set(
                 self.packages_names)]
