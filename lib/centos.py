@@ -25,9 +25,9 @@ class CentOS(distro.LinuxDistribution):
 
     supported_versions = CENTOS_VERSIONS
 
-    def __init__(self, name, version, arch_and_endianess):
+    def __init__(self, name, version, arch_and_endianness):
         super(CentOS, self).__init__(name=name, version=version,
-                                     arch_and_endianess=arch_and_endianess)
+                                     arch_and_endianness=arch_and_endianness)
         mock_config_dir = os.path.join(os.getcwd(), 'extras/centOS/7.2/mock')
         self.package_builder = mockbuilder.Mock(os.path.join(
             mock_config_dir,
