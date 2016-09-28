@@ -41,7 +41,7 @@ $ sudo yum localinstall epel-release-7-5.noarch.rpm # Note the version may chang
 
 ::
 
-$ sudo yum install -y bzip2 git mock pyton-pygit2 PyYAML svn wget
+$ sudo yum install -y bzip2 git mock python-pygit2 PyYAML svn wget
 
 Settings
 --------
