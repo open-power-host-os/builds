@@ -32,20 +32,26 @@ class Repo(object):
         self.local_path = os.path.join(dest_path, repo_name)
         self.repo = None
 
-        # Load if it is an existing git repo
+        self._setup()
+        self._checkout(refname, commit_id)
+
+    def _setup(self):
+        """
+        Load existing repository or clone to target directory.
+        """
         if os.path.exists(self.local_path):
             try:
                 self.repo = pygit2.Repository(self.local_path)
                 LOG.info("Found existent repository at destination path %s" % (
                          self.local_path))
                 # Reset hard repository so we clean up any changes that may
-                # prevent checkout on the right point of the three.
+                # prevent checkout on the right point of the tree.
                 self.repo.reset(self.repo.head.get_object().oid,
                                 pygit2.GIT_RESET_HARD)
 
             except KeyError:
-                raise exception.RepositoryError(repo_name=repo_name,
-                                                repo_path=dest_path)
+                raise exception.RepositoryError(repo_name=self.repo_name,
+                                                repo_path=self.local_path)
 
         else:
             try:
@@ -57,16 +63,20 @@ class Repo(object):
                 LOG.error(msg)
                 raise exception.RepositoryError(message=msg)
 
+    def _checkout(self, refname, commit_id):
+        """
+        Checkout commit ID, if specified, or refname otherwise.
+        """
         for remote in self.repo.remotes:
             try:
                 remote.fetch()
                 LOG.info("Fetched changes for %s" % remote.name)
             except pygit2.GitError:
-                LOG.info("Failed to fetch %s remote for %s" % (remote.name,
-                                                               repo_name))
+                LOG.info("Failed to fetch %s remote for %s"
+                         % (remote.name, self.repo_name))
                 pass
             else:
-                LOG.info("%(repo_name)s Repository updated" % locals())
+                LOG.info("%(repo_name)s Repository updated" % vars(self))
 
         try:
             if commit_id:
@@ -76,7 +86,7 @@ class Repo(object):
                     obj, strategy=pygit2.GIT_CHECKOUT_FORCE)
                 self.repo.reset(obj.oid, pygit2.GIT_RESET_HARD)
             else:
-                reference = self.get_reference(refname)
+                reference = self._get_reference(refname)
                 # GIT_CHECKOUT_FORCE strategy cleans up the index
                 LOG.info("Checking out into %s" % refname)
                 self.repo.checkout(reference,
@@ -84,14 +94,13 @@ class Repo(object):
                 self.repo.reset(self.repo.head.target, pygit2.GIT_RESET_HARD)
         except ValueError:
             ref = commit_id if commit_id else refname
-            raise exception.RepositoryError(message="Could not find reference "
-                                            "%s at %s repository" %
-                                            (ref, repo_name))
+            raise exception.RepositoryError(
+                message="Could not find reference %s at %s repository" %
+                (ref, self.repo_name))
 
-        cmd = "git submodule init; git submodule update"
-        utils.run_command(cmd, cwd=self.local_path)
+        self._update_submodules()
 
-    def get_reference(self, short_reference_string):
+    def _get_reference(self, short_reference_string):
         """
         Get repository reference (branch, tag) based on a short reference
         suffix string.
@@ -109,6 +118,13 @@ class Repo(object):
         else:
             raise exception.RepositoryError(
                 message="Reference not found in repository")
+
+    def _update_submodules(self):
+        """
+        Update repository submodules, initializing them if needed.
+        """
+        cmd = "git submodule init; git submodule update"
+        utils.run_command(cmd, cwd=self.local_path)
 
     def archive(self, archive_name, commit_id, build_dir):
         # NOTE(maurosr): CentOS's pygit2  doesn't fully support archives as we
