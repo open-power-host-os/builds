@@ -39,7 +39,7 @@ def get_reference(repository, short_reference_string):
         LOG.debug("Trying to get reference: %s", reference_string)
         try:
             return repository.lookup_reference(reference_string)
-        except KeyError as exception:
+        except KeyError:
             pass
     else:
        raise exception.RepositoryError(
