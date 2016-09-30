@@ -24,8 +24,6 @@ from lib import build_manager
 from lib import repository
 from lib import utils
 
-import pygit2
-
 LOG = logging.getLogger(__name__)
 
 

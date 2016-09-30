@@ -139,11 +139,9 @@ class Package(object):
         LOG.info("%s: Loaded package metadata successfully" % self.name)
 
     def _setup_repository(self, dest=None, branch=None):
-        self.repository = repository.Repo(repo_name=self.name,
-                                          clone_url=self.clone_url,
-                                          dest_path=dest,
-                                          refname=self.branch or branch,
-                                          commit_id=self.commit_id)
+        self.repository = repository.get_git_repository(
+            self.name, self.clone_url, dest)
+        self.repository.checkout(self.commit_id or self.branch or branch)
 
     def _download_source(self, build_dir):
         """

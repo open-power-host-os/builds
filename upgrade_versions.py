@@ -19,7 +19,7 @@ import os
 import re
 import sys
 
-import pygit2
+import git
 
 from lib import config
 from lib import distro_utils
@@ -47,12 +47,12 @@ def _sed_yaml_descriptor(yamlfile, old_commit, new_commit):
 
 def _get_git_log(repo, since_id):
     log = []
-    for commit in repo.walk(repo.head.target, pygit2.GIT_SORT_TOPOLOGICAL):
+    for commit in repo.iter_commits():
         commit_message = commit.message.split('\n')[0]
         commit_message = commit_message.replace("'", "")
         commit_message = commit_message.replace("\"", "")
-        log.append("%s %s" % (commit.hex[:7], commit_message))
-        if commit.hex.startswith(since_id):
+        log.append("%s %s" % (commit.hexsha[:7], commit_message))
+        if commit.hexsha.startswith(since_id):
             break
 
     return log
@@ -106,13 +106,13 @@ class Version(object):
         pkg = copy.copy(self.pkg)
         pkg.commit_id = None
         pkg.download_files()
-        pkg.commit_id = pkg.repository.repo.head.target.hex[:7]
+        pkg.commit_id = pkg.repository.head.commit.hexsha[:7]
 
         if pkg.commit_id == self.pkg.commit_id:
             LOG.debug("%s: no changes.", self.pkg)
             return
 
-        self._read_version_from_repo(pkg.repository.local_path)
+        self._read_version_from_repo(pkg.repository.working_tree_dir)
 
         result = rpm_cmp_versions(self._spec_version, self._repo_version)
         if result < 0:
@@ -163,7 +163,7 @@ class Version(object):
         if self.pkg.commit_id:
             LOG.info("Updating package %s from %s to %s" % (
                 self.pkg.name, self.pkg.commit_id, pkg.commit_id))
-            log = _get_git_log(pkg.repository.repo, self.pkg.commit_id)
+            log = _get_git_log(pkg.repository, self.pkg.commit_id)
             _sed_yaml_descriptor(self.pkg.package_file, self.pkg.commit_id,
                                  pkg.commit_id)
 
