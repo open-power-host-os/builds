@@ -181,16 +181,3 @@ class Package(object):
             filename = os.path.join(self.build_files, url.split('/')[-1])
             with open(filename, "wb") as file_data:
                 file_data.write(data)
-
-    def clean_build_dependencies(self):
-        """
-        This is a very simple method were the package cleans up its own RPMs
-        if it fits on BUILD_DEPENDENCIES category.
-        There is no need, now, to go recursively cause this method will be
-        called for all packages built.
-        Straightforward right now where a build dep is never a package itself.
-        """
-        print("%s: Removing build dependencies" % self.name)
-        if self.category is BUILD_DEPENDENCIES:
-            for f in self.result_packages:
-                os.remove(f)
