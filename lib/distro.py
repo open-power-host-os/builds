@@ -59,5 +59,3 @@ class LinuxDistribution(object):
 
     def clean(self, packages):
         self.package_builder.clean()
-        for package in packages:
-            package.clean_build_dependencies()
