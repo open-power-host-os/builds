@@ -71,14 +71,14 @@ def discover_software():
 
 
 class ConfigParser(object):
+    """
+    Parses configuration options sources.
 
+    Precedence is:
+    cmdline > config file > argparse defaults
+    """
     def __init__(self):
-        cmdline_args = self._parse_arguments()
-        self._CONF = self._parse_config(cmdline_args.get('config_file'))
-
-        # NOTE(maurosr): update the config object overwriting its contents with
-        # data gathered from cmdline (cmdline precedence > config file's )
-        self._CONF.get('default').update(cmdline_args)
+        self._CONF = self._parse_arguments()
 
     @property
     def CONF(self):
@@ -98,6 +98,12 @@ class ConfigParser(object):
                                  'scripts',
                             # NOTE(maurosr): move this to /etc in the future
                             default='./config.yaml')
+
+        # parse the 'config-file' argument early so that we can use
+        # the defaults defined in the config file to override the ones
+        # in the 'add_argument' calls below.
+        config_file = parser.parse_known_args()[0].config_file
+
         parser.add_argument('--packages', '-p',
                             help='Packages to be built',
                             nargs='*',
@@ -120,6 +126,9 @@ class ConfigParser(object):
                             help='Select build version from versions '
                                  'repository')
 
+        config = self._parse_config(config_file)
+        parser.set_defaults(**config['default'])
+
         args = vars(parser.parse_args())
 
         # drop None values
@@ -127,4 +136,5 @@ class ConfigParser(object):
             if not value:
                 args.pop(key)
 
-        return args
+        config['default'].update(args)
+        return config
