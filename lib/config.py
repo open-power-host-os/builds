@@ -91,7 +91,6 @@ class ConfigParser(object):
         return conf
 
     def _parse_arguments(self):
-        supported_software = discover_software()
         parser = argparse.ArgumentParser()
         parser.add_argument('--config-file', '-c',
                             help='Path of the configuration file for build '
@@ -100,8 +99,7 @@ class ConfigParser(object):
                             default='./config.yaml')
         parser.add_argument('--packages', '-p',
                             help='Packages to be built',
-                            nargs='*',
-                            default=supported_software)
+                            nargs='*')
         parser.add_argument('--log-file', '-l',
                             help='Log file',
                             default='/var/log/host-os/builds.log')

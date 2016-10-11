@@ -93,7 +93,6 @@ def main(args):
             conf.get('default').get('build_versions_repository_url'),
             config.COMPONENTS_DIRECTORY, version)
 
-        # rediscovery software if it was not set
         conf['default']['packages'] = conf['default']['packages'] if (
             conf.get('default').get('packages')) else (
                 config.discover_software())
