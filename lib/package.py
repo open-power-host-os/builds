@@ -159,6 +159,10 @@ class Package(object):
                 print("%s: Loaded package metadata successfully" % self.name)
         except TypeError:
             raise exception.PackageDescriptorError(package=self.name)
+        except IOError:
+            raise exception.PackageDescriptorError(
+                "Failed to open %(package)s's YAML descriptor",
+                package=self.name)
 
     def _setup_repository(self, dest=None, branch=None):
         self.repository = repository.Repo(package_name=self.name,
