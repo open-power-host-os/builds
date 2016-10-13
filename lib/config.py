@@ -112,6 +112,8 @@ class ConfigParser(object):
         parser.add_argument('--verbose', '-v',
                             help='Set the scripts to be verbose',
                             action='store_true')
+        parser.add_argument('--mock-root-dir',
+                            help='Directory to create the mock chroot.')
         parser.add_argument('--result-dir', '-r',
                             help='Directory to save the RPMs.',
                             default=os.path.join(os.getcwd(), 'result'))
