@@ -110,6 +110,9 @@ class ConfigParser(object):
         self.parser.add_argument('--result-dir', '-r',
                                  help='Directory to save the RPMs.',
                                  default='./result')
+        self.parser.add_argument('--repositories-path', '-R',
+                                 help='Directory where to clone code repositories',
+                                 default='/var/lib/host-os/repositories')
         self.parser.add_argument('--keep-builddir',
                                  help='Keep build directory and its logs and '
                                  'artifacts.', action='store_true')
