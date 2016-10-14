@@ -150,3 +150,23 @@ Validating
 
 There is a whole repository dedicated to testing available at
 https://github.com/open-power-host-os/tests
+
+Running unit tests
+------------------
+In order to run the build scripts unit tests, you will need to install our
+development dependencies.
+
+You can do this by issuing the command below
+
+::
+
+$ sudo pip install -r requirements-dev.txt
+
+
+From the root of the `builds` project directory, use the commands below to run
+the unit tests:
+
+::
+
+$ export PYTHONPATH=$(pwd):$PYTHONPATH
+$ nosetests tests/unit

@@ -16,6 +16,7 @@
 import argparse
 import logging
 import os
+import sys
 
 import yaml
 
@@ -29,6 +30,7 @@ def get_config():
     global config_parser
     if not config_parser:
         config_parser = ConfigParser()
+        config_parser.parse()
     return config_parser
 
 
@@ -78,56 +80,76 @@ class ConfigParser(object):
     cmdline > config file > argparse defaults
     """
     def __init__(self):
-        self._CONF = self._parse_arguments()
+        self.parser = argparse.ArgumentParser()
+        self._CONF = None
+        self._setup_config_parser_options()
 
     @property
     def CONF(self):
         return self._CONF
 
-    def _parse_config(self, config_file):
+    def _setup_config_parser_options(self):
+        """
+        Configures the argument parser object to match the expected
+            configuration.
+        """
+        self.parser.add_argument('--config-file', '-c',
+                                 help='Path of the configuration file for build '
+                                      'scripts',
+                                 # NOTE(maurosr): move this to /etc in the future
+                                 default='./config.yaml')
+        self.parser.add_argument('--packages', '-p',
+                                 help='Packages to be built',
+                                 nargs='*')
+        self.parser.add_argument('--log-file', '-l',
+                                 help='Log file',
+                                 default='/var/log/host-os/builds.log')
+        self.parser.add_argument('--verbose', '-v',
+                                 help='Set the scripts to be verbose',
+                                 action='store_true')
+        self.parser.add_argument('--result-dir', '-r',
+                                 help='Directory to save the RPMs.',
+                                 default='./result')
+        self.parser.add_argument('--repositories-path', '-R',
+                                 help='Directory where to clone code repositories',
+                                 default='/var/lib/host-os/repositories')
+        self.parser.add_argument('--keep-builddir',
+                                 help='Keep build directory and its logs and '
+                                 'artifacts.', action='store_true')
+        self.parser.add_argument('--build-versions-repository-url',
+                                 help='Build versions repository URL')
+        self.parser.add_argument('--build-version',
+                                 help='Select build version from versions '
+                                 'repository')
+
+    def parse_arguments_list(self, args):
+        """
+        Parses the arguments provided in the argument list and returns
+            the result object.
+        """
+        result = self.parser.parse_args(args)
+        return vars(result)
+
+    def parse_config_file(self, config_file_path):
+        """
+        Parse the configuration file and return a dictionary containing the
+            parsed values.
+        """
         conf = {}
-        with open(config_file) as stream:
+        with open(config_file_path) as stream:
             conf = yaml.safe_load(stream)
         return conf
 
-    def _parse_arguments(self):
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--config-file', '-c',
-                            help='Path of the configuration file for build '
-                                 'scripts',
-                            # NOTE(maurosr): move this to /etc in the future
-                            default='./config.yaml')
-
+    def parse(self):
         # parse the 'config-file' argument early so that we can use
         # the defaults defined in the config file to override the ones
         # in the 'add_argument' calls below.
-        config_file = parser.parse_known_args()[0].config_file
+        config_file = self.parser.parse_known_args()[0].config_file
 
-        parser.add_argument('--packages', '-p',
-                            help='Packages to be built',
-                            nargs='*')
-        parser.add_argument('--log-file', '-l',
-                            help='Log file',
-                            default='/var/log/host-os/builds.log')
-        parser.add_argument('--verbose', '-v',
-                            help='Set the scripts to be verbose',
-                            action='store_true')
-        parser.add_argument('--result-dir', '-r',
-                            help='Directory to save the RPMs.',
-                            default=os.path.join(os.getcwd(), 'result'))
-        parser.add_argument('--keep-builddir',
-                            help='Keep build directory and its logs and '
-                            'artifacts.', action='store_true')
-        parser.add_argument('--build-versions-repository-url',
-                            help='Build versions repository URL')
-        parser.add_argument('--build-version',
-                            help='Select build version from versions '
-                                 'repository')
+        config = self.parse_config_file(config_file)
+        self.parser.set_defaults(**config['default'])
 
-        config = self._parse_config(config_file)
-        parser.set_defaults(**config['default'])
-
-        args = vars(parser.parse_args())
+        args = self.parse_arguments_list(sys.argv[1:])
 
         # drop None values
         for key, value in args.items():
@@ -135,4 +157,5 @@ class ConfigParser(object):
                 args.pop(key)
 
         config['default'].update(args)
+        self._CONF = config
         return config
