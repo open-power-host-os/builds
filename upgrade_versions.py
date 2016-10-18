@@ -105,7 +105,7 @@ class Versions(object):
 
 
 def main(args):
-    env = Versions(PACKAGES)
+    env = Versions(CONF.get('default').get('packages') or PACKAGES)
     env.upgrade_versions()
 
 
