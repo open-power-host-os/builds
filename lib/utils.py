@@ -37,6 +37,8 @@ def run_command(cmd, **kwargs):
     LOG.debug("stdout: %s" % output)
     LOG.debug("stderr: %s" % error_output)
 
+    return output
+
 
 def detect_distribution():
     # TODO(maurosr): Replace platform module by some alternative like distro

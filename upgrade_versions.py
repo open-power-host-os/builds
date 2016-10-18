@@ -20,13 +20,63 @@ import sys
 import pygit2
 
 from lib import config
-from lib import utils
+from lib import exception
 from lib import manager
+from lib import utils
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 PACKAGES = ['qemu', 'kernel', 'libvirt', 'kimchi', 'ginger', 'gingerbase',
             'wok', 'sos', 'SLOF']
+
+
+def _sed_yaml_descriptor(yamlfile, old_commit, new_commit):
+    lines = []
+    with file(yamlfile, "r") as f:
+        lines = f.readlines()
+    with file(yamlfile, "w") as f:
+        for line in lines:
+            line = line.replace(old_commit, new_commit)
+            f.write(line)
+
+
+def _get_git_log(repo, since_id):
+    log = []
+    for commit in repo.walk(repo.head.target, pygit2.GIT_SORT_TOPOLOGICAL):
+        commit_message = commit.message.split('\n')[0]
+        commit_message = commit_message.replace("'", "")
+        commit_message = commit_message.replace("\"", "")
+        log.append("%s %s" % (commit.hex[:7], commit_message))
+        if commit.hex.startswith(since_id):
+            break
+
+    return log
+
+
+def rpm_bump_spec(specfile, log):
+    comment = "\n".join(log)
+    cmd = "rpmdev-bumpspec -c '%s' %s" % (comment, specfile)
+    utils.run_command(cmd)
+
+
+def rpm_query_spec_file(tag, spec):
+    return utils.run_command(
+        "rpmspec --srpm -q --qf '%%{%s}' %s 2>/dev/null" % (
+            tag.upper(), spec)).strip()
+
+
+def rpm_cmp_versions(v1, v2):
+    try:
+        utils.run_command("rpmdev-vercmp %s %s" % (v1, v2))
+        rc = 0
+    except exception.SubprocessError as exc:
+        if exc.returncode == 11:
+            rc = 1
+        elif exc.returncode == 12:
+            rc = -1
+        else:
+            raise
+    return rc
 
 
 class Versions(object):
@@ -48,37 +98,10 @@ class Versions(object):
                 if copy_of_x.commit_id != x.commit_id:
                     print("Updating package %s from %s to %s" % (
                           x.name, x.commit_id, copy_of_x.commit_id))
-                    log = self._get_git_log(copy_of_x.repository.repo,
-                                            x.commit_id)
-                    self._bump_spec(copy_of_x.specfile, log)
-                    self._sed_yaml_descriptor(x.package_file, x.commit_id,
-                                              copy_of_x.commit_id)
-
-    def _sed_yaml_descriptor(self, yamlfile, old_commit, new_commit):
-        lines = []
-        with file(yamlfile, "r") as f:
-            lines = f.readlines()
-        with file(yamlfile, "w") as f:
-            for line in lines:
-                line = line.replace(old_commit, new_commit)
-                f.write(line)
-
-    def _bump_spec(self, specfile, log):
-        comment = "\n".join(log)
-        cmd = "rpmdev-bumpspec -c '%s' %s" % (comment, specfile)
-        utils.run_command(cmd)
-
-    def _get_git_log(self, repo, since_id):
-        log = []
-        for commit in repo.walk(repo.head.target, pygit2.GIT_SORT_TOPOLOGICAL):
-            commit_message = commit.message.split('\n')[0]
-            commit_message = commit_message.replace("'", "")
-            commit_message = commit_message.replace("\"", "")
-            log.append("%s %s" % (commit.hex[:7], commit_message))
-            if commit.hex.startswith(since_id):
-                break
-
-        return log
+                    log = _get_git_log(copy_of_x.repository.repo, x.commit_id)
+                    rpm_bump_spec(copy_of_x.specfile, log)
+                    _sed_yaml_descriptor(x.package_file, x.commit_id,
+                                         copy_of_x.commit_id)
 
 
 def main(args):
