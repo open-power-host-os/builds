@@ -79,34 +79,36 @@ def rpm_cmp_versions(v1, v2):
     return rc
 
 
-class Versions(object):
-    def __init__(self, package_list):
-        self.bm = manager.BuildManager(package_list)
-        self.bm.prepare_packages(download_source_code=False)
+class Version(object):
+    def __init__(self, pkg):
+        self.pkg = pkg
 
-    def upgrade_versions(self):
-        stable_versioning = self.bm.packages
-        new_versioning = []
-        for x in stable_versioning:
-            if x.commit_id:
-                copy_of_x = copy.copy(x)
-                copy_of_x.commit_id = None
-                new_versioning.append(copy_of_x)
-                copy_of_x.download_source_code()
-                copy_of_x.commit_id = (
-                    copy_of_x.repository.repo.head.target.hex[:7])
-                if copy_of_x.commit_id != x.commit_id:
-                    print("Updating package %s from %s to %s" % (
-                          x.name, x.commit_id, copy_of_x.commit_id))
-                    log = _get_git_log(copy_of_x.repository.repo, x.commit_id)
-                    rpm_bump_spec(copy_of_x.specfile, log)
-                    _sed_yaml_descriptor(x.package_file, x.commit_id,
-                                         copy_of_x.commit_id)
+    def bump_release(self):
+        if self.pkg.commit_id:
+            pkg = copy.copy(self.pkg)
+            pkg.commit_id = None
+            pkg.download_source_code()
+            pkg.commit_id = pkg.repository.repo.head.target.hex[:7]
+            if pkg.commit_id != self.pkg.commit_id:
+                print("Updating package %s from %s to %s" % (
+                      self.pkg.name, self.pkg.commit_id, pkg.commit_id))
+                log = _get_git_log(pkg.repository.repo, self.pkg.commit_id)
+                rpm_bump_spec(pkg.specfile, log)
+                _sed_yaml_descriptor(self.pkg.package_file, self.pkg.commit_id,
+                                     pkg.commit_id)
 
 
 def main(args):
-    env = Versions(CONF.get('default').get('packages') or PACKAGES)
-    env.upgrade_versions()
+    bm = manager.BuildManager(CONF.get('default').get('packages') or PACKAGES)
+    bm.prepare_packages(download_source_code=False)
+
+    for pkg in bm.packages:
+        try:
+            pkg_version = Version(pkg)
+            pkg_version.bump_release()
+        except:
+            LOG.exception("Failed to update versions")
+            return False
 
 
 if __name__ == '__main__':
