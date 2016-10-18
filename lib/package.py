@@ -161,8 +161,7 @@ class Package(object):
             raise exception.PackageDescriptorError(package=self.name)
         except IOError:
             raise exception.PackageDescriptorError(
-                "Failed to open %(package)s's YAML descriptor",
-                package=self.name)
+                "Failed to open %s's YAML descriptor" % self.name)
 
     def _setup_repository(self, dest=None, branch=None):
         self.repository = repository.Repo(package_name=self.name,
