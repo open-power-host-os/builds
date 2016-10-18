@@ -53,6 +53,7 @@ class Package(object):
         self.name = package
         self.distro = distro
         self.category = category
+        self.download = download
         self.clone_url = None
         self.download_source = None
         self.dependencies = []
@@ -127,17 +128,19 @@ class Package(object):
                                                     self.build_files)
                 self.download_build_files = files.get('download_build_files',
                                                       None)
-                if self.download_build_files:
+                if self.download_build_files and self.download:
                     self._download_build_files()
 
                 # list of dependencies
                 for dep in files.get('dependencies', []):
                     self.dependencies.append(Package.get_instance(
-                        dep, self.distro, category=DEPENDENCIES))
+                        dep, self.distro, category=DEPENDENCIES,
+                        download=self.download))
 
                 for dep in files.get('build_dependencies', []):
                     self.build_dependencies.append(Package.get_instance(
-                        dep, self.distro, category=BUILD_DEPENDENCIES))
+                        dep, self.distro, category=BUILD_DEPENDENCIES,
+                        download=self.download))
 
                 self.rpmmacro = files.get('rpmmacro', None)
                 if self.rpmmacro:
