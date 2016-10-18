@@ -15,12 +15,15 @@
 
 import copy
 import logging
+import os
+import re
 import sys
 
 import pygit2
 
 from lib import config
 from lib import exception
+from lib import log_helper
 from lib import manager
 from lib import utils
 
@@ -82,33 +85,144 @@ def rpm_cmp_versions(v1, v2):
 class Version(object):
     def __init__(self, pkg):
         self.pkg = pkg
+        self._spec_version = None
+        self._spec_release = None
+        self._repo_version = None
 
-    def bump_release(self):
+        self._read_spec()
+
+    @property
+    def version(self):
+        return self._spec_version
+
+    @property
+    def release(self):
+        return self._spec_release
+
+    def update(self):
+        changelog = None
+
+        pkg = copy.copy(self.pkg)
+        pkg.commit_id = None
+        pkg.download_source_code()
+        pkg.commit_id = pkg.repository.repo.head.target.hex[:7]
+
+        if pkg.commit_id == self.pkg.commit_id:
+            LOG.debug("%s: no changes.", self.pkg)
+            return
+
+        self._read_version_from_repo(pkg.repository.local_path)
+
+        result = rpm_cmp_versions(self._spec_version, self._repo_version)
+        if result < 0:
+            self._update_version()
+            changelog = "Version update"
+        elif result > 0:
+            raise exception.PackageError(
+                "Current version (%s) is greater than repo version (%s)" %
+                (self._spec_version, self._repo_version))
+
+        self._bump_release(pkg, changelog)
+
+    def _update_version(self):
+        LOG.info("%s: Updating version to: %s" % (self.pkg,
+                                                  self._repo_version))
+
+        with open(self.pkg.specfile, 'r+') as f:
+            content = f.read()
+
+            version = re.search(r'Version:\s*(\S+)', content).group(1)
+
+            # we accept the Version tag in the format: xxx or %{xxx},
+            # but not: xxx%{xxx}, %{xxx}xxx or %{xxx}%{xxx} because
+            # there is no reliable way of knowing what the macro
+            # represents in these cases.
+            if re.match(r'(.+%{.*}|%{.*}.+)', version):
+                raise exception.PackageSpecError("Failed to parse spec file "
+                                                 "'Version' tag")
+
+            if "%{" in version:
+                macro_name = version[2:-1]
+                content = re.sub(r'(%define\s+%s\s+)\S+' % macro_name,
+                                 r'\g<1>' + self._repo_version, content)
+            else:
+                content = re.sub(r'(Version:\s*)\S+',
+                                 r'\g<1>' + self._repo_version, content)
+
+            # since the version was updated, set the Release to 0. When
+            # the release bump is made, it will increment to 1.
+            content = re.sub(r'(Release:\s*)[\w.-]+', r'\g<1>0', content)
+
+            f.seek(0)
+            f.write(content)
+
+    def _bump_release(self, pkg, log=None):
+        LOG.info("%s: Bumping release" % self.pkg)
+
         if self.pkg.commit_id:
-            pkg = copy.copy(self.pkg)
-            pkg.commit_id = None
-            pkg.download_source_code()
-            pkg.commit_id = pkg.repository.repo.head.target.hex[:7]
-            if pkg.commit_id != self.pkg.commit_id:
-                print("Updating package %s from %s to %s" % (
-                      self.pkg.name, self.pkg.commit_id, pkg.commit_id))
-                log = _get_git_log(pkg.repository.repo, self.pkg.commit_id)
-                rpm_bump_spec(pkg.specfile, log)
-                _sed_yaml_descriptor(self.pkg.package_file, self.pkg.commit_id,
-                                     pkg.commit_id)
+            LOG.info("Updating package %s from %s to %s" % (
+                self.pkg.name, self.pkg.commit_id, pkg.commit_id))
+            log = _get_git_log(pkg.repository.repo, self.pkg.commit_id)
+            _sed_yaml_descriptor(self.pkg.package_file, self.pkg.commit_id,
+                                 pkg.commit_id)
+
+        if log:
+            rpm_bump_spec(pkg.specfile, log)
+
+    def _read_spec(self):
+        self._spec_version = rpm_query_spec_file('version', self.pkg.specfile)
+        LOG.info("%s: Current version: %s" % (self.pkg, self._spec_version))
+        self._spec_release = rpm_query_spec_file(
+            'release', self.pkg.specfile).split('.')[0]
+
+    def _read_version_from_repo(self, repo_path):
+
+        version_file_and_regexes = [
+            self.pkg.version_file_regex,
+            ('VERSION', r'(.*)'),
+            ('%s.spec' % self.pkg, r'Version:\s*(.*)'),
+        ]
+
+        for _file, regex in version_file_and_regexes:
+            try:
+                version_file = os.path.join(repo_path, _file)
+                LOG.debug("%s: Reading version from %s using '%s'" %
+                          (self.pkg, version_file, regex))
+
+                with open(version_file, 'r') as f:
+                    match = re.search(regex, f.read())
+                self._repo_version = '.'.join(s.strip()
+                                              for s in match.groups() if s)
+                LOG.info("%s: Repository version: %s" % (self.pkg,
+                                                         self._repo_version))
+                break
+            except:
+                pass
+        else:
+            msg = "%s: Could not find version in the source repo." % self.pkg
+            if not self.pkg.version_file_regex:
+                msg += (" Try specifying version file and regex in the .yaml "
+                        "file.")
+
+            LOG.error(msg)
+            raise exception.PackageError(msg)
 
 
 def main(args):
+    log_helper.LogHelper(logfile=CONF.get('default').get('log_file'),
+                         verbose=CONF.get('default').get('verbose'))
+    LOG.info("Updating packages version...")
+
     bm = manager.BuildManager(CONF.get('default').get('packages') or PACKAGES)
     bm.prepare_packages(download_source_code=False)
 
     for pkg in bm.packages:
         try:
             pkg_version = Version(pkg)
-            pkg_version.bump_release()
-        except:
+            pkg_version.update()
+        except exception.PackageError as e:
             LOG.exception("Failed to update versions")
-            return False
+            return e.errno
 
 
 if __name__ == '__main__':

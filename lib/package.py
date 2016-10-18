@@ -103,6 +103,13 @@ class Package(object):
                 self.clone_url = package.get('clone_url', None)
                 self.download_source = package.get('download_source', None)
 
+                # Most packages keep their version in a VERSION file
+                # or in the .spec file. For those that don't, we need
+                # a custom file and regex.
+                version = package.get('version', {})
+                self.version_file_regex = (version.get('file'),
+                                           version.get('regex'))
+
                 # NOTE(maurosr): Unfortunately some of the packages we build
                 # depend on a gziped file which changes according to the build
                 # version so we need to get that name somehow, grep the
