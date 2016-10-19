@@ -57,7 +57,7 @@ def _get_git_log(repo, since_id):
 
 
 def rpm_bump_spec(specfile, log):
-    comment = "\n".join(log)
+    comment = "\n".join(['- ' + l for l in log])
     cmd = "rpmdev-bumpspec -c '%s' %s" % (comment, specfile)
     utils.run_command(cmd)
 
