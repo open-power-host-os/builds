@@ -25,11 +25,11 @@ LOG = logging.getLogger(__name__)
 
 
 class Repo(object):
-    def __init__(self, package_name=None, clone_url=None, dest_path=None,
+    def __init__(self, repo_name=None, clone_url=None, dest_path=None,
                  branch='master', commit_id=None):
-        self.repo_name = package_name
+        self.repo_name = repo_name
         self.repo_url = clone_url
-        self.local_path = os.path.join(dest_path, package_name)
+        self.local_path = os.path.join(dest_path, repo_name)
         self.repo = None
 
         # Load if it is an existing git repo
@@ -44,7 +44,7 @@ class Repo(object):
                                 pygit2.GIT_RESET_HARD)
 
             except KeyError:
-                raise exception.RepositoryError(package=package_name,
+                raise exception.RepositoryError(repo_name=repo_name,
                                                 repo_path=dest_path)
 
         else:
@@ -58,10 +58,11 @@ class Repo(object):
                 LOG.info("Fetched changes for %s" % remote.name)
             except pygit2.GitError:
                 LOG.info("Failed to fetch %s remote for %s" % (remote.name,
-                                                               package_name))
+                                                               repo_name))
                 pass
             else:
-                LOG.info("%(package_name)s Repository updated" % locals())
+                LOG.info("%(repo_name)s Repository updated" % locals())
+
         try:
             if commit_id:
                 LOG.info("Checking out into %s" % commit_id)
@@ -78,8 +79,8 @@ class Repo(object):
         except ValueError:
             ref = commit_id if commit_id else branch
             raise exception.RepositoryError(message="Could not find reference "
-                                            "%s at %s repository" % (ref,
-                                            package_name))
+                                            "%s at %s repository" %
+                                            (ref, repo_name))
 
         cmd = "git submodule init; git submodule update"
         utils.run_command(cmd, cwd=self.local_path)
