@@ -82,7 +82,7 @@ class Package(object):
         return self.name
 
     def download_source_code(self):
-        print("%s: Downloading source code." % self.name)
+        LOG.info("%s: Downloading source code." % self.name)
         if self.clone_url:
             self._setup_repository(
                 dest=CONF.get('default').get('repositories_path'),
@@ -156,7 +156,7 @@ class Package(object):
                         package=self.name,
                         distro=self.distro.lsb_name,
                         distro_version=self.distro.version)
-                print("%s: Loaded package metadata successfully" % self.name)
+                LOG.info("%s: Loaded package metadata successfully" % self.name)
         except TypeError:
             raise exception.PackageDescriptorError(package=self.name)
         except IOError:
