@@ -177,7 +177,7 @@ class Package(object):
         self.repository = repository.Repo(repo_name=self.name,
                                           clone_url=self.clone_url,
                                           dest_path=dest,
-                                          branch=self.branch or branch,
+                                          refname=self.branch or branch,
                                           commit_id=self.commit_id)
 
     def _download_source(self, build_dir):
