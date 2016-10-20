@@ -20,21 +20,32 @@ import sys
 
 
 class LogHelper(object):
-    def __init__(self, logfile=None, level=logging.DEBUG, verbose=False):
+    def __init__(self, logfile=None, verbose=False):
         self.logfile = logfile
-        self.loglevel = level
 
         self._directory_setup()
 
         logger = logging.getLogger()
-        logging.basicConfig(filename=logfile, level=level)
-        print("Logs available at %s" % logfile)
+        logger.setLevel(logging.DEBUG)
+
+        sh = logging.StreamHandler(sys.stdout)
+        if verbose:
+            sh.setLevel(logging.DEBUG)
+        else:
+            sh.setLevel(logging.INFO)
+        sh.setFormatter(logging.Formatter('%(message)s'))
+        logger.addHandler(sh)
+
+        logger.info("Logs available at %s" % logfile)
+
         # NOTE(maurosr): RotatingFileHandler expects file size in bytes, in
         # short terms we're defining 2MB limit here.
-        logger.addHandler(logging.handlers.RotatingFileHandler(
-            logfile, maxBytes=2 << 20, backupCount=1))
-        if verbose:
-            logger.addHandler(logging.StreamHandler(sys.stdout))
+        rfh = logging.handlers.RotatingFileHandler(logfile, maxBytes=2 << 20,
+                                                   backupCount=1)
+        rfh.setLevel(logging.DEBUG)
+        rfh.setFormatter(logging.Formatter('%(asctime)s | %(levelname)s | '
+                                           '%(name)s: %(message)s'))
+        logger.addHandler(rfh)
 
     def _directory_setup(self):
         logpath, _ = os.path.split(self.logfile)
