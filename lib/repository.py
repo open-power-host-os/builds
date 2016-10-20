@@ -26,7 +26,7 @@ LOG = logging.getLogger(__name__)
 
 class Repo(object):
     def __init__(self, repo_name=None, clone_url=None, dest_path=None,
-                 branch='master', commit_id=None):
+                 refname='master', commit_id=None):
         self.repo_name = repo_name
         self.repo_url = clone_url
         self.local_path = os.path.join(dest_path, repo_name)
@@ -48,10 +48,15 @@ class Repo(object):
                                                 repo_path=dest_path)
 
         else:
-            LOG.info("Cloning into %s..." % self.local_path)
-            self.repo = pygit2.clone_repository(self.repo_url,
-                                                self.local_path,
-                                                checkout_branch=branch)
+            try:
+                LOG.info("Cloning into %s..." % self.local_path)
+                self.repo = pygit2.clone_repository(self.repo_url,
+                                                    self.local_path)
+            except pygit2.GitError:
+                msg = "Failed to clone repository"
+                LOG.error(msg)
+                raise exception.RepositoryError(message=msg)
+
         for remote in self.repo.remotes:
             try:
                 remote.fetch()
@@ -67,23 +72,43 @@ class Repo(object):
             if commit_id:
                 LOG.info("Checking out into %s" % commit_id)
                 obj = self.repo.git_object_lookup_prefix(commit_id)
-                self.repo.checkout_tree(obj, strategy=pygit2.GIT_CHECKOUT_FORCE)
+                self.repo.checkout_tree(
+                    obj, strategy=pygit2.GIT_CHECKOUT_FORCE)
                 self.repo.reset(obj.oid, pygit2.GIT_RESET_HARD)
             else:
-                remote = self.repo.lookup_reference(
-                    'refs/remotes/origin/%s' % (branch))
+                reference = self.get_reference(refname)
                 # GIT_CHECKOUT_FORCE strategy cleans up the index
-                LOG.info("Checking out into %s" % branch)
-                self.repo.checkout(remote, strategy=pygit2.GIT_CHECKOUT_FORCE)
+                LOG.info("Checking out into %s" % refname)
+                self.repo.checkout(reference,
+                                   strategy=pygit2.GIT_CHECKOUT_FORCE)
                 self.repo.reset(self.repo.head.target, pygit2.GIT_RESET_HARD)
         except ValueError:
-            ref = commit_id if commit_id else branch
+            ref = commit_id if commit_id else refname
             raise exception.RepositoryError(message="Could not find reference "
                                             "%s at %s repository" %
                                             (ref, repo_name))
 
         cmd = "git submodule init; git submodule update"
         utils.run_command(cmd, cwd=self.local_path)
+
+    def get_reference(self, short_reference_string):
+        """
+        Get repository reference (branch, tag) based on a short reference
+        suffix string.
+        """
+        prefixes = ["refs/tags", "refs/heads", "refs/remotes"]
+        for remote in self.repo.remotes:
+            prefixes.append(os.path.join("refs/remotes", remote.name))
+        for prefix in prefixes:
+            reference_string = os.path.join(prefix, short_reference_string)
+            LOG.debug("Trying to get reference: %s", reference_string)
+            try:
+                return self.repo.lookup_reference(reference_string)
+            except KeyError:
+                pass
+        else:
+            raise exception.RepositoryError(
+                message="Reference not found in repository")
 
     def archive(self, archive_name, commit_id, build_dir):
         # NOTE(maurosr): CentOS's pygit2  doesn't fully support archives as we
