@@ -174,7 +174,7 @@ class Package(object):
                 "Failed to open %s's YAML descriptor" % self.name)
 
     def _setup_repository(self, dest=None, branch=None):
-        self.repository = repository.Repo(package_name=self.name,
+        self.repository = repository.Repo(repo_name=self.name,
                                           clone_url=self.clone_url,
                                           dest_path=dest,
                                           branch=self.branch or branch,
