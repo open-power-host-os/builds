@@ -86,7 +86,8 @@ def main(args):
         return 2
 
     log_helper.LogHelper(logfile=conf.get('default').get('log_file'),
-                         verbose=conf.get('default').get('verbose'))
+                         verbose=conf.get('default').get('verbose'),
+                         rotate_size=conf.get('default').get('log_size'))
     try:
         version = conf.get('default').get('build_version')
         setup_versions_repository(

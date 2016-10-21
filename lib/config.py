@@ -121,6 +121,9 @@ class ConfigParser(object):
         self.parser.add_argument('--build-version',
                                  help='Select build version from versions '
                                  'repository')
+        self.parser.add_argument('--log-size',
+                                 help='Size in bytes above which the log file '
+                                 'should rotate', type=int)
 
     def parse_arguments_list(self, args):
         """
