@@ -49,11 +49,10 @@ class Package(object):
             cls.__created_packages[package_name] = package
         return package
 
-    def __init__(self, name, distro, category=None, download=True):
+    def __init__(self, name, distro, category=None):
         self.name = name
         self.distro = distro
         self.category = category
-        self.download = download
         self.clone_url = None
         self.download_source = None
         self.dependencies = []
@@ -69,11 +68,7 @@ class Package(object):
         self.package_file = os.path.join(self.package_dir, self.name,
                                          '%s.yaml' % self.name)
 
-        #TODO(maurosr): Improve this piece of code, actions shouldn't go in
-        # __init__, let's refactor in order to move the download action.
         self.load_package(name, distro)
-        if download:
-            self.download_source_code()
 
     def __eq__(self, other):
         return self.name == other.name
@@ -84,14 +79,27 @@ class Package(object):
     def __repr__(self):
         return self.name
 
-    def download_source_code(self):
-        LOG.info("%s: Downloading source code." % self.name)
+
+    def download_files(self):
+        """
+        Download package source code and build files.
+        Do the same for its dependencies, recursively.
+        """
         if self.clone_url:
-            self._setup_repository(
-                dest=CONF.get('default').get('repositories_path'),
-                branch=CONF.get('default').get('branch'))
-        # else let it download later during build, it's ugly, but a temporary
-        # solution
+            self._download_source_code()
+            # Else let it download later during build with a custom
+            # command.
+            # TODO Remove this "if" and do not allow custom commands
+        self._download_build_files()
+        for dep in (self.dependencies + self.build_dependencies):
+            dep.download_files()
+
+    def _download_source_code(self):
+        LOG.info("%s: Downloading source code from '%s'." %
+                 (self.name, self.clone_url))
+        self._setup_repository(
+            dest=CONF.get('default').get('repositories_path'),
+            branch=CONF.get('default').get('branch'))
 
     def load_package(self, package_name, distro):
         """
@@ -135,19 +143,17 @@ class Package(object):
                 self.build_files = os.path.join(
                     self.package_dir, package_name, self.build_files)
             self.download_build_files = files.get('download_build_files', None)
-            if self.download_build_files:
-                self._download_build_files()
 
             # list of dependencies
-            for dep in files.get('dependencies', []):
-                self.dependencies.append(Package.get_instance(
-                    dep, self.distro, category=DEPENDENCIES,
-                    download=self.download))
+            for dep_name in files.get('dependencies', []):
+                dep = Package.get_instance(
+                    dep_name, self.distro, category=DEPENDENCIES)
+                self.dependencies.append(dep)
 
-            for dep in files.get('build_dependencies', []):
-                self.build_dependencies.append(Package.get_instance(
-                    dep, self.distro, category=BUILD_DEPENDENCIES,
-                    download=self.download))
+            for dep_name in files.get('build_dependencies', []):
+                dep = Package.get_instance(
+                    dep_name, self.distro, category=BUILD_DEPENDENCIES)
+                self.build_dependencies.append(dep)
 
             self.rpmmacro = files.get('rpmmacro', None)
             if self.rpmmacro:

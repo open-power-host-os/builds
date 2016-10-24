@@ -27,7 +27,7 @@ LOG = logging.getLogger(__name__)
 class BuildManager(object):
     def __init__(self, packages_names, distro):
         self.packages_names = packages_names
-        self.packages = None
+        self.packages = []
         self.distro = distro
         self.repositories = None
 
@@ -55,6 +55,9 @@ class BuildManager(object):
         self.distro.build_packages(scheduler(self.packages))
 
     def prepare_packages(self, download_source_code=True):
-        self.packages = [package.Package.get_instance(
-            x, self.distro, download=download_source_code) for x in set(
-                self.packages_names)]
+        for package_name in self.packages_names:
+            package = package.Package.get_instance(
+                package_name, self.distro)
+            if download_source_code:
+                package.download_files()
+            self.packages.append(package)
