@@ -56,9 +56,14 @@ def setup_versions_repository(versions_git_url, dest, version):
             raise exception.RepositoryError(
                 message="Failed to setup Versions repository")
     else:
-        LOG.info("Cloning into %s..." % dest)
-        versions_repo = pygit2.clone_repository(versions_git_url,
-                                                dest)
+        try:
+            LOG.info("Cloning into %s..." % dest)
+            versions_repo = pygit2.clone_repository(versions_git_url,
+                                                    dest)
+        except pygit2.GitError:
+            LOG.error("Failed to get versioning repository")
+            raise exception.RepositoryError(message="Failed to clone versions"
+                                                    " repository")
 
     version_reference = get_reference(versions_repo, version)
     LOG.info("Trying to check out versions' reference: %s",
