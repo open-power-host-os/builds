@@ -38,17 +38,17 @@ class BuildManager(object):
         # distro related issues
         except (exception.DistributionNotSupportedError,
                 exception.DistributionVersionNotSupportedError,
-                exception.DistributionDetectionError) as exc:
-            LOG.exception("Error during distribution detection. "
-                          "See the logs for more information")
-            return exc.errno
+                exception.DistributionDetectionError):
+            LOG.error("Error during distribution detection. "
+                      "See the logs for more information")
+            raise
         # package issues
-        except exception.PackageError as exc:
-            LOG.exception("Failed to load the package in components. "
-                          "See the logs for more information")
-            return exc.errno
+        except exception.PackageError:
+            LOG.error("Failed to load the package in components. "
+                      "See the logs for more information")
+            raise
 
-        return self.build()
+        self.build()
 
     def build(self):
         scheduler = lib.scheduler.Scheduler()

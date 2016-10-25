@@ -41,7 +41,13 @@ def main(args):
 
     LOG.info("Building packages: %s", ", ".join(packages_to_build))
     build_manager = manager.BuildManager(packages_to_build, distro)
-    return build_manager()
+    try:
+        build_manager()
+    except exception.BaseException as exc:
+        LOG.exception("Failed to build packages")
+        return exc.errno
+    else:
+        return 0
 
 if __name__ == '__main__':
     if os.getuid() is 0:
