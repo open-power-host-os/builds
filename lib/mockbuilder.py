@@ -38,7 +38,7 @@ class Mock(build_system.PackageBuilder):
         self.archive = None
 
     def build(self, package):
-        print("%s: Starting build process" % package.name)
+        LOG.info("%s: Starting build process" % package.name)
         self._prepare(package)
         self._build_srpm(package)
         self._install_external_dependencies(package)
@@ -49,26 +49,26 @@ class Mock(build_system.PackageBuilder):
         if package.rpmmacro:
             cmd = cmd + " --macro-file=%s" % package.rpmmacro
 
-        print("%s: Building RPM" % package.name)
+        LOG.info("%s: Building RPM" % package.name)
         try:
             utils.run_command(cmd)
 
             # On success save rpms and destroy build directory unless told
             # otherwise.
         except exception.SubprocessError:
-            print("%s: Failed to build RPMs, build artifacts are kept at "
+            LOG.info("%s: Failed to build RPMs, build artifacts are kept at "
                   "%s" % (package.name, self.build_dir))
             raise
 
         msg = "%s: Success! RPMs built!" % (package.name)
         self._save_rpm(package)
-        print(msg)
+        LOG.info(msg)
         LOG.info(msg)
         if (CONF.get('keep_builddir', None) or not CONF.get('keep_builddir')):
             self._destroy_build_directory()
 
     def _build_srpm(self, package):
-        print("%s: Building SRPM" % package.name)
+        LOG.info("%s: Building SRPM" % package.name)
         cmd = ("%s -r %s --buildsrpm --no-clean --spec %s --source %s "
                "--resultdir=%s" % (MOCK_BIN,
                                    self.mock_config,
@@ -84,7 +84,7 @@ class Mock(build_system.PackageBuilder):
         self._prepare_chroot(package)
 
     def _prepare_archive(self, package):
-        print("%s: Preparing archive." % package.name)
+        LOG.info("%s: Preparing archive." % package.name)
         if package.repository:
             self.archive = package.repository.archive(package.expects_source,
                                                       package.commit_id,
@@ -117,7 +117,7 @@ class Mock(build_system.PackageBuilder):
                 install = " ".join([install, " ".join(dep.result_packages)])
 
             cmd = cmd + install
-            print("%s: Installing dependencies on chroot" % package.name)
+            LOG.info("%s: Installing dependencies on chroot" % package.name)
             utils.run_command(cmd)
 
     def _create_build_directory(self, package):
@@ -137,7 +137,7 @@ class Mock(build_system.PackageBuilder):
             os.makedirs(self.result_dir)
             os.chmod(self.result_dir, 0777)
 
-        print("%s: Saving RPMs at %s" % (package.name, self.result_dir))
+        LOG.info("%s: Saving RPMs at %s" % (package.name, self.result_dir))
         for f in os.listdir(self.build_dir):
             if f.endswith(".rpm") and not f.endswith(".src.rpm"):
                 LOG.info("Saving %s at result directory %s" % (f,

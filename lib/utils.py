@@ -23,7 +23,7 @@ LOG = logging.getLogger(__name__)
 
 
 def run_command(cmd, **kwargs):
-    LOG.info("Command: %s" % cmd)
+    LOG.debug("Command: %s" % cmd)
     shell = kwargs.pop('shell', True)
 
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
