@@ -17,9 +17,9 @@ import logging
 
 import lib.centos
 from lib import exception
-from lib import package
 import lib.scheduler
 from lib import utils
+from lib.rpm_package import RPM_Package
 
 LOG = logging.getLogger(__name__)
 
@@ -56,8 +56,7 @@ class BuildManager(object):
 
     def prepare_packages(self, download_source_code=True):
         for package_name in self.packages_names:
-            package = package.Package.get_instance(
-                package_name, self.distro)
+            package = RPM_Package.get_instance(package_name, self.distro)
             if download_source_code:
                 package.download_files()
             self.packages.append(package)

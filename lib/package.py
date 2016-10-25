@@ -26,8 +26,6 @@ from lib import utils
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
-BUILD_DEPENDENCIES = "build_dependencies"
-DEPENDENCIES = "dependencies"
 
 
 @total_ordering
@@ -45,13 +43,12 @@ class Package(object):
             package = cls.__created_packages[package_name]
             LOG.debug("Getting existent package instance: %s" % package)
         else:
-            package = Package(package_name, *args, **kwargs)
+            package = cls(package_name, *args, **kwargs)
             cls.__created_packages[package_name] = package
         return package
 
-    def __init__(self, name, distro, category=None):
+    def __init__(self, name, category=None):
         self.name = name
-        self.distro = distro
         self.category = category
         self.clone_url = None
         self.download_source = None
@@ -59,6 +56,8 @@ class Package(object):
         self.build_dependencies = []
         self.result_packages = []
         self.repository = None
+        self.build_files = None
+        self.download_build_files = []
 
         build_versions_repo_dir = CONF.get('default').get(
             'build_versions_repo_dir')
@@ -107,19 +106,19 @@ class Package(object):
         """
         try:
             with open(self.package_file, 'r') as package_file:
-                package_data = yaml.load(package_file).get('Package')
+                self.package_data = yaml.load(package_file).get('Package')
         except IOError:
             raise exception.PackageDescriptorError(
                 "Failed to open %s's YAML descriptor" % self.name)
 
-        self.name = package_data.get('name')
-        self.clone_url = package_data.get('clone_url', None)
-        self.download_source = package_data.get('download_source', None)
+        self.name = self.package_data.get('name')
+        self.clone_url = self.package_data.get('clone_url', None)
+        self.download_source = self.package_data.get('download_source', None)
 
         # Most packages keep their version in a VERSION file
         # or in the .spec file. For those that don't, we need
         # a custom file and regex.
-        version = package_data.get('version', {})
+        version = self.package_data.get('version', {})
         self.version_file_regex = (version.get('file'),
                                    version.get('regex'))
 
@@ -127,56 +126,15 @@ class Package(object):
         # depend on a gziped file which changes according to the build
         # version so we need to get that name somehow, grep the
         # specfile would be uglier imho.
-        self.expects_source = package_data.get('expects_source')
+        self.expects_source = self.package_data.get('expects_source')
 
         # NOTE(maurosr): branch and commit id are special cases for the
         # future, we plan to use tags on every project for every build
         # globally set in config.yaml, then this would allow some user
         # customization to set their preferred commit id/branch or even
         # a custom git tree.
-        self.branch = package_data.get('branch', None)
-        self.commit_id = package_data.get('commit_id', None)
-
-        try:
-            # load distro files
-            files = package_data.get('files').get(self.distro.lsb_name).get(
-                self.distro.version)
-
-            self.build_files = files.get('build_files', None)
-            if self.build_files:
-                self.build_files = os.path.join(
-                    self.package_dir, self.name, self.build_files)
-            self.download_build_files = files.get('download_build_files', None)
-
-            # list of dependencies
-            for dep_name in files.get('dependencies', []):
-                dep = Package.get_instance(
-                    dep_name, self.distro, category=DEPENDENCIES)
-                self.dependencies.append(dep)
-
-            for dep_name in files.get('build_dependencies', []):
-                dep = Package.get_instance(
-                    dep_name, self.distro, category=BUILD_DEPENDENCIES)
-                self.build_dependencies.append(dep)
-
-            self.rpmmacro = files.get('rpmmacro', None)
-            if self.rpmmacro:
-                self.rpmmacro = os.path.join(
-                    self.package_dir, self.name, self.rpmmacro)
-
-            self.specfile = os.path.join(self.package_dir, self.name,
-                                         files.get('spec'))
-
-            if os.path.isfile(self.specfile):
-                LOG.info("Package found: %s for %s %s" % (
-                    self.name, self.distro.lsb_name, self.distro.version))
-            else:
-                raise exception.PackageSpecError(
-                    package=self.name,
-                    distro=self.distro.lsb_name,
-                    distro_version=self.distro.version)
-        except TypeError:
-            raise exception.PackageDescriptorError(package=self.name)
+        self.branch = self.package_data.get('branch', None)
+        self.commit_id = self.package_data.get('commit_id', None)
 
         LOG.info("%s: Loaded package metadata successfully" % self.name)
 

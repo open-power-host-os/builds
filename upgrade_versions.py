@@ -68,7 +68,6 @@ def rpm_query_spec_file(tag, spec):
         "rpmspec --srpm -q --qf '%%{%s}' %s 2>/dev/null" % (
             tag.upper(), spec)).strip()
 
-
 def rpm_cmp_versions(v1, v2):
     try:
         utils.run_command("rpmdev-vercmp %s %s" % (v1, v2))
@@ -105,7 +104,7 @@ class Version(object):
 
         pkg = copy.copy(self.pkg)
         pkg.commit_id = None
-        pkg.download_source_code()
+        pkg.download_files()
         pkg.commit_id = pkg.repository.repo.head.target.hex[:7]
 
         if pkg.commit_id == self.pkg.commit_id:
