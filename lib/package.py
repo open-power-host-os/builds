@@ -108,32 +108,36 @@ class Package(object):
         try:
             with open(self.package_file, 'r') as package_file:
                 package_data = yaml.load(package_file).get('Package')
+        except IOError:
+            raise exception.PackageDescriptorError(
+                "Failed to open %s's YAML descriptor" % self.name)
 
-            self.name = package_data.get('name')
-            self.clone_url = package_data.get('clone_url', None)
-            self.download_source = package_data.get('download_source', None)
+        self.name = package_data.get('name')
+        self.clone_url = package_data.get('clone_url', None)
+        self.download_source = package_data.get('download_source', None)
 
-            # Most packages keep their version in a VERSION file
-            # or in the .spec file. For those that don't, we need
-            # a custom file and regex.
-            version = package_data.get('version', {})
-            self.version_file_regex = (version.get('file'),
-                                       version.get('regex'))
+        # Most packages keep their version in a VERSION file
+        # or in the .spec file. For those that don't, we need
+        # a custom file and regex.
+        version = package_data.get('version', {})
+        self.version_file_regex = (version.get('file'),
+                                   version.get('regex'))
 
-            # NOTE(maurosr): Unfortunately some of the packages we build
-            # depend on a gziped file which changes according to the build
-            # version so we need to get that name somehow, grep the
-            # specfile would be uglier imho.
-            self.expects_source = package_data.get('expects_source')
+        # NOTE(maurosr): Unfortunately some of the packages we build
+        # depend on a gziped file which changes according to the build
+        # version so we need to get that name somehow, grep the
+        # specfile would be uglier imho.
+        self.expects_source = package_data.get('expects_source')
 
-            # NOTE(maurosr): branch and commit id are special cases for the
-            # future, we plan to use tags on every project for every build
-            # globally set in config.yaml, then this would allow some user
-            # customization to set their preferred commit id/branch or even
-            # a custom git tree.
-            self.branch = package_data.get('branch', None)
-            self.commit_id = package_data.get('commit_id', None)
+        # NOTE(maurosr): branch and commit id are special cases for the
+        # future, we plan to use tags on every project for every build
+        # globally set in config.yaml, then this would allow some user
+        # customization to set their preferred commit id/branch or even
+        # a custom git tree.
+        self.branch = package_data.get('branch', None)
+        self.commit_id = package_data.get('commit_id', None)
 
+        try:
             # load distro files
             files = package_data.get('files').get(self.distro.lsb_name).get(
                 self.distro.version)
@@ -171,12 +175,10 @@ class Package(object):
                     package=self.name,
                     distro=self.distro.lsb_name,
                     distro_version=self.distro.version)
-            LOG.info("%s: Loaded package metadata successfully" % self.name)
         except TypeError:
             raise exception.PackageDescriptorError(package=self.name)
-        except IOError:
-            raise exception.PackageDescriptorError(
-                "Failed to open %s's YAML descriptor" % self.name)
+
+        LOG.info("%s: Loaded package metadata successfully" % self.name)
 
     def _setup_repository(self, dest=None, branch=None):
         self.repository = repository.Repo(repo_name=self.name,
