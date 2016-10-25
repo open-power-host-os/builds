@@ -52,12 +52,17 @@ class Repo(object):
             self.repo = pygit2.clone_repository(self.repo_url,
                                                 self.local_path,
                                                 checkout_branch=branch)
-        try:
-            for remote in self.repo.remotes:
+        for remote in self.repo.remotes:
+            try:
                 remote.fetch()
                 LOG.info("Fetched changes for %s" % remote.name)
-            LOG.info("%(package_name)s Repository updated" % locals())
-
+            except pygit2.GitError:
+                LOG.info("Failed to fetch %s remote for %s" % (remote.name,
+                                                               package_name))
+                pass
+            else:
+                LOG.info("%(package_name)s Repository updated" % locals())
+        try:
             if commit_id:
                 LOG.info("Checking out into %s" % commit_id)
                 obj = self.repo.git_object_lookup_prefix(commit_id)
