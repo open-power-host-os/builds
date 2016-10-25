@@ -20,7 +20,7 @@ from lib import config
 from lib import distro_utils
 from lib import exception
 from lib import log_helper
-from lib import manager
+from lib import build_manager
 from lib import repository
 from lib import utils
 
@@ -40,14 +40,15 @@ def main(args):
         CONF.get('default').get('arch_and_endianness'))
 
     LOG.info("Building packages: %s", ", ".join(packages_to_build))
-    build_manager = manager.BuildManager(packages_to_build, distro)
+    bm = build_manager.BuildManager(packages_to_build, distro)
     try:
-        build_manager()
+        bm()
     except exception.BaseException as exc:
         LOG.exception("Failed to build packages")
         return exc.errno
     else:
         return 0
+
 
 if __name__ == '__main__':
     if os.getuid() is 0:

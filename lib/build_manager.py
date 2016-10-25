@@ -18,7 +18,7 @@ import logging
 import lib.centos
 from lib import exception
 import lib.scheduler
-from lib import utils
+from lib.packages_manager import PackagesManager
 from lib.rpm_package import RPM_Package
 
 LOG = logging.getLogger(__name__)
@@ -26,15 +26,14 @@ LOG = logging.getLogger(__name__)
 
 class BuildManager(object):
     def __init__(self, packages_names, distro):
-        self.packages_names = packages_names
-        self.packages = []
+        self.packages_manager = PackagesManager(packages_names)
         self.distro = distro
         self.repositories = None
 
     def __call__(self):
         try:
-            self.prepare_packages()
-
+            self.packages_manager.prepare_packages(
+                packages_class=RPM_Package, distro=self.distro)
         # distro related issues
         except (exception.DistributionNotSupportedError,
                 exception.DistributionVersionNotSupportedError,
@@ -42,21 +41,9 @@ class BuildManager(object):
             LOG.error("Error during distribution detection. "
                       "See the logs for more information")
             raise
-        # package issues
-        except exception.PackageError:
-            LOG.error("Failed to load the package in components. "
-                      "See the logs for more information")
-            raise
 
         self.build()
 
     def build(self):
         scheduler = lib.scheduler.Scheduler()
-        self.distro.build_packages(scheduler(self.packages))
-
-    def prepare_packages(self, download_source_code=True):
-        for package_name in self.packages_names:
-            package = RPM_Package.get_instance(package_name, self.distro)
-            if download_source_code:
-                package.download_files()
-            self.packages.append(package)
+        self.distro.build_packages(scheduler(self.packages_manager.packages))

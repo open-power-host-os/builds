@@ -25,9 +25,10 @@ from lib import config
 from lib import distro_utils
 from lib import exception
 from lib import log_helper
-from lib import manager
+from lib import packages_manager
 from lib import repository
 from lib import utils
+from lib.rpm_package import RPM_Package
 
 LOG = logging.getLogger(__name__)
 PACKAGES = ['qemu', 'kernel', 'libvirt', 'kimchi', 'ginger', 'gingerbase',
@@ -219,10 +220,11 @@ def main(args):
 
     LOG.info("Checking for updates in packages versions: %s",
              ", ".join(packages_to_update))
-    bm = manager.BuildManager(packages_to_update, distro)
-    bm.prepare_packages(download_source_code=False)
+    pm = packages_manager.PackagesManager(packages_to_update)
+    pm.prepare_packages(packages_class=RPM_Package, download_source_code=False,
+                        distro=distro)
 
-    for pkg in bm.packages:
+    for pkg in pm.packages:
         try:
             pkg_version = Version(pkg)
             pkg_version.update()
