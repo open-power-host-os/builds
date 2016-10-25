@@ -72,10 +72,10 @@ def setup_versions_repository(versions_git_url, dest, version):
             version_reference, strategy=pygit2.GIT_CHECKOUT_FORCE)
         versions_repo.reset(versions_repo.head.target, pygit2.GIT_RESET_HARD)
     except ValueError:
-        LOG.error("Failed to check out %s", version_reference.name)
+        LOG.error("Failed to check out reference %s", version_reference.name)
         raise exception.RepositoryError(
-            message="Could not find reference %s on versions repo"
-            % version_reference)
+            message="Could not checkout to reference '%s' on versions repo"
+                    % version_reference.name)
 
 
 def main(args):
