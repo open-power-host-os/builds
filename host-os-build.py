@@ -56,26 +56,38 @@ def setup_versions_repository(versions_git_url, dest, version):
             raise exception.RepositoryError(
                 message="Failed to setup Versions repository")
     else:
-        LOG.info("Cloning into %s..." % dest)
-        versions_repo = pygit2.clone_repository(versions_git_url,
-                                                dest)
+        try:
+            LOG.info("Cloning into %s..." % dest)
+            versions_repo = pygit2.clone_repository(versions_git_url,
+                                                    dest)
+        except pygit2.GitError:
+            LOG.error("Failed to get versioning repository")
+            raise exception.RepositoryError(message="Failed to clone versions"
+                                                    " repository")
 
     version_reference = get_reference(versions_repo, version)
     LOG.info("Trying to check out versions' reference: %s",
              version_reference.name)
-    try:
-        for remote in versions_repo.remotes:
+
+    for remote in versions_repo.remotes:
+        try:
             remote.fetch()
             LOG.info("Fetched changes for %s" % remote.name)
+        except pygit2.GitError:
+            # no need to fail if can't fetch remotes, let's check if the
+            # reference isn't local.
+            LOG.info("Failed to fetch changes for remote %s" % remote.name)
+            pass
 
+    try:
         versions_repo.checkout(
             version_reference, strategy=pygit2.GIT_CHECKOUT_FORCE)
         versions_repo.reset(versions_repo.head.target, pygit2.GIT_RESET_HARD)
     except ValueError:
-        LOG.error("Failed to check out %s", version_reference.name)
+        LOG.error("Failed to check out reference %s", version_reference.name)
         raise exception.RepositoryError(
-            message="Could not find reference %s on versions repo"
-            % version_reference)
+            message="Could not checkout to reference '%s' on versions repo"
+                    % version_reference.name)
 
 
 def main(args):
