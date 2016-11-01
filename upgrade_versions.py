@@ -58,9 +58,10 @@ def _get_git_log(repo, since_id):
     return log
 
 
-def rpm_bump_spec(specfile, log):
+def rpm_bump_spec(specfile, log, user_name, user_email):
     comment = "\n".join(['- ' + l for l in log])
-    cmd = "rpmdev-bumpspec -c '%s' %s" % (comment, specfile)
+    user_string = "%(user_name)s <%(user_email)s>" % locals()
+    cmd = "rpmdev-bumpspec -c '%s' -u '%s' %s" % (comment, user_string, specfile)
     utils.run_command(cmd)
 
 
@@ -100,7 +101,7 @@ class Version(object):
     def release(self):
         return self._spec_release
 
-    def update(self):
+    def update(self, user_name, user_email):
         changelog = None
 
         pkg = copy.copy(self.pkg)
@@ -123,7 +124,7 @@ class Version(object):
                 "Current version (%s) is greater than repo version (%s)" %
                 (self._spec_version, self._repo_version))
 
-        self._bump_release(pkg, changelog)
+        self._bump_release(pkg, changelog, user_name, user_email)
 
     def _update_version(self):
         LOG.info("%s: Updating version to: %s" % (self.pkg,
@@ -157,7 +158,7 @@ class Version(object):
             f.seek(0)
             f.write(content)
 
-    def _bump_release(self, pkg, log=None):
+    def _bump_release(self, pkg, log=None, user_name=None, user_email=None):
         LOG.info("%s: Bumping release" % self.pkg)
 
         if self.pkg.commit_id:
@@ -168,7 +169,9 @@ class Version(object):
                                  pkg.commit_id)
 
         if log:
-            rpm_bump_spec(pkg.specfile, log)
+            assert user_name is not None
+            assert user_email is not None
+            rpm_bump_spec(pkg.specfile, log, user_name, user_email)
 
     def _read_spec(self):
         self._spec_version = rpm_query_spec_file('version', self.pkg.specfile)
@@ -217,6 +220,14 @@ def main(args):
         CONF.get('default').get('distro_name'),
         CONF.get('default').get('distro_version'),
         CONF.get('default').get('arch_and_endianness'))
+    committer_name = CONF.get('default').get('committer_name')
+    committer_email = CONF.get('default').get('committer_email')
+
+    REQUIRED_PARAMETERS = ["committer_name", "committer_email"]
+    for parameter in REQUIRED_PARAMETERS:
+        if CONF.get('default').get(parameter) is None:
+            LOG.error("Parameter '%s' is required", parameter)
+            return 1
 
     LOG.info("Checking for updates in packages versions: %s",
              ", ".join(packages_to_update))
@@ -227,7 +238,7 @@ def main(args):
     for pkg in pm.packages:
         try:
             pkg_version = Version(pkg)
-            pkg_version.update()
+            pkg_version.update(committer_name, committer_email)
         except exception.PackageError as e:
             LOG.exception("Failed to update versions")
             return e.errno

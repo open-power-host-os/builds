@@ -61,6 +61,8 @@ def setup_versions_repository(config):
         LOG.exception("Failed to checkout versions repository")
         sys.exit(exc.errno)
 
+    return versions_repo
+
 
 def run_command(cmd, **kwargs):
     LOG.debug("Command: %s" % cmd)
