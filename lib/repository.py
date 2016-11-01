@@ -24,6 +24,15 @@ from lib import exception
 
 LOG = logging.getLogger(__name__)
 
+
+class PushError(Exception):
+
+    def __init__(self, push_info):
+        message = ("Error pushing to remote reference %s"
+                   % push_info.remote_ref.name)
+        super(PushError, self).__init__(message)
+
+
 def get_git_repository(name, remote_repo_url, parent_dir_path):
     """
     Get a local git repository located in a subdirectory of the parent

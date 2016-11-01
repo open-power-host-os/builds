@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from datetime import datetime
 import copy
 import logging
 import os
@@ -212,18 +213,51 @@ class Version(object):
             raise exception.PackageError(msg)
 
 
+def push_new_versions(versions_repo, release_date, versions_repo_push_url,
+        versions_repo_push_branch, committer_name, committer_email):
+    """
+    Push updated versions to the remote Git repository, using the
+    system's configured git committer and SSH credentials.
+    """
+    LOG.info("Pushing packages versions updates on release dated {date}"
+             .format(date=release_date))
+
+    LOG.info("Creating remote for URL {}".format(versions_repo_push_url))
+    VERSIONS_REPO_REMOTE = "push-remote"
+    versions_repo.create_remote(VERSIONS_REPO_REMOTE, versions_repo_push_url)
+
+    LOG.info("Adding files to repository index")
+    versions_repo.index.add(["*"])
+
+    LOG.info("Committing changes to local repository")
+    commit_message = "Weekly build {date}".format(date=release_date)
+    actor = git.Actor(committer_name, committer_email)
+    versions_repo.index.commit(commit_message, author=actor, committer=actor)
+
+    LOG.info("Pushing changes to remote repository")
+    remote = versions_repo.remote(VERSIONS_REPO_REMOTE)
+    refspec = "HEAD:refs/heads/{}".format(versions_repo_push_branch)
+    push_info = remote.push(refspec=refspec)[0]
+    LOG.debug("Push result: {}".format(push_info.summary))
+    if git.PushInfo.ERROR & push_info.flags:
+        raise repository.PushError(push_info)
+
+
 def main(args):
     CONF = utils.setup_default_config()
-    utils.setup_versions_repository(CONF)
+    versions_repo = utils.setup_versions_repository(CONF)
     packages_to_update = CONF.get('default').get('packages') or PACKAGES
     distro = distro_utils.get_distro(
         CONF.get('default').get('distro_name'),
         CONF.get('default').get('distro_version'),
         CONF.get('default').get('arch_and_endianness'))
+    push_repo_url = CONF.get('default').get('push_repo_url')
+    push_repo_branch = CONF.get('default').get('push_repo_branch')
     committer_name = CONF.get('default').get('committer_name')
     committer_email = CONF.get('default').get('committer_email')
 
-    REQUIRED_PARAMETERS = ["committer_name", "committer_email"]
+    REQUIRED_PARAMETERS = ["push_repo_url", "push_repo_branch",
+                           "committer_name", "committer_email"]
     for parameter in REQUIRED_PARAMETERS:
         if CONF.get('default').get(parameter) is None:
             LOG.error("Parameter '%s' is required", parameter)
@@ -242,6 +276,10 @@ def main(args):
         except exception.PackageError as e:
             LOG.exception("Failed to update versions")
             return e.errno
+
+    release_date = datetime.today().date().isoformat()
+    push_new_versions(versions_repo, release_date, push_repo_url,
+                      push_repo_branch, committer_name, committer_email)
 
 
 if __name__ == '__main__':

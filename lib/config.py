@@ -129,10 +129,18 @@ class ConfigParser(object):
         self.parser.add_argument('--log-size',
                                  help='Size in bytes above which the log file '
                                  'should rotate', type=int)
+        self.parser.add_argument('--push-repo-url',
+                                 help='URL of the repository used for pushing')
+        self.parser.add_argument('--push-repo-branch',
+                                 help='Branch of the repository used for '
+                                 'pushing',
+                                 default='master')
         self.parser.add_argument('--committer-name',
-                                 help='Name used when bumping spec files')
+                                 help='Name used when creating a commit and '
+                                 'bumping spec files')
         self.parser.add_argument('--committer-email',
-                                 help='Email used when bumping spec files')
+                                 help='Email used when creating a commit and '
+                                 'bumping spec files')
 
 
     def parse_arguments_list(self, args):
