@@ -21,7 +21,6 @@ import sys
 import yaml
 
 LOG = logging.getLogger(__name__)
-COMPONENTS_DIRECTORY = os.path.join(os.getcwd(), "components")
 
 config_parser = None
 
@@ -56,17 +55,19 @@ def discover_software():
     "kernel" and "libvirt" will be discovered, "not-a-software" and "file"
     will not.
     """
+    build_versions_repo_dir = get_config().CONF.get('default').get(
+        'build_versions_repo_dir')
     software_list = []
     try:
         software_list = [
-            software for software in os.listdir(COMPONENTS_DIRECTORY)
-            if os.path.isdir(os.path.join(COMPONENTS_DIRECTORY, software)) and
-            os.path.isfile(os.path.join(COMPONENTS_DIRECTORY, software,
+            software for software in os.listdir(build_versions_repo_dir)
+            if os.path.isdir(os.path.join(build_versions_repo_dir, software)) and
+            os.path.isfile(os.path.join(build_versions_repo_dir, software,
                                         "".join([software, ".yaml"])))
         ]
     except OSError:
-        # This is expected to happen on the first run, when the components
-        # directory doesn't exist yet.
+        # This is expected to happen on the first run, when the build
+        # versions directory doesn't exist yet.
         pass
     finally:
         return software_list
@@ -121,6 +122,10 @@ class ConfigParser(object):
         self.parser.add_argument('--build-version',
                                  help='Select build version from versions '
                                  'repository')
+        self.parser.add_argument('--build-versions-repo-dir',
+                                 help='Directory to clone the build versions '
+                                 'repository',
+                                 default='./components')
         self.parser.add_argument('--log-size',
                                  help='Size in bytes above which the log file '
                                  'should rotate', type=int)

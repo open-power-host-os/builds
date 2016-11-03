@@ -216,7 +216,8 @@ def main(args):
 
     try:
         # setup versions directory
-        path, dirname = os.path.split(config.COMPONENTS_DIRECTORY)
+        path, dirname = os.path.split(
+            CONF.get('default').get('build_versions_repo_dir'))
         repository.Repo(
             dirname, CONF.get('default').get('build_versions_repository_url'),
             path, CONF.get('default').get('build_version'))

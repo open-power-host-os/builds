@@ -61,9 +61,11 @@ class Package(object):
         self.result_packages = []
         self.repository = None
 
+        build_versions_repo_dir = CONF.get('default').get(
+            'build_versions_repo_dir')
         self.package_dir = os.path.join(
-            config.COMPONENTS_DIRECTORY, self.category) if(
-                self.category) else config.COMPONENTS_DIRECTORY
+            build_versions_repo_dir, self.category) if(
+                self.category) else build_versions_repo_dir
         self.package_file = os.path.join(self.package_dir, self.name,
                                          '%s.yaml' % self.name)
 

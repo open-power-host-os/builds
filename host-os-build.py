@@ -39,7 +39,8 @@ def main(args):
                          rotate_size=conf.get('default').get('log_size'))
     try:
         # setup versions directory
-        path, dirname = os.path.split(config.COMPONENTS_DIRECTORY)
+        path, dirname = os.path.split(
+            conf.get('default').get('build_versions_repo_dir'))
         repository.Repo(
             dirname, conf.get('default').get('build_versions_repository_url'),
             path, conf.get('default').get('build_version'))
