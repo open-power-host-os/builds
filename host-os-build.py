@@ -29,13 +29,12 @@ LOG = logging.getLogger(__name__)
 
 
 def main(args):
-    conf = utils.setup_default_config()
-    utils.setup_versions_repository(conf)
-    conf['default']['packages'] = conf['default']['packages'] if (
-        conf.get('default').get('packages')) else (
-            config.discover_software())
+    CONF = utils.setup_default_config()
+    utils.setup_versions_repository(CONF)
+    packages_to_build = (CONF.get('default').get('packages')
+                         or config.discover_software())
 
-    build_manager = manager.BuildManager()
+    build_manager = manager.BuildManager(packages_to_build)
     return build_manager()
 
 if __name__ == '__main__':

@@ -211,10 +211,10 @@ class Version(object):
 def main(args):
     CONF = utils.setup_default_config()
     utils.setup_versions_repository(CONF)
+    packages_to_update = CONF.get('default').get('packages') or PACKAGES
 
     LOG.info("Updating packages version...")
-
-    bm = manager.BuildManager(CONF.get('default').get('packages') or PACKAGES)
+    bm = manager.BuildManager(packages_to_update)
     bm.prepare_packages(download_source_code=False)
 
     for pkg in bm.packages:

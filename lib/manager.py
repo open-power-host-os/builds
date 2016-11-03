@@ -16,13 +16,11 @@
 import logging
 
 import lib.centos
-from lib import config
 from lib import exception
 from lib import package
 import lib.scheduler
 from lib import utils
 
-CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 
 DISTRIBUTIONS = {
@@ -31,8 +29,8 @@ DISTRIBUTIONS = {
 
 
 class BuildManager(object):
-    def __init__(self, packages=None):
-        self.packages_list = packages or CONF.get('default').get('packages')
+    def __init__(self, packages_names):
+        self.packages_names = packages_names
         self.packages = None
         self._distro = self.get_distro()
         self.repositories = None
@@ -74,4 +72,4 @@ class BuildManager(object):
     def prepare_packages(self, download_source_code=True):
         self.packages = [package.Package.get_instance(
             x, self._distro, download=download_source_code) for x in set(
-                self.packages_list)]
+                self.packages_names)]
