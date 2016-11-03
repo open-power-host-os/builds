@@ -34,6 +34,7 @@ def main(args):
     packages_to_build = (CONF.get('default').get('packages')
                          or config.discover_software())
 
+    LOG.info("Building packages: %s", ", ".join(packages_to_build))
     build_manager = manager.BuildManager(packages_to_build)
     return build_manager()
 

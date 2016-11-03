@@ -213,7 +213,8 @@ def main(args):
     utils.setup_versions_repository(CONF)
     packages_to_update = CONF.get('default').get('packages') or PACKAGES
 
-    LOG.info("Updating packages version...")
+    LOG.info("Checking for updates in packages versions: %s",
+             ", ".join(packages_to_update))
     bm = manager.BuildManager(packages_to_update)
     bm.prepare_packages(download_source_code=False)
 
