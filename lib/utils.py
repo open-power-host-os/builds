@@ -14,12 +14,51 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import os
 import platform
 import subprocess
+import sys
 
-import exception
+from lib import config
+from lib import exception
+from lib import log_helper
+from lib import repository
 
 LOG = logging.getLogger(__name__)
+
+
+def setup_default_config():
+    """
+    Setup the script environment. Parse configurations, setup logging
+    and halt execution if anything fails.
+    """
+    try:
+        CONF = config.get_config().CONF
+    except OSError:
+        print("Failed to parse settings")
+        sys.exit(2)
+
+    log_helper.LogHelper(logfile=CONF.get('default').get('log_file'),
+                         verbose=CONF.get('default').get('verbose'),
+                         rotate_size=CONF.get('default').get('log_size'))
+
+    return CONF
+
+
+def setup_versions_repository(config):
+    """
+    Clone and checkout the versions repository and halt execution if
+    anything fails.
+    """
+    try:
+        path, dirname = os.path.split(
+            config.get('default').get('build_versions_repo_dir'))
+        repository.Repo(
+            dirname, config.get('default').get('build_versions_repository_url'),
+            path, config.get('default').get('build_version'))
+    except exception.RepositoryError as exc:
+        LOG.exception("Failed to checkout versions repository")
+        sys.exit(exc.errno)
 
 
 def run_command(cmd, **kwargs):

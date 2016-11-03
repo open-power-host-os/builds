@@ -28,7 +28,6 @@ from lib import manager
 from lib import repository
 from lib import utils
 
-CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 PACKAGES = ['qemu', 'kernel', 'libvirt', 'kimchi', 'ginger', 'gingerbase',
             'wok', 'sos', 'SLOF']
@@ -210,20 +209,10 @@ class Version(object):
 
 
 def main(args):
-    log_helper.LogHelper(logfile=CONF.get('default').get('log_file'),
-                         verbose=CONF.get('default').get('verbose'))
-    LOG.info("Updating packages version...")
+    CONF = utils.setup_default_config()
+    utils.setup_versions_repository(CONF)
 
-    try:
-        # setup versions directory
-        path, dirname = os.path.split(
-            CONF.get('default').get('build_versions_repo_dir'))
-        repository.Repo(
-            dirname, CONF.get('default').get('build_versions_repository_url'),
-            path, CONF.get('default').get('build_version'))
-    except exception.RepositoryError as exc:
-        LOG.exception("Failed to checkout versions repository")
-        return exc.errno
+    LOG.info("Updating packages version...")
 
     bm = manager.BuildManager(CONF.get('default').get('packages') or PACKAGES)
     bm.prepare_packages(download_source_code=False)

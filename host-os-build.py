@@ -21,6 +21,7 @@ from lib import exception
 from lib import log_helper
 from lib import manager
 from lib import repository
+from lib import utils
 
 import pygit2
 
@@ -28,30 +29,12 @@ LOG = logging.getLogger(__name__)
 
 
 def main(args):
-    try:
-        conf = config.get_config().CONF
-    except OSError:
-        print("Failed to parse settings")
-        return 2
+    conf = utils.setup_default_config()
+    utils.setup_versions_repository(conf)
+    conf['default']['packages'] = conf['default']['packages'] if (
+        conf.get('default').get('packages')) else (
+            config.discover_software())
 
-    log_helper.LogHelper(logfile=conf.get('default').get('log_file'),
-                         verbose=conf.get('default').get('verbose'),
-                         rotate_size=conf.get('default').get('log_size'))
-    try:
-        # setup versions directory
-        path, dirname = os.path.split(
-            conf.get('default').get('build_versions_repo_dir'))
-        repository.Repo(
-            dirname, conf.get('default').get('build_versions_repository_url'),
-            path, conf.get('default').get('build_version'))
-
-        conf['default']['packages'] = conf['default']['packages'] if (
-            conf.get('default').get('packages')) else (
-                config.discover_software())
-
-    except exception.RepositoryError as e:
-        LOG.exception("Script failed")
-        return e.errno
     build_manager = manager.BuildManager()
     return build_manager()
 
