@@ -123,10 +123,8 @@ class GitRepository(git.Repo):
         """
         Update repository submodules, initializing them if needed.
         """
-        # TODO(olavph): use git.objects.submodule.base.Submodule instead
-        # of run_command
-        cmd = "git submodule init; git submodule update"
-        utils.run_command(cmd, cwd=self.working_tree_dir)
+        for submodule in self.submodules:
+            submodule.update(init=True)
 
     def archive(self, archive_name, commit_id, build_dir):
         # TODO(olavph): use git.Repo.archive instead of run_command
