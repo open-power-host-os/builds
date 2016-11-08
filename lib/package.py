@@ -68,7 +68,7 @@ class Package(object):
         self.package_file = os.path.join(self.package_dir, self.name,
                                          '%s.yaml' % self.name)
 
-        self.load_package(name, distro)
+        self._load()
 
     def __eq__(self, other):
         return self.name == other.name
@@ -101,9 +101,9 @@ class Package(object):
             dest=CONF.get('default').get('repositories_path'),
             branch=CONF.get('default').get('branch'))
 
-    def load_package(self, package_name, distro):
+    def _load(self):
         """
-        Read yaml files describing our supported packages
+        Read yaml file describing this package.
         """
         try:
             with open(self.package_file, 'r') as package_file:
@@ -141,7 +141,7 @@ class Package(object):
             self.build_files = files.get('build_files', None)
             if self.build_files:
                 self.build_files = os.path.join(
-                    self.package_dir, package_name, self.build_files)
+                    self.package_dir, self.name, self.build_files)
             self.download_build_files = files.get('download_build_files', None)
 
             # list of dependencies
@@ -158,9 +158,9 @@ class Package(object):
             self.rpmmacro = files.get('rpmmacro', None)
             if self.rpmmacro:
                 self.rpmmacro = os.path.join(
-                    self.package_dir, package_name, self.rpmmacro)
+                    self.package_dir, self.name, self.rpmmacro)
 
-            self.specfile = os.path.join(self.package_dir, package_name,
+            self.specfile = os.path.join(self.package_dir, self.name,
                                          files.get('spec'))
 
             if os.path.isfile(self.specfile):
