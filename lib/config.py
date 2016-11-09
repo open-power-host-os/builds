@@ -66,11 +66,10 @@ def discover_software():
                                         "".join([software, ".yaml"])))
         ]
     except OSError:
-        # This is expected to happen on the first run, when the build
-        # versions directory doesn't exist yet.
-        pass
-    finally:
-        return software_list
+        LOG.error("No packages found in versions repository directory")
+        raise
+
+    return software_list
 
 
 class ConfigParser(object):
