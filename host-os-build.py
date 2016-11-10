@@ -31,7 +31,7 @@ def main(args):
     CONF = utils.setup_default_config()
     utils.setup_versions_repository(CONF)
     packages_to_build = (CONF.get('default').get('packages')
-                         or config.discover_software())
+                         or config.discover_packages())
     distro = distro_utils.get_distro(
         CONF.get('default').get('distro_name'),
         CONF.get('default').get('distro_version'),

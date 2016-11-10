@@ -33,13 +33,13 @@ def get_config():
     return config_parser
 
 
-def discover_software():
+def discover_packages():
     """
-    Simple mechanism for discoverability of the software we build.
+    Simple mechanism for discoverability of the packages we build.
 
-    A discoverable software, and thus potentially buildable, will be assume as
-    any directory name under SOFTWARE_DIRECTORY containing a yaml file with
-    the same name.
+    A discoverable package, and thus potentially buildable, will be assumed as
+    any directory name under the build versions repository directory containing
+    a yaml file with the same name.
     Considering the example:
 
     components
@@ -48,28 +48,28 @@ def discover_software():
     +-- libvirt
     |   +-- libvirt.yaml
     |   +-- someother_file_or_directory
-    +-- not-a-software
+    +-- not-a-package
     |   +-- not-following-standards.yaml
     +-- file
 
-    "kernel" and "libvirt" will be discovered, "not-a-software" and "file"
+    "kernel" and "libvirt" will be discovered, "not-a-package" and "file"
     will not.
     """
     build_versions_repo_dir = get_config().CONF.get('default').get(
         'build_versions_repo_dir')
-    software_list = []
+    package_list = []
     try:
-        software_list = [
-            software for software in os.listdir(build_versions_repo_dir)
-            if os.path.isdir(os.path.join(build_versions_repo_dir, software)) and
-            os.path.isfile(os.path.join(build_versions_repo_dir, software,
-                                        "".join([software, ".yaml"])))
+        package_list = [
+            package for package in os.listdir(build_versions_repo_dir)
+            if os.path.isdir(os.path.join(build_versions_repo_dir, package)) and
+            os.path.isfile(os.path.join(build_versions_repo_dir, package,
+                                        "".join([package, ".yaml"])))
         ]
     except OSError:
         LOG.error("No packages found in versions repository directory")
         raise
 
-    return software_list
+    return package_list
 
 
 class ConfigParser(object):
