@@ -61,11 +61,11 @@ class Package(object):
 
         build_versions_repo_dir = CONF.get('default').get(
             'build_versions_repo_dir')
-        self.package_dir = os.path.join(
-            build_versions_repo_dir, self.category) if(
-                self.category) else build_versions_repo_dir
-        self.package_file = os.path.join(self.package_dir, self.name,
-                                         '%s.yaml' % self.name)
+        category_dir = (os.path.join(build_versions_repo_dir, self.category)
+                        if self.category else build_versions_repo_dir)
+        self.package_dir = os.path.join(category_dir, self.name)
+        self.package_file = os.path.join(
+            self.package_dir, '%s.yaml' % self.name)
 
         self._load()
 

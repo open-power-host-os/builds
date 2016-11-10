@@ -46,7 +46,7 @@ class RPM_Package(Package):
             self.build_files = files.get('build_files', None)
             if self.build_files:
                 self.build_files = os.path.join(
-                    self.package_dir, self.name, self.build_files)
+                    self.package_dir, self.build_files)
             self.download_build_files = files.get('download_build_files', [])
 
             # list of dependencies
@@ -62,11 +62,9 @@ class RPM_Package(Package):
 
             self.rpmmacro = files.get('rpmmacro', None)
             if self.rpmmacro:
-                self.rpmmacro = os.path.join(
-                    self.package_dir, self.name, self.rpmmacro)
+                self.rpmmacro = os.path.join(self.package_dir, self.rpmmacro)
 
-            self.specfile = os.path.join(self.package_dir, self.name,
-                                         files.get('spec'))
+            self.specfile = os.path.join(self.package_dir, files.get('spec'))
 
             if os.path.isfile(self.specfile):
                 LOG.info("Package found: %s for %s %s" % (
