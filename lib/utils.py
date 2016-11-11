@@ -14,12 +14,54 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import os
 import platform
 import subprocess
+import sys
 
-import exception
+from lib import config
+from lib import exception
+from lib import log_helper
+from lib import repository
 
 LOG = logging.getLogger(__name__)
+
+
+def setup_default_config():
+    """
+    Setup the script environment. Parse configurations, setup logging
+    and halt execution if anything fails.
+    """
+    try:
+        CONF = config.get_config().CONF
+    except OSError:
+        print("Failed to parse settings")
+        sys.exit(2)
+
+    log_helper.LogHelper(logfile=CONF.get('default').get('log_file'),
+                         verbose=CONF.get('default').get('verbose'),
+                         rotate_size=CONF.get('default').get('log_size'))
+
+    return CONF
+
+
+def setup_versions_repository(config):
+    """
+    Clone and checkout the versions repository and halt execution if
+    anything fails.
+    """
+    path, dir_name = os.path.split(
+        config.get('default').get('build_versions_repo_dir'))
+    url = config.get('default').get('build_versions_repository_url')
+    branch = config.get('default').get('build_version')
+    try:
+        versions_repo = repository.get_git_repository(dir_name, url, path)
+        versions_repo.checkout(branch)
+    except exception.RepositoryError as exc:
+        LOG.exception("Failed to checkout versions repository")
+        sys.exit(exc.errno)
+
+    return versions_repo
 
 
 def run_command(cmd, **kwargs):
@@ -38,19 +80,3 @@ def run_command(cmd, **kwargs):
     LOG.debug("stderr: %s" % error_output)
 
     return output
-
-
-def detect_distribution():
-    # TODO(maurosr): Replace platform module by some alternative like distro
-    # (https://github.com/nir0s/distro) or maybe just implementing our own
-    # solution => platform module is deprecated in python 3.5 and will be
-    # removed in python 3.7
-    distro, version, _ = platform.linux_distribution(full_distribution_name=0)
-    arch_and_endianess = platform.machine()
-
-    # NOTE(maurosr): when it fails to detect the distro it defaults to the
-    # distro and version arguments passsed as parameters - their default
-    # values are empty strings.
-    if not distro or not version or not arch_and_endianess:
-        raise exception.DistributionDetectionError
-    return (distro, version, arch_and_endianess)
