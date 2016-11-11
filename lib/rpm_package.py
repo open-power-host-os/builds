@@ -23,8 +23,6 @@ from lib.package import Package
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
-BUILD_DEPENDENCIES = "build_dependencies"
-DEPENDENCIES = "dependencies"
 
 
 class RPM_Package(Package):
@@ -51,13 +49,11 @@ class RPM_Package(Package):
 
             # list of dependencies
             for dep_name in files.get('dependencies', []):
-                dep = RPM_Package.get_instance(
-                    dep_name, self.distro, category=DEPENDENCIES)
+                dep = RPM_Package.get_instance(dep_name, self.distro)
                 self.dependencies.append(dep)
 
             for dep_name in files.get('build_dependencies', []):
-                dep = RPM_Package.get_instance(
-                    dep_name, self.distro, category=BUILD_DEPENDENCIES)
+                dep = RPM_Package.get_instance(dep_name, self.distro)
                 self.build_dependencies.append(dep)
 
             self.rpmmacro = files.get('rpmmacro', None)

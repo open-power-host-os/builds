@@ -47,9 +47,8 @@ class Package(object):
             cls.__created_packages[package_name] = package
         return package
 
-    def __init__(self, name, category=None):
+    def __init__(self, name):
         self.name = name
-        self.category = category
         self.clone_url = None
         self.download_source = None
         self.dependencies = []
@@ -59,13 +58,24 @@ class Package(object):
         self.build_files = None
         self.download_build_files = []
 
+        # Dependencies packages may be present in those directories in older
+        # build versions. This keeps compatibility.
+        OLD_DEPENDENCIES_DIRS = ["build_dependencies", "dependencies"]
+        PACKAGES_DIRS = [""] + OLD_DEPENDENCIES_DIRS
         build_versions_repo_dir = CONF.get('default').get(
             'build_versions_repo_dir')
-        category_dir = (os.path.join(build_versions_repo_dir, self.category)
-                        if self.category else build_versions_repo_dir)
-        self.package_dir = os.path.join(category_dir, self.name)
-        self.package_file = os.path.join(
-            self.package_dir, '%s.yaml' % self.name)
+        for rel_packages_dir in PACKAGES_DIRS:
+            packages_dir = os.path.join(
+                build_versions_repo_dir, rel_packages_dir)
+            package_dir = os.path.join(packages_dir, self.name)
+            package_file = os.path.join(package_dir, self.name + ".yaml")
+            if os.path.isfile(package_file):
+                self.package_dir = package_dir
+                self.package_file = package_file
+                break
+        else:
+            raise exception.PackageDescriptorError(
+                "Failed to find %s's YAML descriptor" % self.name)
 
         self._load()
 
