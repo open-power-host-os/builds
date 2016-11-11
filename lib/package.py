@@ -26,6 +26,8 @@ from lib import utils
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
+BUILD_DEPENDENCIES = "build_dependencies"
+DEPENDENCIES = "dependencies"
 
 
 @total_ordering
@@ -43,31 +45,33 @@ class Package(object):
             package = cls.__created_packages[package_name]
             LOG.debug("Getting existent package instance: %s" % package)
         else:
-            package = cls(package_name, *args, **kwargs)
+            package = Package(package_name, *args, **kwargs)
             cls.__created_packages[package_name] = package
         return package
 
-    def __init__(self, name, category=None):
-        self.name = name
+    def __init__(self, package, distro, category=None, download=True):
+        self.name = package
+        self.distro = distro
         self.category = category
+        self.download = download
         self.clone_url = None
         self.download_source = None
         self.dependencies = []
         self.build_dependencies = []
         self.result_packages = []
         self.repository = None
-        self.build_files = None
-        self.download_build_files = []
 
-        build_versions_repo_dir = CONF.get('default').get(
-            'build_versions_repo_dir')
         self.package_dir = os.path.join(
-            build_versions_repo_dir, self.category) if(
-                self.category) else build_versions_repo_dir
+            config.COMPONENTS_DIRECTORY, self.category) if(
+                self.category) else config.COMPONENTS_DIRECTORY
         self.package_file = os.path.join(self.package_dir, self.name,
                                          '%s.yaml' % self.name)
 
-        self._load()
+        #TODO(maurosr): Improve this piece of code, actions shouldn't go in
+        # __init__, let's refactor in order to move the download action.
+        self.load_package(package, distro)
+        if download:
+            self.download_source_code()
 
     def __eq__(self, other):
         return self.name == other.name
@@ -78,70 +82,103 @@ class Package(object):
     def __repr__(self):
         return self.name
 
-
-    def download_files(self):
-        """
-        Download package source code and build files.
-        Do the same for its dependencies, recursively.
-        """
+    def download_source_code(self):
+        LOG.info("%s: Downloading source code." % self.name)
         if self.clone_url:
-            self._download_source_code()
-            # Else let it download later during build with a custom
-            # command.
-            # TODO Remove this "if" and do not allow custom commands
-        self._download_build_files()
-        for dep in (self.dependencies + self.build_dependencies):
-            dep.download_files()
+            self._setup_repository(
+                dest=CONF.get('default').get('repositories_path'),
+                branch=CONF.get('default').get('branch'))
+        # else let it download later during build, it's ugly, but a temporary
+        # solution
 
-    def _download_source_code(self):
-        LOG.info("%s: Downloading source code from '%s'." %
-                 (self.name, self.clone_url))
-        self._setup_repository(
-            dest=CONF.get('default').get('repositories_path'),
-            branch=CONF.get('default').get('branch'))
-
-    def _load(self):
+    def load_package(self, package_name, distro):
         """
-        Read yaml file describing this package.
+        Read yaml files describing our supported packages
         """
         try:
             with open(self.package_file, 'r') as package_file:
-                self.package_data = yaml.load(package_file).get('Package')
+                package = yaml.load(package_file).get('Package')
+
+                self.name = package.get('name')
+                self.clone_url = package.get('clone_url', None)
+                self.download_source = package.get('download_source', None)
+
+                # Most packages keep their version in a VERSION file
+                # or in the .spec file. For those that don't, we need
+                # a custom file and regex.
+                version = package.get('version', {})
+                self.version_file_regex = (version.get('file'),
+                                           version.get('regex'))
+
+                # NOTE(maurosr): Unfortunately some of the packages we build
+                # depend on a gziped file which changes according to the build
+                # version so we need to get that name somehow, grep the
+                # specfile would be uglier imho.
+                self.expects_source = package.get('expects_source')
+
+                # NOTE(maurosr): branch and commit id are special cases for the
+                # future, we plan to use tags on every project for every build
+                # globally set in config.yaml, then this would allow some user
+                # customization to set their preferred commit id/branch or even
+                # a custom git tree.
+                self.branch = package.get('branch', None)
+                self.commit_id = package.get('commit_id', None)
+
+                # load distro files
+                files = package.get('files').get(self.distro.lsb_name).get(
+                    self.distro.version)
+
+                self.build_files = files.get('build_files', None)
+                if self.build_files:
+                    self.build_files = os.path.join(self.package_dir,
+                                                    package_name,
+                                                    self.build_files)
+                self.download_build_files = files.get('download_build_files',
+                                                      None)
+                if self.download_build_files and self.download:
+                    self._download_build_files()
+
+                # list of dependencies
+                for dep in files.get('dependencies', []):
+                    self.dependencies.append(Package.get_instance(
+                        dep, self.distro, category=DEPENDENCIES,
+                        download=self.download))
+
+                for dep in files.get('build_dependencies', []):
+                    self.build_dependencies.append(Package.get_instance(
+                        dep, self.distro, category=BUILD_DEPENDENCIES,
+                        download=self.download))
+
+                self.rpmmacro = files.get('rpmmacro', None)
+                if self.rpmmacro:
+                    self.rpmmacro = os.path.join(self.package_dir,
+                                                 package_name,
+                                                 self.rpmmacro)
+
+                self.specfile = os.path.join(self.package_dir, package_name,
+                                             files.get('spec'))
+
+                if os.path.isfile(self.specfile):
+                    LOG.info("Package found: %s for %s %s" % (
+                        self.name, self.distro.lsb_name, self.distro.version))
+                else:
+                    raise exception.PackageSpecError(
+                        package=self.name,
+                        distro=self.distro.lsb_name,
+                        distro_version=self.distro.version)
+                LOG.info("%s: Loaded package metadata successfully" % self.name)
+        except TypeError:
+            raise exception.PackageDescriptorError(package=self.name)
         except IOError:
             raise exception.PackageDescriptorError(
                 "Failed to open %s's YAML descriptor" % self.name)
 
-        self.name = self.package_data.get('name')
-        self.clone_url = self.package_data.get('clone_url', None)
-        self.download_source = self.package_data.get('download_source', None)
-
-        # Most packages keep their version in a VERSION file
-        # or in the .spec file. For those that don't, we need
-        # a custom file and regex.
-        version = self.package_data.get('version', {})
-        self.version_file_regex = (version.get('file'),
-                                   version.get('regex'))
-
-        # NOTE(maurosr): Unfortunately some of the packages we build
-        # depend on a gziped file which changes according to the build
-        # version so we need to get that name somehow, grep the
-        # specfile would be uglier imho.
-        self.expects_source = self.package_data.get('expects_source')
-
-        # NOTE(maurosr): branch and commit id are special cases for the
-        # future, we plan to use tags on every project for every build
-        # globally set in config.yaml, then this would allow some user
-        # customization to set their preferred commit id/branch or even
-        # a custom git tree.
-        self.branch = self.package_data.get('branch', None)
-        self.commit_id = self.package_data.get('commit_id', None)
-
-        LOG.info("%s: Loaded package metadata successfully" % self.name)
-
     def _setup_repository(self, dest=None, branch=None):
-        self.repository = repository.get_git_repository(
-            self.name, self.clone_url, dest)
-        self.repository.checkout(self.commit_id or self.branch or branch)
+        self.repository = repository.Repo(repo_name=self.name,
+                                          clone_url=self.clone_url,
+                                          dest_path=dest,
+                                          refname=self.branch or branch,
+                                          commit_id=self.commit_id)
 
     def _download_source(self, build_dir):
         """

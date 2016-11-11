@@ -17,36 +17,42 @@ import os
 import sys
 
 from lib import config
-from lib import distro_utils
 from lib import exception
 from lib import log_helper
-from lib import build_manager
+from lib import manager
 from lib import repository
-from lib import utils
+
+import pygit2
 
 LOG = logging.getLogger(__name__)
 
 
 def main(args):
-    CONF = utils.setup_default_config()
-    utils.setup_versions_repository(CONF)
-    packages_to_build = (CONF.get('default').get('packages')
-                         or config.discover_software())
-    distro = distro_utils.get_distro(
-        CONF.get('default').get('distro_name'),
-        CONF.get('default').get('distro_version'),
-        CONF.get('default').get('arch_and_endianness'))
-
-    LOG.info("Building packages: %s", ", ".join(packages_to_build))
-    bm = build_manager.BuildManager(packages_to_build, distro)
     try:
-        bm()
-    except exception.BaseException as exc:
-        LOG.exception("Failed to build packages")
-        return exc.errno
-    else:
-        return 0
+        conf = config.get_config().CONF
+    except OSError:
+        print("Failed to parse settings")
+        return 2
 
+    log_helper.LogHelper(logfile=conf.get('default').get('log_file'),
+                         verbose=conf.get('default').get('verbose'),
+                         rotate_size=conf.get('default').get('log_size'))
+    try:
+        # setup versions directory
+        path, dirname = os.path.split(config.COMPONENTS_DIRECTORY)
+        repository.Repo(
+            dirname, conf.get('default').get('build_versions_repository_url'),
+            path, conf.get('default').get('build_version'))
+
+        conf['default']['packages'] = conf['default']['packages'] if (
+            conf.get('default').get('packages')) else (
+                config.discover_software())
+
+    except exception.RepositoryError as e:
+        LOG.exception("Script failed")
+        return e.errno
+    build_manager = manager.BuildManager()
+    return build_manager()
 
 if __name__ == '__main__':
     if os.getuid() is 0:
