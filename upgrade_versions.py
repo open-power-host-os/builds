@@ -52,7 +52,7 @@ def _get_git_log(repo, since_id):
         commit_message = commit.message.split('\n')[0]
         commit_message = commit_message.replace("'", "")
         commit_message = commit_message.replace("\"", "")
-        log.append("%s %s" % (commit.hexsha[:7], commit_message))
+        log.append("%s %s" % (commit.hexsha, commit_message))
         if commit.hexsha.startswith(since_id):
             break
 
@@ -108,7 +108,7 @@ class Version(object):
         pkg = copy.copy(self.pkg)
         pkg.commit_id = None
         pkg.download_files()
-        pkg.commit_id = pkg.repository.head.commit.hexsha[:7]
+        pkg.commit_id = pkg.repository.head.commit.hexsha
 
         if pkg.commit_id == self.pkg.commit_id:
             LOG.debug("%s: no changes.", self.pkg)
