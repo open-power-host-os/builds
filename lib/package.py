@@ -16,9 +16,11 @@
 from functools import total_ordering
 import os
 import logging
-import urllib2
 import yaml
 
+
+from lib.package_source import PackageSourceFactory
+from lib.package_source import UrlPackageSource
 from lib import config
 from lib import exception
 from lib import repository
@@ -50,13 +52,11 @@ class Package(object):
     def __init__(self, name, category=None):
         self.name = name
         self.category = category
-        self.clone_url = None
-        self.download_source = None
         self.dependencies = []
         self.build_dependencies = []
         self.result_packages = []
-        self.repository = None
         self.build_files = None
+        self.sources = []
         self.download_build_files = []
 
         build_versions_repo_dir = CONF.get('default').get(
@@ -84,7 +84,7 @@ class Package(object):
         Download package source code and build files.
         Do the same for its dependencies, recursively.
         """
-        if self.clone_url:
+        if self.sources is not None:
             self._download_source_code()
             # Else let it download later during build with a custom
             # command.
@@ -94,11 +94,10 @@ class Package(object):
             dep.download_files()
 
     def _download_source_code(self):
-        LOG.info("%s: Downloading source code from '%s'." %
-                 (self.name, self.clone_url))
-        self._setup_repository(
-            dest=CONF.get('default').get('repositories_path'),
-            branch=CONF.get('default').get('branch'))
+        for source in self.sources:
+            LOG.info("%s: Downloading source code from '%s'." %
+                     (self.name, source.url))
+            source.download()
 
     def _load(self):
         """
@@ -112,8 +111,10 @@ class Package(object):
                 "Failed to open %s's YAML descriptor" % self.name)
 
         self.name = self.package_data.get('name')
-        self.clone_url = self.package_data.get('clone_url', None)
-        self.download_source = self.package_data.get('download_source', None)
+
+        source_factory = PackageSourceFactory()
+        self.sources = map(source_factory,
+                           self.package_data.get('sources', []))
 
         # Most packages keep their version in a VERSION file
         # or in the .spec file. For those that don't, we need
@@ -128,17 +129,10 @@ class Package(object):
         # specfile would be uglier imho.
         self.expects_source = self.package_data.get('expects_source')
 
-        # NOTE(maurosr): branch and commit id are special cases for the
-        # future, we plan to use tags on every project for every build
-        # globally set in config.yaml, then this would allow some user
-        # customization to set their preferred commit id/branch or even
-        # a custom git tree.
-        self.branch = self.package_data.get('branch', None)
-        self.commit_id = self.package_data.get('commit_id', None)
-
         LOG.info("%s: Loaded package metadata successfully" % self.name)
 
     def _setup_repository(self, dest=None, branch=None):
+        self.repository =
         self.repository = repository.get_git_repository(
             self.name, self.clone_url, dest)
         self.repository.checkout(self.commit_id or self.branch or branch)
@@ -152,8 +146,5 @@ class Package(object):
 
     def _download_build_files(self):
         for url in self.download_build_files:
-            f = urllib2.urlopen(url)
-            data = f.read()
-            filename = os.path.join(self.build_files, url.split('/')[-1])
-            with open(filename, "wb") as file_data:
-                file_data.write(data)
+            dest = os.path.join(self.build_files, url.split('/')[-1])
+            UrlPackageSource({'src': url, 'dest': dest}).download()
