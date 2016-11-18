@@ -128,7 +128,7 @@ def main(args):
     utils.setup_versions_repository(CONF)
 
     packages_names = (CONF.get('default').get('packages')
-                      or config.discover_software())
+                      or config.discover_packages())
     push_repo_url = CONF.get('default').get('push_repo_url')
     push_repo_branch = CONF.get('default').get('push_repo_branch')
     committer_name = CONF.get('default').get('committer_name')

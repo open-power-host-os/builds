@@ -23,8 +23,6 @@ from lib.package import Package
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
-BUILD_DEPENDENCIES = "build_dependencies"
-DEPENDENCIES = "dependencies"
 
 
 class RPM_Package(Package):
@@ -46,27 +44,23 @@ class RPM_Package(Package):
             self.build_files = files.get('build_files', None)
             if self.build_files:
                 self.build_files = os.path.join(
-                    self.package_dir, self.name, self.build_files)
+                    self.package_dir, self.build_files)
             self.download_build_files = files.get('download_build_files', [])
 
             # list of dependencies
             for dep_name in files.get('dependencies', []):
-                dep = RPM_Package.get_instance(
-                    dep_name, self.distro, category=DEPENDENCIES)
+                dep = RPM_Package.get_instance(dep_name, self.distro)
                 self.dependencies.append(dep)
 
             for dep_name in files.get('build_dependencies', []):
-                dep = RPM_Package.get_instance(
-                    dep_name, self.distro, category=BUILD_DEPENDENCIES)
+                dep = RPM_Package.get_instance(dep_name, self.distro)
                 self.build_dependencies.append(dep)
 
             self.rpmmacro = files.get('rpmmacro', None)
             if self.rpmmacro:
-                self.rpmmacro = os.path.join(
-                    self.package_dir, self.name, self.rpmmacro)
+                self.rpmmacro = os.path.join(self.package_dir, self.rpmmacro)
 
-            self.specfile = os.path.join(self.package_dir, self.name,
-                                         files.get('spec'))
+            self.specfile = os.path.join(self.package_dir, files.get('spec'))
 
             if os.path.isfile(self.specfile):
                 LOG.info("Package found: %s for %s %s" % (
