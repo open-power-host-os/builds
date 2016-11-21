@@ -32,8 +32,22 @@ from lib import utils
 from lib.rpm_package import RPM_Package
 
 LOG = logging.getLogger(__name__)
-PACKAGES = ['qemu', 'kernel', 'libvirt', 'kimchi', 'ginger', 'gingerbase',
-            'wok', 'sos', 'SLOF']
+PACKAGES = [
+    'SLOF',
+    'ginger',
+    'gingerbase',
+    'kernel',
+    'kimchi',
+    'libservicelog',
+    'libvirt',
+    'libvpd',
+    'lsvpd',
+    'ppc64-diag',
+    'qemu',
+    'servicelog',
+    'sos',
+    'wok',
+]
 
 
 def _sed_yaml_descriptor(yamlfile, old_commit, new_commit):
