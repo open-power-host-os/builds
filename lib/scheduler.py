@@ -52,5 +52,5 @@ class Scheduler(object):
                 if p.build_dependencies:
                     order.extend(self._dfs(p.build_dependencies, visited))
                 order.append(p)
-                order.extend(self._dfs(packages[1:], visited))
+            order.extend(self._dfs(packages[1:], visited))
         return list(OrderedDict.fromkeys(order))
