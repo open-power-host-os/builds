@@ -32,8 +32,22 @@ from lib import utils
 from lib.rpm_package import RPM_Package
 
 LOG = logging.getLogger(__name__)
-PACKAGES = ['qemu', 'kernel', 'libvirt', 'kimchi', 'ginger', 'gingerbase',
-            'wok', 'sos', 'SLOF']
+PACKAGES = [
+    'SLOF',
+    'ginger',
+    'gingerbase',
+    'kernel',
+    'kimchi',
+    'libservicelog',
+    'libvirt',
+    'libvpd',
+    'lsvpd',
+    'ppc64-diag',
+    'qemu',
+    'servicelog',
+    'sos',
+    'wok',
+]
 
 
 def _sed_yaml_descriptor(yamlfile, old_commit, new_commit):
@@ -107,7 +121,7 @@ class Version(object):
 
         pkg = copy.copy(self.pkg)
         pkg.commit_id = None
-        pkg.download_files()
+        pkg.download_files(recurse=False)
         pkg.commit_id = pkg.repository.head.commit.hexsha
 
         if pkg.commit_id == self.pkg.commit_id:

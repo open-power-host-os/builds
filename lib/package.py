@@ -89,10 +89,10 @@ class Package(object):
         return self.name
 
 
-    def download_files(self):
+    def download_files(self, recurse=True):
         """
         Download package source code and build files.
-        Do the same for its dependencies, recursively.
+        Optionally, do the same for its dependencies, recursively.
         """
         if self.clone_url:
             self._download_source_code()
@@ -100,8 +100,9 @@ class Package(object):
             # command.
             # TODO Remove this "if" and do not allow custom commands
         self._download_build_files()
-        for dep in (self.dependencies + self.build_dependencies):
-            dep.download_files()
+        if recurse:
+            for dep in (self.dependencies + self.build_dependencies):
+                dep.download_files()
 
     def _download_source_code(self):
         LOG.info("%s: Downloading source code from '%s'." %
