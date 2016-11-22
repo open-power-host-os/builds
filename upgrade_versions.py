@@ -107,7 +107,7 @@ class Version(object):
 
         pkg = copy.copy(self.pkg)
         pkg.commit_id = None
-        pkg.download_files()
+        pkg.download_files(recurse=False)
         pkg.commit_id = pkg.repository.head.commit.hexsha
 
         if pkg.commit_id == self.pkg.commit_id:
