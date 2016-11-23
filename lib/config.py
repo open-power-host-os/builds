@@ -24,6 +24,41 @@ from lib import log_helper
 from lib import utils
 
 LOG = logging.getLogger(__name__)
+BUILD_REPO_ARGS = {
+    ('--build-versions-repository-url',):
+        dict(help='Build versions repository URL'),
+    ('--build-version',):
+        dict(help='Select build version from versions repository'),
+    ('--build-versions-repo-dir',):
+        dict(help='Directory to clone the build versions repository',
+             default='./components'),
+    ('--http-proxy',):
+        dict(help='HTTP proxy URL'),
+}
+PACKAGE_ARGS = {
+    ('--packages', '-p'):
+        dict(help='Packages to be built',
+             nargs='*'),
+    ('--result-dir', '-r'):
+        dict(help='Directory to save the RPMs.',
+             default='./result'),
+    ('--repositories-path', '-R'):
+        dict(help='Directory where to clone code repositories',
+             default='/var/lib/host-os/repositories'),
+    ('--keep-builddir',):
+        dict(help='Keep build directory and its logs and artifacts.',
+             action='store_true'),
+}
+MOCK_ARGS = {
+    ('--mock-args',):
+        dict(help='Arguments passed to mock command',
+             default=''),
+}
+SUBCOMMANDS = [
+    ('build-package', 'Build packages.',
+        [PACKAGE_ARGS, MOCK_ARGS, BUILD_REPO_ARGS]),
+]
+
 
 config_parser = None
 
@@ -83,6 +118,7 @@ class ConfigParser(object):
     cmdline > config file > argparse defaults
     """
     def __init__(self):
+        # create the top-level parser
         self.parser = argparse.ArgumentParser()
         self._CONF = None
         self._setup_config_parser_options()
@@ -101,41 +137,15 @@ class ConfigParser(object):
                                       'scripts',
                                  # NOTE(maurosr): move this to /etc in the future
                                  default='./config.yaml')
-        self.parser.add_argument('--packages', '-p',
-                                 help='Packages to be built',
-                                 nargs='*')
         self.parser.add_argument('--log-file', '-l',
                                  help='Log file',
                                  default='/var/log/host-os/builds.log')
         self.parser.add_argument('--verbose', '-v',
                                  help='Set the scripts to be verbose',
                                  action='store_true')
-        self.parser.add_argument('--result-dir', '-r',
-                                 help='Directory to save the RPMs.',
-                                 default='./result')
-        self.parser.add_argument('--repositories-path', '-R',
-                                 help='Directory where to clone code repositories',
-                                 default='/var/lib/host-os/repositories')
-        self.parser.add_argument('--keep-builddir',
-                                 help='Keep build directory and its logs and '
-                                 'artifacts.', action='store_true')
-        self.parser.add_argument('--mock-args',
-                                 help='Arguments passed to mock command',
-                                 default='')
-        self.parser.add_argument('--build-versions-repository-url',
-                                 help='Build versions repository URL')
-        self.parser.add_argument('--build-version',
-                                 help='Select build version from versions '
-                                 'repository')
-        self.parser.add_argument('--build-versions-repo-dir',
-                                 help='Directory to clone the build versions '
-                                 'repository',
-                                 default='./components')
         self.parser.add_argument('--log-size',
                                  help='Size in bytes above which the log file '
                                  'should rotate', type=int)
-        self.parser.add_argument('--http-proxy',
-                                 help='HTTP proxy URL')
         self.parser.add_argument('--release-notes-repo-url',
                                  help='Release notes repository URL')
         self.parser.add_argument('--release-notes-repo-branch',
@@ -153,7 +163,18 @@ class ConfigParser(object):
         self.parser.add_argument('--committer-email',
                                  help='Email used when creating a commit and '
                                  'bumping spec files')
+        self._add_subparser()
 
+    def _add_subparser(self):
+        subparser = self.parser.add_subparsers(
+            dest="subcommand",
+            help="Available subcommands")
+
+        for command, help_msg, arg_groups in SUBCOMMANDS:
+            parser_command = subparser.add_parser(command, help=help_msg)
+            for arg_group in arg_groups:
+                for arg, options in arg_group.items():
+                    parser_command.add_argument(*arg, **options)
 
     def parse_arguments_list(self, args):
         """

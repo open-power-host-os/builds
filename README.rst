@@ -59,7 +59,7 @@ $ sudo ppc64_cpu --smt=off
 $ sudo python setup_environment.py LOGIN
 
 Naturally, you need to replace ``LOGIN`` by the user name you'll use
-to run ``host-os-build.py``, which should not run using root user,
+to run ``host_os.py``, which should not run using root user,
 even if that user doesn't exist yet.
 
 Running
@@ -69,13 +69,13 @@ Running
 
 ::
 
-$ python host-os-build.py --package libvirt
+$ python host_os.py build-package --package libvirt
 
 * Build all software
 
 ::
 
-$ python host-os-build.py --verbose
+$ python host_os.py --verbose build-package
 
 Note the ``--verbose`` parameter to get all the log messages in the
 console. Instead of the standard ordinary messages. Please see
@@ -83,7 +83,13 @@ console. Instead of the standard ordinary messages. Please see
 
 ::
 
-$ python host-os-build.py --help
+$ python host_os.py --help
+
+or
+
+::
+
+$ python host_os.py build-package --help
 
 
 Using the RPMs
