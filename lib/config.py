@@ -128,6 +128,8 @@ class ConfigParser(object):
         self.parser.add_argument('--log-size',
                                  help='Size in bytes above which the log file '
                                  'should rotate', type=int)
+        self.parser.add_argument('--http-proxy',
+                                 help='HTTP proxy URL')
         self.parser.add_argument('--push-repo-url',
                                  help='URL of the repository used for pushing')
         self.parser.add_argument('--push-repo-branch',

@@ -27,6 +27,12 @@ from lib import repository
 LOG = logging.getLogger(__name__)
 
 
+def set_http_proxy_env(proxy):
+    LOG.info('Setting up http proxy: {}'.format(proxy))
+    os.environ['https_proxy'] = proxy
+    os.environ['http_proxy'] = proxy
+
+
 def setup_default_config():
     """
     Setup the script environment. Parse configurations, setup logging
@@ -41,6 +47,10 @@ def setup_default_config():
     log_helper.LogHelper(logfile=CONF.get('default').get('log_file'),
                          verbose=CONF.get('default').get('verbose'),
                          rotate_size=CONF.get('default').get('log_size'))
+
+    proxy = CONF.get('http_proxy')
+    if proxy:
+        set_http_proxy_env(proxy)
 
     return CONF
 

@@ -20,8 +20,11 @@ import utils
 import git
 import gitdb
 
+from lib import config
 from lib import exception
 
+
+CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 
 
@@ -43,20 +46,33 @@ def get_git_repository(name, remote_repo_url, parent_dir_path):
     if os.path.exists(repo_path):
         return GitRepository(repo_path)
     else:
-        return GitRepository.clone_from(remote_repo_url, repo_path)
+        return GitRepository.clone_from(remote_repo_url,
+                                        repo_path,
+                                        proxy=CONF.get('http_proxy'))
+
 
 class GitRepository(git.Repo):
 
     @classmethod
-    def clone_from(cls, remote_repo_url, repo_path, *args, **kwargs):
+    def clone_from(cls, remote_repo_url, repo_path, proxy=None, *args, **kwargs):
         """
         Clone a repository from a remote URL into a local path.
         """
         LOG.info("Cloning repository from '%s' into '%s'" %
                  (remote_repo_url, repo_path))
         try:
-            return super(GitRepository, cls).clone_from(
-                remote_repo_url, repo_path, *args, **kwargs)
+            if proxy:
+                git_cmd = git.cmd.Git()
+                git_cmd.execute(['git',
+                                 '-c',
+                                 "http.proxy='{}'".format(proxy),
+                                 'clone',
+                                 remote_repo_url,
+                                 repo_path])
+                return GitRepository(repo_path)
+            else:
+                return super(GitRepository, cls).clone_from(
+                    remote_repo_url, repo_path, *args, **kwargs)
         except git.exc.GitCommandError:
             message = "Failed to clone repository"
             LOG.exception(message)
