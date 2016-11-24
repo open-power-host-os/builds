@@ -59,6 +59,8 @@ RELEASE_NOTES_ARGS = {
         dict(help='Release notes repository URL'),
     ('--release-notes-repo-branch',):
         dict(help='Branch of the release notes repository to checkout'),
+}
+PUSH_REPO_ARGS = {
     ('--push-repo-url',):
         dict(help='URL of the repository used for pushing'),
     ('--push-repo-branch',):
@@ -73,7 +75,9 @@ SUBCOMMANDS = [
     ('build-package', 'Build packages.',
         [PACKAGE_ARGS, MOCK_ARGS, BUILD_REPO_ARGS]),
     ('release-notes', 'Create release notes',
-        [RELEASE_NOTES_ARGS, BUILD_REPO_ARGS]),
+        [RELEASE_NOTES_ARGS, PUSH_REPO_ARGS, BUILD_REPO_ARGS]),
+    ('upgrade-versions', 'Upgrade packages versions',
+        [PUSH_REPO_ARGS, BUILD_REPO_ARGS]),
 ]
 
 
