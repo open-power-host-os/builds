@@ -14,3 +14,28 @@ default:
    --plugin-option=tmpfs:keep_mounted=True
    --plugin-option=tmpfs:max_fs_size=50g
    --plugin-option=tmpfs:required_ram_mb=4096"
+iso:
+    iso_name: "OpenPOWER-Host_OS"
+    log_file: "/var/log/host-os/iso.log"
+    mock_config: "./extras/centOS/7.2/mock/spin-iso-epel-7-ppc64le.cfg"
+    packages_dir: "./result"
+    kickstart_file: "host-os.ks"
+    hostos_packages_groups:
+        name: "virtualization-hypervisor"
+    package_group_list:
+        - "@base"
+        - "@core"
+        - "@debugging"
+        - "@virtualization-hypervisor"
+        - "@virtualization-tools"
+        - "@network-file-system-client"
+        - "@remote-system-management"
+        - "@virtualization-platform"
+        - "grub2"
+    mock_spin_repo:
+        name: "hostos"
+        dir: "/host-os-repo"
+    distro_repo_url:
+        base: "http://mirror.centos.org/altarch/7/os/ppc64le/"
+        updates: "http://mirror.centos.org/altarch/7/updates/ppc64le/"
+        epel: "http://download.fedoraproject.org/pub/epel/7/ppc64le/"
