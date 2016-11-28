@@ -24,7 +24,6 @@ from lib import config
 from lib import exception
 
 
-CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 
 
@@ -46,6 +45,7 @@ def get_git_repository(name, remote_repo_url, parent_dir_path):
     if os.path.exists(repo_path):
         return GitRepository(repo_path)
     else:
+        CONF = config.get_config().CONF
         return GitRepository.clone_from(remote_repo_url,
                                         repo_path,
                                         proxy=CONF.get('http_proxy'))
