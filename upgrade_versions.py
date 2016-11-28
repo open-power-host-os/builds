@@ -160,8 +160,8 @@ class Version(object):
 
             if "%{" in version:
                 macro_name = version[2:-1]
-                content = re.sub(r'(%define\s+%s\s+)\S+' % macro_name,
-                                 r'\g<1>' + self._repo_version, content)
+                content = self._replace_macro_definition(
+                    macro_name, self._repo_version, content)
             else:
                 content = re.sub(r'(Version:\s*)\S+',
                                  r'\g<1>' + self._repo_version, content)
@@ -187,6 +187,10 @@ class Version(object):
             assert user_name is not None
             assert user_email is not None
             rpm_bump_spec(pkg.specfile, log, user_name, user_email)
+
+    def _replace_macro_definition(self, macro_name, replacement, text):
+        return re.sub(r'(%%define\s+%s\s+)\S+' % macro_name,
+                      r'\g<1>' + replacement, text)
 
     def _read_spec(self):
         self._spec_version = rpm_query_spec_file('version', self.pkg.specfile)
