@@ -19,6 +19,8 @@ import logging
 import re
 import yaml
 
+import rpmUtils.miscutils
+
 from lib import config
 from lib import exception
 from lib import utils
@@ -29,17 +31,7 @@ LOG = logging.getLogger(__name__)
 
 
 def compare_versions(v1, v2):
-    try:
-        utils.run_command("rpmdev-vercmp %s %s" % (v1, v2))
-        rc = 0
-    except exception.SubprocessError as exc:
-        if exc.returncode == 11:
-            rc = 1
-        elif exc.returncode == 12:
-            rc = -1
-        else:
-            raise
-    return rc
+    return rpmUtils.miscutils.compareEVR((None, v1, None), (None, v2, None))
 
 
 class SpecFile(object):
