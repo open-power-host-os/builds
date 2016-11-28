@@ -28,6 +28,7 @@ from lib import exception
 from lib import log_helper
 from lib import packages_manager
 from lib import repository
+from lib import rpm_package
 from lib import utils
 
 CONF = config.get_config().CONF
@@ -51,7 +52,9 @@ class PackageReleaseInfo(object):
 
     def __str__(self):
         string = " -\n"
-        for attribute in ["name", "clone_url", "branch", "commit_id"]:
+        PACKAGE_ATTRIBUTES = ["name", "clone_url", "version", "release",
+                              "branch", "commit_id"]
+        for attribute in PACKAGE_ATTRIBUTES:
             string += "   {name}: {value}\n".format(
                 name=attribute, value=self.package.__getattribute__(attribute))
         return string
@@ -130,6 +133,10 @@ def main(args):
 
     packages_names = (CONF.get('default').get('packages')
                       or config.discover_packages())
+    distro = distro_utils.get_distro(
+        CONF.get('default').get('distro_name'),
+        CONF.get('default').get('distro_version'),
+        CONF.get('default').get('arch_and_endianness'))
     release_notes_repo_url = CONF.get('default').get('release_notes_repo_url')
     release_notes_repo_branch = CONF.get('default').get(
         'release_notes_repo_branch')
@@ -148,7 +155,8 @@ def main(args):
     LOG.info("Creating release notes with packages: {}".format(
         ", ".join(packages_names)))
     package_manager = packages_manager.PackagesManager(packages_names)
-    package_manager.prepare_packages(download_source_code=False)
+    package_manager.prepare_packages(packages_class=rpm_package.RPM_Package,
+                                     download_source_code=False, distro=distro)
 
     release_date = datetime.today().date().isoformat()
     release_file_name = RELEASE_FILE_NAME_TEMPLATE.format(date=release_date)
