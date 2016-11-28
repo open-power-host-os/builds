@@ -38,6 +38,7 @@ $ sudo yum localinstall epel-release-7-5.noarch.rpm # Note the version may chang
  - PyYAML
  - svn
  - wget
+ - python-lxml
 
 ::
 

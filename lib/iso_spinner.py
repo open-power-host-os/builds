@@ -21,6 +21,7 @@ import os
 from lib import exception
 from lib import utils
 from lib import distro_utils
+from lib import packages_groups_xml_creator
 
 LOG = logging.getLogger(__name__)
 
@@ -76,8 +77,15 @@ class MockPungiSpinner(object):
                                (" ".join(rpm_files), mock_spin_repo_dir))
 
         LOG.debug("Creating comps.xml")
-        # TODO: create comps.xml
-        comps_xml_file = "hostos-comps.xml"
+        comps_xml_str = packages_groups_xml_creator.create_comps_xml(
+            self.config.get('hostos_packages_groups'))
+        comps_xml_file = "host-os-comps.xml"
+        try:
+            with open(comps_xml_file, 'wt') as f:
+                f.write(comps_xml_str)
+        except IOError:
+            LOG.error("Failed to write XML to %s file." % comps_xml_file)
+            raise
 
         comps_xml_chroot_path = os.path.join("/", comps_xml_file)
         self._run_mock_command("--copyin %s %s" %
