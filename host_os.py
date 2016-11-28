@@ -17,6 +17,7 @@ import os
 import sys
 
 from lib import config
+from tools import build_iso
 from tools import build_package
 from tools import create_release_notes
 from tools import setup_environment
@@ -28,6 +29,7 @@ SUBCOMMANDS = {
     'release-notes': create_release_notes,
     'upgrade-versions': upgrade_versions,
     'set-env': setup_environment,
+    'build-iso': build_iso,
 }
 
 

@@ -76,6 +76,11 @@ SETUP_ENVIRONMENT_ARGS = {
         dict(help='User login that will run Host OS commands',
              required=True),
 }
+ISO_ARGS = {
+    ('--packages-dir', '-d'):
+        dict(help='Directory of packages used in the ISO image.',
+             default='./result'),
+}
 SUBCOMMANDS = [
     ('build-package', 'Build packages.',
         [PACKAGE_ARGS, MOCK_ARGS, BUILD_REPO_ARGS]),
@@ -85,6 +90,8 @@ SUBCOMMANDS = [
         [PUSH_REPO_ARGS, BUILD_REPO_ARGS]),
     ('set-env', 'Setup user and directory for build scripts',
         [SETUP_ENVIRONMENT_ARGS]),
+    ('build-iso', 'Build ISO image',
+        [ISO_ARGS, MOCK_ARGS]),
 ]
 
 
@@ -219,6 +226,12 @@ class ConfigParser(object):
         # drop None values
         for key, value in args.items():
             if not value:
+                args.pop(key)
+
+        # update iso node with iso subcommand args and then drop them from args
+        for key, value in args.items():
+            if key in config['iso']:
+                config['iso'][key] = value
                 args.pop(key)
 
         config['default'].update(args)

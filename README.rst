@@ -195,3 +195,19 @@ the unit tests:
 
 $ export PYTHONPATH=$(pwd):$PYTHONPATH
 $ nosetests tests/unit
+
+
+ISO image
+---------
+
+* Build Host OS ISO image
+
+::
+
+$ python host_os.py --verbose build-iso
+
+Please see ``--help`` for more options.
+
+::
+
+$ python host_os.py build-iso --help

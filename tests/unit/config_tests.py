@@ -26,6 +26,8 @@ class TestConfigParser(unittest.TestCase):
         (['release-notes', '--committer-name=foo'], 'committer_name', 'foo'),
         (['release-notes', '--committer-email=foo'], 'committer_email', 'foo'),
         (['set-env', '--user=foo'], 'user', 'foo'),
+        (['build-iso', '--packages-dir=foo'], 'packages_dir', 'foo'),
+        (['build-iso', '--mock-args=foo'], 'mock_args', 'foo'),
     ])
     def test_parse_arguments_list_WithLongArgument_ShouldParseArgumentValue(self, arguments, key, expected):
         cfg = ConfigParser()
@@ -50,6 +52,8 @@ class TestConfigParser(unittest.TestCase):
         (['release-notes'], 'push_repo_branch', 'master'),
         (['release-notes'], 'committer_name', None),
         (['release-notes'], 'committer_email', None),
+        (['build-iso'], 'packages_dir', './result'),
+        (['build-iso'], 'mock_args', ''),
     ])
     def test_parse_arguments_list_WithoutArgument_ShouldUseDefaultValue(self, arguments, key, expected):
         cfg = ConfigParser()
