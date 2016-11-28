@@ -21,6 +21,10 @@ class TestConfigParser(unittest.TestCase):
         (['build-package', '--build-versions-repository-url=foo'], 'build_versions_repository_url', 'foo'),
         (['build-package', '--build-version=foo'], 'build_version', 'foo'),
         (['build-package', '--mock-args=foo'], 'mock_args', 'foo'),
+        (['release-notes', '--push-repo-url=foo'], 'push_repo_url', 'foo'),
+        (['release-notes', '--push-repo-branch=foo'], 'push_repo_branch', 'foo'),
+        (['release-notes', '--committer-name=foo'], 'committer_name', 'foo'),
+        (['release-notes', '--committer-email=foo'], 'committer_email', 'foo'),
     ])
     def test_parse_arguments_list_WithLongArgument_ShouldParseArgumentValue(self, arguments, key, expected):
         cfg = ConfigParser()
@@ -41,6 +45,10 @@ class TestConfigParser(unittest.TestCase):
         (['build-package'], 'build_versions_repository_url', None),
         (['build-package'], 'build_version', None),
         (['build-package'], 'mock_args', ''),
+        (['release-notes'], 'push_repo_url', None),
+        (['release-notes'], 'push_repo_branch', 'master'),
+        (['release-notes'], 'committer_name', None),
+        (['release-notes'], 'committer_email', None),
     ])
     def test_parse_arguments_list_WithoutArgument_ShouldUseDefaultValue(self, arguments, key, expected):
         cfg = ConfigParser()

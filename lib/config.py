@@ -54,9 +54,26 @@ MOCK_ARGS = {
         dict(help='Arguments passed to mock command',
              default=''),
 }
+RELEASE_NOTES_ARGS = {
+    ('--release-notes-repo-url',):
+        dict(help='Release notes repository URL'),
+    ('--release-notes-repo-branch',):
+        dict(help='Branch of the release notes repository to checkout'),
+    ('--push-repo-url',):
+        dict(help='URL of the repository used for pushing'),
+    ('--push-repo-branch',):
+        dict(help='Branch of the repository used for pushing',
+             default='master'),
+    ('--committer-name',):
+        dict(help='Name used when creating a commit and bumping spec files'),
+    ('--committer-email',):
+        dict(help='Email used when creating a commit and bumping spec files'),
+}
 SUBCOMMANDS = [
     ('build-package', 'Build packages.',
         [PACKAGE_ARGS, MOCK_ARGS, BUILD_REPO_ARGS]),
+    ('release-notes', 'Create release notes',
+        [RELEASE_NOTES_ARGS, BUILD_REPO_ARGS]),
 ]
 
 
@@ -146,23 +163,6 @@ class ConfigParser(object):
         self.parser.add_argument('--log-size',
                                  help='Size in bytes above which the log file '
                                  'should rotate', type=int)
-        self.parser.add_argument('--release-notes-repo-url',
-                                 help='Release notes repository URL')
-        self.parser.add_argument('--release-notes-repo-branch',
-                                 help='Branch of the release notes repository '
-                                 'to checkout')
-        self.parser.add_argument('--push-repo-url',
-                                 help='URL of the repository used for pushing')
-        self.parser.add_argument('--push-repo-branch',
-                                 help='Branch of the repository used for '
-                                 'pushing',
-                                 default='master')
-        self.parser.add_argument('--committer-name',
-                                 help='Name used when creating a commit and '
-                                 'bumping spec files')
-        self.parser.add_argument('--committer-email',
-                                 help='Email used when creating a commit and '
-                                 'bumping spec files')
         self._add_subparser()
 
     def _add_subparser(self):

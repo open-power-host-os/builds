@@ -18,10 +18,12 @@ import sys
 
 from lib import config
 from tools import build_package
+from tools import create_release_notes
 
 LOG = logging.getLogger(__name__)
 SUBCOMMANDS = {
     'build-package': build_package,
+    'release-notes': create_release_notes,
 }
 
 

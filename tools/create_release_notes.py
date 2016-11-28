@@ -17,7 +17,6 @@ from datetime import datetime
 import logging
 import os
 import shutil
-import sys
 import urlparse
 
 import git
@@ -77,6 +76,7 @@ def write_version_info(release, file_path, packages):
         version_info_file.write(RELEASE_FILE_CONTENT_TEMPLATE.format(
             **format_dict))
 
+
 def publish_release_notes(
         release_date, release_file_source_path, website_pull_repo_url,
         website_pull_repo_branch, website_push_repo_url,
@@ -125,8 +125,7 @@ def publish_release_notes(
         raise repository.PushError(push_info)
 
 
-def main(args):
-    CONF = config.setup_default_config()
+def run(CONF):
     setup_versions_repository(CONF)
 
     packages_names = (CONF.get('default').get('packages')
@@ -158,11 +157,9 @@ def main(args):
 
     release_date = datetime.today().date().isoformat()
     release_file_name = RELEASE_FILE_NAME_TEMPLATE.format(date=release_date)
-    write_version_info(release_date, release_file_name, package_manager.packages)
+    write_version_info(release_date, release_file_name,
+                       package_manager.packages)
     publish_release_notes(
         release_date, release_file_name, release_notes_repo_url,
         release_notes_repo_branch, push_repo_url, push_repo_branch,
         committer_name, committer_email)
-
-if __name__ == '__main__':
-    sys.exit(main(sys.argv[1:]))
