@@ -7,3 +7,5 @@ default:
  distro_name: 'centos'
  distro_version: '7.2'
  arch_and_endianness: 'ppc64le'
+ release_notes_repo_url: "https://github.com/open-power-host-os/open-power-host-os.github.io.git"
+ release_notes_repo_branch: "master"
