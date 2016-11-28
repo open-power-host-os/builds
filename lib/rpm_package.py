@@ -167,3 +167,11 @@ class RPM_Package(Package):
                     distro_version=self.distro.version)
         except TypeError:
             raise exception.PackageDescriptorError(package=self.name)
+
+    @property
+    def version(self):
+        return self.spec_file.query_tag("version")
+
+    @property
+    def release(self):
+        return self.spec_file.query_tag("release")

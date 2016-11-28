@@ -79,20 +79,10 @@ def _get_git_log(repo, since_id):
 class Version(object):
     def __init__(self, pkg):
         self.pkg = pkg
-        self._spec_version = None
-        self._spec_release = None
         self._repo_prerelease = "%{nil}"
         self._repo_version = None
 
-        self._read_spec()
-
-    @property
-    def version(self):
-        return self._spec_version
-
-    @property
-    def release(self):
-        return self._spec_release
+        LOG.info("%s: Current version: %s" % (self.pkg, self.pkg.version))
 
     def update(self, user_name, user_email):
         changelog = None
@@ -109,14 +99,14 @@ class Version(object):
         self._read_version_from_repo(pkg.repository.working_tree_dir)
 
         result = rpm_package.compare_versions(
-            self._spec_version, self._repo_version)
+            self.pkg.version, self._repo_version)
         if result < 0:
             pkg.spec_file.update_version(self._repo_version)
             changelog = "Version update"
         elif result > 0:
             raise exception.PackageError(
                 "Current version (%s) is greater than repo version (%s)" %
-                (self._spec_version, self._repo_version))
+                (self.pkg.version, self._repo_version))
 
         pkg.spec_file.update_prerelease_tag(self._repo_prerelease)
         self._bump_release(pkg, changelog, user_name, user_email)
@@ -135,12 +125,6 @@ class Version(object):
             assert user_name is not None
             assert user_email is not None
             pkg.spec_file.bump_release(log, user_name, user_email)
-
-    def _read_spec(self):
-        self._spec_version = self.pkg.spec_file.query_tag('version')
-        LOG.info("%s: Current version: %s" % (self.pkg, self._spec_version))
-        self._spec_release = self.pkg.spec_file.query_tag(
-            'release').split('.')[0]
 
     def _read_version_from_repo(self, repo_path):
 
