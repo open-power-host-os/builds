@@ -39,6 +39,7 @@ class SpecFile(object):
     def __init__(self, path):
         self.path = path
         self._content = None
+        self._cached_tags = dict()
 
     @property
     def content(self):
@@ -63,11 +64,19 @@ class SpecFile(object):
         """
         with open(self.path, 'w') as file_:
             file_.write(self._content)
+        self._cached_tags = dict()
 
     def query_tag(self, tag):
-        return utils.run_command(
-            "rpmspec --srpm -q --qf '%%{%s}' %s 2>/dev/null" % (
-                tag.upper(), self.path)).strip()
+        """
+        Queries the spec file for a tag's value.
+        Cached content not yet written to the file is not considered.
+        """
+        if tag not in self._cached_tags:
+            self._cached_tags[tag] = utils.run_command(
+                "rpmspec --srpm -q --qf '%%{%s}' %s 2>/dev/null" % (
+                    tag.upper(), self.path)).strip()
+
+        return self._cached_tags[tag]
 
     def update_version(self, new_version):
         LOG.info("Updating '%s' version to: %s" % (self.path, new_version))
