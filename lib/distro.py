@@ -53,6 +53,7 @@ class LinuxDistribution(object):
         This is were distro and builder interact and produce the packages we
         want.
         """
+        self.package_builder.initialize()
         for package in packages:
             self.package_builder.build(package)
         self.clean(packages)

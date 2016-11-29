@@ -37,6 +37,15 @@ class Mock(build_system.PackageBuilder):
         self.build_dir = None
         self.archive = None
 
+    def initialize(self):
+        """
+        Initializes the configured chroot by installing the essential
+        packages. This setup is common for all packages that are built
+        and needs to be done only once.
+        """
+        cmd = "%s --init -r %s " % (MOCK_BIN, self.mock_config)
+        utils.run_command(cmd)
+
     def build(self, package):
         LOG.info("%s: Starting build process" % package.name)
         self._prepare(package)
@@ -81,7 +90,8 @@ class Mock(build_system.PackageBuilder):
     def _prepare(self, package):
         self._create_build_directory(package)
         self._prepare_archive(package)
-        self._prepare_chroot(package)
+        if package.build_files:
+            self._copy_files_to_chroot(package)
 
     def _prepare_archive(self, package):
         LOG.info("%s: Preparing archive." % package.name)
@@ -92,15 +102,14 @@ class Mock(build_system.PackageBuilder):
         else:
             self.archive = package._download_source(self.build_dir)
 
-    def _prepare_chroot(self, package):
-        cmd = "%s --init -r %s " % (MOCK_BIN, self.mock_config)
+    def _copy_files_to_chroot(self, package):
+        cmd = "%s -r %s " % (MOCK_BIN, self.mock_config)
 
-        if package.build_files:
-            files = []
-            for f in os.listdir(package.build_files):
-                files.append(os.path.join(package.build_files, f))
-            cmd = cmd + " --copyin %s %s" % (" ".join(files),
-                                             MOCK_CHROOT_BUILD_DIR)
+        files = []
+        for f in os.listdir(package.build_files):
+            files.append(os.path.join(package.build_files, f))
+        cmd = cmd + " --copyin %s %s" % (" ".join(files),
+                                         MOCK_CHROOT_BUILD_DIR)
 
         utils.run_command(cmd)
 
