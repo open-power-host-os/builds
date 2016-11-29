@@ -140,6 +140,8 @@ class GitRepository(git.Repo):
         Update repository submodules, initializing them if needed.
         """
         for submodule in self.submodules:
+            LOG.info("Updating submodule %(name)s from %(url)s"
+                     % dict(name=submodule.name, url=submodule.url))
             submodule.update(init=True)
 
     def archive(self, archive_name, commit_id, build_dir):
