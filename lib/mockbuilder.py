@@ -33,6 +33,7 @@ class Mock(build_system.PackageBuilder):
     def __init__(self, config):
         super(Mock, self).__init__()
         self.mock_config = config
+        self.mock_args = CONF.get('default').get('mock_args')
         self.result_dir = CONF.get('default').get('result_dir')
         self.build_dir = None
         self.archive = None
@@ -43,7 +44,8 @@ class Mock(build_system.PackageBuilder):
         packages. This setup is common for all packages that are built
         and needs to be done only once.
         """
-        cmd = "%s --init -r %s " % (MOCK_BIN, self.mock_config)
+        cmd = "%s --init -r %s %s " % (MOCK_BIN, self.mock_config,
+                                       self.mock_args)
         utils.run_command(cmd)
 
     def build(self, package):
@@ -51,9 +53,9 @@ class Mock(build_system.PackageBuilder):
         self._prepare(package)
         self._build_srpm(package)
         self._install_external_dependencies(package)
-        cmd = "%s -r %s --rebuild %s --no-clean --resultdir=%s" % (
-            MOCK_BIN, self.mock_config, self.build_dir + "/*.rpm",
-            self.build_dir)
+        cmd = "%s -r %s %s --rebuild %s --no-clean --resultdir=%s" % (
+            MOCK_BIN, self.mock_config, self.mock_args,
+            self.build_dir + "/*.rpm", self.build_dir)
 
         if package.rpmmacro:
             cmd = cmd + " --macro-file=%s" % package.rpmmacro
@@ -78,9 +80,10 @@ class Mock(build_system.PackageBuilder):
 
     def _build_srpm(self, package):
         LOG.info("%s: Building SRPM" % package.name)
-        cmd = ("%s -r %s --buildsrpm --no-clean --spec %s --source %s "
+        cmd = ("%s -r %s %s --buildsrpm --no-clean --spec %s --source %s "
                "--resultdir=%s" % (MOCK_BIN,
                                    self.mock_config,
+                                   self.mock_args,
                                    package.spec_file.path,
                                    self.archive,
                                    self.build_dir))
@@ -103,7 +106,7 @@ class Mock(build_system.PackageBuilder):
             self.archive = package._download_source(self.build_dir)
 
     def _copy_files_to_chroot(self, package):
-        cmd = "%s -r %s " % (MOCK_BIN, self.mock_config)
+        cmd = "%s -r %s %s " % (MOCK_BIN, self.mock_config, self.mock_args)
 
         files = []
         for f in os.listdir(package.build_files):
@@ -117,7 +120,7 @@ class Mock(build_system.PackageBuilder):
         utils.run_command("%s --clean" % MOCK_BIN)
 
     def _install_external_dependencies(self, package):
-        cmd = "%s -r %s " % (MOCK_BIN, self.mock_config)
+        cmd = "%s -r %s %s " % (MOCK_BIN, self.mock_config, self.mock_args)
         if package.build_dependencies or package.dependencies:
             install = " --install"
             for dep in package.build_dependencies:
