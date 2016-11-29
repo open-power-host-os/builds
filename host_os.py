@@ -19,6 +19,7 @@ import sys
 from lib import config
 from tools import build_package
 from tools import create_release_notes
+from tools import setup_environment
 from tools import upgrade_versions
 
 LOG = logging.getLogger(__name__)
@@ -26,6 +27,7 @@ SUBCOMMANDS = {
     'build-package': build_package,
     'release-notes': create_release_notes,
     'upgrade-versions': upgrade_versions,
+    'set-env': setup_environment,
 }
 
 
@@ -33,10 +35,14 @@ if __name__ == '__main__':
     CONF = config.setup_default_config()
     subcommand = CONF.get('default').get('subcommand')
 
-    if os.getuid() is 0:
-        print("Please, do not run this script as root, run "
-              "setup_environment.py script in order to properly setup user and"
-              " directory for build scripts")
+    if os.getuid() is 0 and subcommand != 'set-env':
+        print("Please, do not run this command as root, run "
+              "host_os.py set-env --user <YOUR_USER_LOGIN> command in order to "
+              "properly setup user and directory for build scripts")
+        sys.exit(3)
+
+    if os.getuid() is not 0 and subcommand == 'set-env':
+        print("The set-env command should be run with root privileges")
         sys.exit(3)
 
     sys.exit(SUBCOMMANDS[subcommand].run(CONF))

@@ -67,3 +67,7 @@ def main(user):
 
     uid, gid = setup_user(user)
     setup_default_directories(log_dir, repo_dir, uid, gid)
+
+
+def run(CONF):
+    main(CONF.get('default').get('user'))

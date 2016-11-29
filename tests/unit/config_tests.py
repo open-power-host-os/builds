@@ -25,6 +25,7 @@ class TestConfigParser(unittest.TestCase):
         (['release-notes', '--push-repo-branch=foo'], 'push_repo_branch', 'foo'),
         (['release-notes', '--committer-name=foo'], 'committer_name', 'foo'),
         (['release-notes', '--committer-email=foo'], 'committer_email', 'foo'),
+        (['set-env', '--user=foo'], 'user', 'foo'),
     ])
     def test_parse_arguments_list_WithLongArgument_ShouldParseArgumentValue(self, arguments, key, expected):
         cfg = ConfigParser()

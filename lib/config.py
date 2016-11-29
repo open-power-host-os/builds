@@ -71,6 +71,11 @@ PUSH_REPO_ARGS = {
     ('--committer-email',):
         dict(help='Email used when creating a commit and bumping spec files'),
 }
+SETUP_ENVIRONMENT_ARGS = {
+    ('--user', '-u'):
+        dict(help='User login that will run Host OS commands',
+             required=True),
+}
 SUBCOMMANDS = [
     ('build-package', 'Build packages.',
         [PACKAGE_ARGS, MOCK_ARGS, BUILD_REPO_ARGS]),
@@ -78,6 +83,8 @@ SUBCOMMANDS = [
         [RELEASE_NOTES_ARGS, PUSH_REPO_ARGS, BUILD_REPO_ARGS]),
     ('upgrade-versions', 'Upgrade packages versions',
         [PUSH_REPO_ARGS, BUILD_REPO_ARGS]),
+    ('set-env', 'Setup user and directory for build scripts',
+        [SETUP_ENVIRONMENT_ARGS]),
 ]
 
 
