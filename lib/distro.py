@@ -26,6 +26,7 @@ SUPPORTED_ARCH_AND_ENDIANNESS = ("PPC64LE")
 
 class LinuxDistribution(object):
     __metaclass__ = abc.ABCMeta
+    supported_versions = []
 
     def __init__(self, name=None, version=None, arch_and_endianness=None):
         """
@@ -33,6 +34,7 @@ class LinuxDistribution(object):
         distro.
         """
         self.lsb_name = name
+        self.package_builder = None
         if arch_and_endianness.upper() not in SUPPORTED_ARCH_AND_ENDIANNESS:
             raise exception.DistributionVersionNotSupportedError(
                 msg="Endianness not supported: %s" % arch_and_endianness)
