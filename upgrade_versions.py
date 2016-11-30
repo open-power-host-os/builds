@@ -49,6 +49,9 @@ PACKAGES = [
     'wok',
 ]
 
+# prerelease strings supported as last element in the version regex
+PRERELEASE_TERMS = ['rc']
+
 
 def _sed_yaml_descriptor(yamlfile, old_commit, new_commit):
     lines = []
@@ -104,6 +107,7 @@ class Version(object):
         self.pkg = pkg
         self._spec_version = None
         self._spec_release = None
+        self._prerelease = "%{nil}"
         self._repo_version = None
 
         self._read_spec()
@@ -139,6 +143,7 @@ class Version(object):
                 "Current version (%s) is greater than repo version (%s)" %
                 (self._spec_version, self._repo_version))
 
+        self._update_prerelease_tag()
         self._bump_release(pkg, changelog, user_name, user_email)
 
     def _update_version(self):
@@ -160,8 +165,8 @@ class Version(object):
 
             if "%{" in version:
                 macro_name = version[2:-1]
-                content = re.sub(r'(%define\s+%s\s+)\S+' % macro_name,
-                                 r'\g<1>' + self._repo_version, content)
+                content = self._replace_macro_definition(
+                    macro_name, self._repo_version, content)
             else:
                 content = re.sub(r'(Version:\s*)\S+',
                                  r'\g<1>' + self._repo_version, content)
@@ -188,6 +193,18 @@ class Version(object):
             assert user_email is not None
             rpm_bump_spec(pkg.specfile, log, user_name, user_email)
 
+    def _update_prerelease_tag(self):
+        with open(self.pkg.specfile, 'r+') as f:
+            content = self._replace_macro_definition(
+                'prerelease', self._prerelease, f.read())
+            f.seek(0)
+            f.write(content)
+        LOG.info("%s: Updated prerelease tag" % self.pkg)
+
+    def _replace_macro_definition(self, macro_name, replacement, text):
+        return re.sub(r'(%%define\s+%s\s+)\S+' % macro_name,
+                      r'\g<1>' + replacement, text)
+
     def _read_spec(self):
         self._spec_version = rpm_query_spec_file('version', self.pkg.specfile)
         LOG.info("%s: Current version: %s" % (self.pkg, self._spec_version))
@@ -210,8 +227,18 @@ class Version(object):
 
                 with open(version_file, 'r') as f:
                     match = re.search(regex, f.read())
+                match_groups = list(match.groups())
+
+                last_group = match_groups[-1]
+                for term in PRERELEASE_TERMS:
+                    if term in last_group:
+                        # The spec file's Release field cannot contain dashes.
+                        self._prerelease = last_group.replace('-', '.')
+                        match_groups.pop()
+                        break
+
                 self._repo_version = '.'.join(s.strip()
-                                              for s in match.groups() if s)
+                                              for s in match_groups if s)
                 LOG.info("%s: Repository version: %s" % (self.pkg,
                                                          self._repo_version))
                 break
