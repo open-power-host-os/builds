@@ -23,13 +23,14 @@ from lib import log_helper
 from lib import build_manager
 from lib import repository
 from lib import utils
+from lib.versions_repository import setup_versions_repository
 
 LOG = logging.getLogger(__name__)
 
 
 def main(args):
     CONF = config.setup_default_config()
-    utils.setup_versions_repository(CONF)
+    setup_versions_repository(CONF)
     packages_to_build = (CONF.get('default').get('packages')
                          or config.discover_packages())
     distro = distro_utils.get_distro(

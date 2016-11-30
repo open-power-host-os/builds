@@ -19,10 +19,8 @@ import platform
 import subprocess
 import sys
 
-from lib import config
 from lib import exception
 from lib import log_helper
-from lib import repository
 
 LOG = logging.getLogger(__name__)
 
@@ -31,25 +29,6 @@ def set_http_proxy_env(proxy):
     LOG.info('Setting up http proxy: {}'.format(proxy))
     os.environ['https_proxy'] = proxy
     os.environ['http_proxy'] = proxy
-
-
-def setup_versions_repository(config):
-    """
-    Clone and checkout the versions repository and halt execution if
-    anything fails.
-    """
-    path, dir_name = os.path.split(
-        config.get('default').get('build_versions_repo_dir'))
-    url = config.get('default').get('build_versions_repository_url')
-    branch = config.get('default').get('build_version')
-    try:
-        versions_repo = repository.get_git_repository(dir_name, url, path)
-        versions_repo.checkout(branch)
-    except exception.RepositoryError as exc:
-        LOG.exception("Failed to checkout versions repository")
-        sys.exit(exc.errno)
-
-    return versions_repo
 
 
 def run_command(cmd, **kwargs):
