@@ -128,7 +128,7 @@ def publish_release_notes(
 
 
 def main(args):
-    CONF = utils.setup_default_config()
+    CONF = config.setup_default_config()
     utils.setup_versions_repository(CONF)
 
     packages_names = (CONF.get('default').get('packages')

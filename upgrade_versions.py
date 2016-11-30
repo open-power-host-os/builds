@@ -200,7 +200,7 @@ def push_new_versions(versions_repo, release_date, versions_repo_push_url,
 
 
 def main(args):
-    CONF = utils.setup_default_config()
+    CONF = config.setup_default_config()
     versions_repo = utils.setup_versions_repository(CONF)
     packages_to_update = CONF.get('default').get('packages') or PACKAGES
     distro = distro_utils.get_distro(

@@ -28,7 +28,7 @@ LOG = logging.getLogger(__name__)
 
 
 def main(args):
-    CONF = utils.setup_default_config()
+    CONF = config.setup_default_config()
     utils.setup_versions_repository(CONF)
     packages_to_build = (CONF.get('default').get('packages')
                          or config.discover_packages())

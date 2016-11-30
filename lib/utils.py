@@ -33,28 +33,6 @@ def set_http_proxy_env(proxy):
     os.environ['http_proxy'] = proxy
 
 
-def setup_default_config():
-    """
-    Setup the script environment. Parse configurations, setup logging
-    and halt execution if anything fails.
-    """
-    try:
-        CONF = config.get_config().CONF
-    except OSError:
-        print("Failed to parse settings")
-        sys.exit(2)
-
-    log_helper.LogHelper(logfile=CONF.get('default').get('log_file'),
-                         verbose=CONF.get('default').get('verbose'),
-                         rotate_size=CONF.get('default').get('log_size'))
-
-    proxy = CONF.get('http_proxy')
-    if proxy:
-        set_http_proxy_env(proxy)
-
-    return CONF
-
-
 def setup_versions_repository(config):
     """
     Clone and checkout the versions repository and halt execution if

@@ -20,6 +20,8 @@ import sys
 
 import yaml
 
+from lib import log_helper
+
 LOG = logging.getLogger(__name__)
 
 config_parser = None
@@ -186,3 +188,25 @@ class ConfigParser(object):
         config['default'].update(args)
         self._CONF = config
         return config
+
+
+def setup_default_config():
+    """
+    Setup the script environment. Parse configurations, setup logging
+    and halt execution if anything fails.
+    """
+    try:
+        CONF = get_config().CONF
+    except OSError:
+        print("Failed to parse settings")
+        sys.exit(2)
+
+    log_helper.LogHelper(logfile=CONF.get('default').get('log_file'),
+                         verbose=CONF.get('default').get('verbose'),
+                         rotate_size=CONF.get('default').get('log_size'))
+
+    proxy = CONF.get('http_proxy')
+    if proxy:
+        set_http_proxy_env(proxy)
+
+    return CONF
