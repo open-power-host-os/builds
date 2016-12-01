@@ -1,3 +1,4 @@
+
 # Copyright (C) IBM Corp. 2016.
 #
 # This program is free software: you can redistribute it and/or modify
@@ -15,14 +16,116 @@
 
 import os
 import logging
+import re
 import yaml
+
+import rpmUtils.miscutils
 
 from lib import config
 from lib import exception
+from lib import utils
 from lib.package import Package
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
+
+
+def compare_versions(v1, v2):
+    return rpmUtils.miscutils.compareEVR((None, v1, None), (None, v2, None))
+
+
+class SpecFile(object):
+
+    def __init__(self, path):
+        self.path = path
+        self._content = None
+        self._cached_tags = dict()
+
+    @property
+    def content(self):
+        """
+        Get and cache the content of the spec file.
+        """
+        if self._content is None:
+            with open(self.path, 'r') as file_:
+                self._content = file_.read()
+        return self._content
+
+    @content.setter
+    def content(self, value):
+        """
+        Set the cached content of the spec file.
+        """
+        self._content = value
+
+    def write_content(self):
+        """
+        Write the cached content to the spec file.
+        """
+        with open(self.path, 'w') as file_:
+            file_.write(self._content)
+        self._cached_tags = dict()
+
+    def query_tag(self, tag):
+        """
+        Queries the spec file for a tag's value.
+        Cached content not yet written to the file is not considered.
+        """
+        if tag not in self._cached_tags:
+            self._cached_tags[tag] = utils.run_command(
+                "rpmspec --srpm -q --qf '%%{%s}' %s 2>/dev/null" % (
+                    tag.upper(), self.path)).strip()
+
+        return self._cached_tags[tag]
+
+    def update_version(self, new_version):
+        LOG.info("Updating '%s' version to: %s" % (self.path, new_version))
+
+        old_version = re.search(r'Version:\s*(\S+)', self.content).group(1)
+
+        # we accept the Version tag in the format: xxx or %{xxx},
+        # but not: xxx%{xxx}, %{xxx}xxx or %{xxx}%{xxx} because
+        # there is no reliable way of knowing what the macro
+        # represents in these cases.
+        if re.match(r'(.+%{.*}|%{.*}.+)', old_version):
+            raise exception.PackageSpecError("Failed to parse spec file "
+                                             "'Version' tag")
+
+        if "%{" in old_version:
+            macro_name = old_version[2:-1]
+            self._replace_macro_definition(macro_name, new_version)
+        else:
+            self.content = re.sub(r'(Version:\s*)\S+',
+                             r'\g<1>' + new_version, self.content)
+
+        # since the version was updated, set the Release to 0. When
+        # the release bump is made, it will increment to 1.
+        self.content = re.sub(r'(Release:\s*)[\w.-]+', r'\g<1>0', self.content)
+
+        self.write_content()
+
+    def bump_release(self, log, user_name, user_email):
+        comment = "\n".join(['- ' + l for l in log])
+        user_string = "%(user_name)s <%(user_email)s>" % locals()
+        cmd = "rpmdev-bumpspec -c '%s' -u '%s' %s" % (
+            comment, user_string, self.path)
+        utils.run_command(cmd)
+
+        # Flush the cache to force re-reading the file
+        self._content = None
+
+    def update_prerelease_tag(self, new_prerelease):
+        self._replace_macro_definition('prerelease', new_prerelease)
+        self.write_content()
+        LOG.info("Updated '%s' prerelease tag to: %s"
+                 % (self.path, new_prerelease))
+
+    def _replace_macro_definition(self, macro_name, replacement):
+        """
+        Updates the file content cache, replacing the macro value.
+        """
+        self.content = re.sub(r'(%%define\s+%s\s+)\S+' % macro_name,
+                              r'\g<1>' + replacement, self.content)
 
 
 class RPM_Package(Package):
@@ -60,9 +163,10 @@ class RPM_Package(Package):
             if self.rpmmacro:
                 self.rpmmacro = os.path.join(self.package_dir, self.rpmmacro)
 
-            self.specfile = os.path.join(self.package_dir, files.get('spec'))
+            self.spec_file = SpecFile(
+                os.path.join(self.package_dir, files.get('spec')))
 
-            if os.path.isfile(self.specfile):
+            if os.path.isfile(self.spec_file.path):
                 LOG.info("Package found: %s for %s %s" % (
                     self.name, self.distro.lsb_name, self.distro.version))
             else:
@@ -72,3 +176,11 @@ class RPM_Package(Package):
                     distro_version=self.distro.version)
         except TypeError:
             raise exception.PackageDescriptorError(package=self.name)
+
+    @property
+    def version(self):
+        return self.spec_file.query_tag("version")
+
+    @property
+    def release(self):
+        return self.spec_file.query_tag("release")

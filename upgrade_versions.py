@@ -29,7 +29,7 @@ from lib import log_helper
 from lib import packages_manager
 from lib import repository
 from lib import utils
-from lib.rpm_package import RPM_Package
+from lib import rpm_package
 
 LOG = logging.getLogger(__name__)
 PACKAGES = [
@@ -76,49 +76,13 @@ def _get_git_log(repo, since_id):
     return log
 
 
-def rpm_bump_spec(specfile, log, user_name, user_email):
-    comment = "\n".join(['- ' + l for l in log])
-    user_string = "%(user_name)s <%(user_email)s>" % locals()
-    cmd = "rpmdev-bumpspec -c '%s' -u '%s' %s" % (comment, user_string, specfile)
-    utils.run_command(cmd)
-
-
-def rpm_query_spec_file(tag, spec):
-    return utils.run_command(
-        "rpmspec --srpm -q --qf '%%{%s}' %s 2>/dev/null" % (
-            tag.upper(), spec)).strip()
-
-def rpm_cmp_versions(v1, v2):
-    try:
-        utils.run_command("rpmdev-vercmp %s %s" % (v1, v2))
-        rc = 0
-    except exception.SubprocessError as exc:
-        if exc.returncode == 11:
-            rc = 1
-        elif exc.returncode == 12:
-            rc = -1
-        else:
-            raise
-    return rc
-
-
 class Version(object):
     def __init__(self, pkg):
         self.pkg = pkg
-        self._spec_version = None
-        self._spec_release = None
-        self._prerelease = "%{nil}"
+        self._repo_prerelease = "%{nil}"
         self._repo_version = None
 
-        self._read_spec()
-
-    @property
-    def version(self):
-        return self._spec_version
-
-    @property
-    def release(self):
-        return self._spec_release
+        LOG.info("%s: Current version: %s" % (self.pkg, self.pkg.version))
 
     def update(self, user_name, user_email):
         changelog = None
@@ -134,49 +98,18 @@ class Version(object):
 
         self._read_version_from_repo(pkg.repository.working_tree_dir)
 
-        result = rpm_cmp_versions(self._spec_version, self._repo_version)
+        result = rpm_package.compare_versions(
+            self.pkg.version, self._repo_version)
         if result < 0:
-            self._update_version()
+            pkg.spec_file.update_version(self._repo_version)
             changelog = "Version update"
         elif result > 0:
             raise exception.PackageError(
                 "Current version (%s) is greater than repo version (%s)" %
-                (self._spec_version, self._repo_version))
+                (self.pkg.version, self._repo_version))
 
-        self._update_prerelease_tag()
+        pkg.spec_file.update_prerelease_tag(self._repo_prerelease)
         self._bump_release(pkg, changelog, user_name, user_email)
-
-    def _update_version(self):
-        LOG.info("%s: Updating version to: %s" % (self.pkg,
-                                                  self._repo_version))
-
-        with open(self.pkg.specfile, 'r+') as f:
-            content = f.read()
-
-            version = re.search(r'Version:\s*(\S+)', content).group(1)
-
-            # we accept the Version tag in the format: xxx or %{xxx},
-            # but not: xxx%{xxx}, %{xxx}xxx or %{xxx}%{xxx} because
-            # there is no reliable way of knowing what the macro
-            # represents in these cases.
-            if re.match(r'(.+%{.*}|%{.*}.+)', version):
-                raise exception.PackageSpecError("Failed to parse spec file "
-                                                 "'Version' tag")
-
-            if "%{" in version:
-                macro_name = version[2:-1]
-                content = self._replace_macro_definition(
-                    macro_name, self._repo_version, content)
-            else:
-                content = re.sub(r'(Version:\s*)\S+',
-                                 r'\g<1>' + self._repo_version, content)
-
-            # since the version was updated, set the Release to 0. When
-            # the release bump is made, it will increment to 1.
-            content = re.sub(r'(Release:\s*)[\w.-]+', r'\g<1>0', content)
-
-            f.seek(0)
-            f.write(content)
 
     def _bump_release(self, pkg, log=None, user_name=None, user_email=None):
         LOG.info("%s: Bumping release" % self.pkg)
@@ -191,25 +124,7 @@ class Version(object):
         if log:
             assert user_name is not None
             assert user_email is not None
-            rpm_bump_spec(pkg.specfile, log, user_name, user_email)
-
-    def _update_prerelease_tag(self):
-        with open(self.pkg.specfile, 'r+') as f:
-            content = self._replace_macro_definition(
-                'prerelease', self._prerelease, f.read())
-            f.seek(0)
-            f.write(content)
-        LOG.info("%s: Updated prerelease tag" % self.pkg)
-
-    def _replace_macro_definition(self, macro_name, replacement, text):
-        return re.sub(r'(%%define\s+%s\s+)\S+' % macro_name,
-                      r'\g<1>' + replacement, text)
-
-    def _read_spec(self):
-        self._spec_version = rpm_query_spec_file('version', self.pkg.specfile)
-        LOG.info("%s: Current version: %s" % (self.pkg, self._spec_version))
-        self._spec_release = rpm_query_spec_file(
-            'release', self.pkg.specfile).split('.')[0]
+            pkg.spec_file.bump_release(log, user_name, user_email)
 
     def _read_version_from_repo(self, repo_path):
 
@@ -233,7 +148,7 @@ class Version(object):
                 for term in PRERELEASE_TERMS:
                     if term in last_group:
                         # The spec file's Release field cannot contain dashes.
-                        self._prerelease = last_group.replace('-', '.')
+                        self._repo_prerelease = last_group.replace('-', '.')
                         match_groups.pop()
                         break
 
@@ -307,8 +222,8 @@ def main(args):
     LOG.info("Checking for updates in packages versions: %s",
              ", ".join(packages_to_update))
     pm = packages_manager.PackagesManager(packages_to_update)
-    pm.prepare_packages(packages_class=RPM_Package, download_source_code=False,
-                        distro=distro)
+    pm.prepare_packages(packages_class=rpm_package.RPM_Package,
+                        download_source_code=False, distro=distro)
 
     for pkg in pm.packages:
         try:

@@ -130,6 +130,11 @@ class ConfigParser(object):
                                  'should rotate', type=int)
         self.parser.add_argument('--http-proxy',
                                  help='HTTP proxy URL')
+        self.parser.add_argument('--release-notes-repo-url',
+                                 help='Release notes repository URL')
+        self.parser.add_argument('--release-notes-repo-branch',
+                                 help='Branch of the release notes repository '
+                                 'to checkout')
         self.parser.add_argument('--push-repo-url',
                                  help='URL of the repository used for pushing')
         self.parser.add_argument('--push-repo-branch',

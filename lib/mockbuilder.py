@@ -81,7 +81,7 @@ class Mock(build_system.PackageBuilder):
         cmd = ("%s -r %s --buildsrpm --no-clean --spec %s --source %s "
                "--resultdir=%s" % (MOCK_BIN,
                                    self.mock_config,
-                                   package.specfile,
+                                   package.spec_file.path,
                                    self.archive,
                                    self.build_dir))
 

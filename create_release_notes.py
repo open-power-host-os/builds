@@ -28,6 +28,7 @@ from lib import exception
 from lib import log_helper
 from lib import packages_manager
 from lib import repository
+from lib import rpm_package
 from lib import utils
 
 CONF = config.get_config().CONF
@@ -51,7 +52,9 @@ class PackageReleaseInfo(object):
 
     def __str__(self):
         string = " -\n"
-        for attribute in ["name", "clone_url", "branch", "commit_id"]:
+        PACKAGE_ATTRIBUTES = ["name", "clone_url", "version", "release",
+                              "branch", "commit_id"]
+        for attribute in PACKAGE_ATTRIBUTES:
             string += "   {name}: {value}\n".format(
                 name=attribute, value=self.package.__getattribute__(attribute))
         return string
@@ -77,8 +80,9 @@ def write_version_info(release, file_path, packages):
             **format_dict))
 
 def publish_release_notes(
-        release_date, release_file_source_path, website_repo_url,
-        website_repo_branch, committer_name, committer_email):
+        release_date, release_file_source_path, website_pull_repo_url,
+        website_pull_repo_branch, website_push_repo_url,
+        website_push_repo_branch, committer_name, committer_email):
     """
     Publish release notes page to the Host OS website, using the
     system's configured git committer and SSH credentials.
@@ -86,16 +90,15 @@ def publish_release_notes(
     LOG.info("Publishing release notes file {file_path} with date {date}"
              .format(file_path=release_file_source_path, date=release_date))
 
-    WEBSITE_REPO_REMOTE = "origin"
-    WEBSITE_REPO_CHECKOUT_BRANCH = "master"
+    WEBSITE_REPO_PUSH_REMOTE = "push-remote"
     WEBSITE_POSTS_DIR = "_posts"
 
     # Name is last path part without the file extension (".git")
-    website_repo_path = urlparse.urlsplit(website_repo_url).path
+    website_repo_path = urlparse.urlsplit(website_pull_repo_url).path
     website_repo_name = os.path.basename(website_repo_path).rsplit(".", 1)[0]
     website_repo = repository.get_git_repository(
-        website_repo_name, website_repo_url, os.getcwd())
-    website_repo.checkout(WEBSITE_REPO_CHECKOUT_BRANCH)
+        website_repo_name, website_pull_repo_url, os.getcwd())
+    website_repo.checkout(website_pull_repo_branch)
 
     LOG.info("Copying file to repository directory")
     website_posts_dir_abs_path = os.path.join(
@@ -115,8 +118,9 @@ def publish_release_notes(
     website_repo.index.commit(commit_message, author=actor, committer=actor)
 
     LOG.info("Pushing changes to remote repository")
-    remote = website_repo.remote(WEBSITE_REPO_REMOTE)
-    refspec = "HEAD:refs/heads/{}".format(website_repo_branch)
+    remote = website_repo.create_remote(
+        WEBSITE_REPO_PUSH_REMOTE, website_push_repo_url)
+    refspec = "HEAD:refs/heads/{}".format(website_push_repo_branch)
     push_info = remote.push(refspec=refspec)[0]
     LOG.debug("Push result: {}".format(push_info.summary))
     if git.PushInfo.ERROR & push_info.flags:
@@ -129,6 +133,13 @@ def main(args):
 
     packages_names = (CONF.get('default').get('packages')
                       or config.discover_packages())
+    distro = distro_utils.get_distro(
+        CONF.get('default').get('distro_name'),
+        CONF.get('default').get('distro_version'),
+        CONF.get('default').get('arch_and_endianness'))
+    release_notes_repo_url = CONF.get('default').get('release_notes_repo_url')
+    release_notes_repo_branch = CONF.get('default').get(
+        'release_notes_repo_branch')
     push_repo_url = CONF.get('default').get('push_repo_url')
     push_repo_branch = CONF.get('default').get('push_repo_branch')
     committer_name = CONF.get('default').get('committer_name')
@@ -144,13 +155,16 @@ def main(args):
     LOG.info("Creating release notes with packages: {}".format(
         ", ".join(packages_names)))
     package_manager = packages_manager.PackagesManager(packages_names)
-    package_manager.prepare_packages(download_source_code=False)
+    package_manager.prepare_packages(packages_class=rpm_package.RPM_Package,
+                                     download_source_code=False, distro=distro)
 
     release_date = datetime.today().date().isoformat()
     release_file_name = RELEASE_FILE_NAME_TEMPLATE.format(date=release_date)
     write_version_info(release_date, release_file_name, package_manager.packages)
-    publish_release_notes(release_date, release_file_name, push_repo_url,
-                          push_repo_branch, committer_name, committer_email)
+    publish_release_notes(
+        release_date, release_file_name, release_notes_repo_url,
+        release_notes_repo_branch, push_repo_url, push_repo_branch,
+        committer_name, committer_email)
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))
