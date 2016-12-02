@@ -30,6 +30,7 @@ from lib import packages_manager
 from lib import repository
 from lib import rpm_package
 from lib import utils
+from lib.versions_repository import setup_versions_repository
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
@@ -128,8 +129,8 @@ def publish_release_notes(
 
 
 def main(args):
-    CONF = utils.setup_default_config()
-    utils.setup_versions_repository(CONF)
+    CONF = config.setup_default_config()
+    setup_versions_repository(CONF)
 
     packages_names = (CONF.get('default').get('packages')
                       or config.discover_packages())
