@@ -1,0 +1,19 @@
+[MASTER]
+# Python code to execute, usually for sys.path manipulation such as
+# pygtk.require().
+init-hook='import sys; sys.path.append("lib")'
+
+[MESSAGES CONTROL]
+# (C) convention, for programming standard violation
+# (R) refactor, for bad code smell
+# (W) warning, for python specific problems
+# (E) error, for much probable bugs in the code
+# (F) fatal, if an error occurred which prevented pylint from doing further processing.
+# (I) ignore, to show ignored messages
+disable=C,R,W,I
+# Note: if developers want to see all messages, use --enable=all in command line
+enable=unused-variable
+
+[REPORTS]
+# Tells whether to display a full report or only the messages
+reports=no

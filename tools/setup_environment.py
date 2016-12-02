@@ -29,6 +29,7 @@ def setup_user(user):
     try:
         utils.run_command(useradd_cmd)
     except exception.SubprocessError as e:
+        # pylint: disable=no-member
         if e.returncode is USER_EXISTS:
             pass
         else:
