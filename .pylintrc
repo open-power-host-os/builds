@@ -12,7 +12,9 @@ init-hook='import sys; sys.path.append("lib")'
 # (I) ignore, to show ignored messages
 disable=C,R,W,I
 # Note: if developers want to see all messages, use --enable=all in command line
-enable=unused-variable
+enable=
+ unused-import,
+ unused-variable
 
 [REPORTS]
 # Tells whether to display a full report or only the messages

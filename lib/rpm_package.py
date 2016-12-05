@@ -17,7 +17,6 @@
 import os
 import logging
 import re
-import yaml
 
 import rpmUtils.miscutils
 
