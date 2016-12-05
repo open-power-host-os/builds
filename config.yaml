@@ -9,3 +9,8 @@ default:
  arch_and_endianness: 'ppc64le'
  release_notes_repo_url: "https://github.com/open-power-host-os/open-power-host-os.github.io.git"
  release_notes_repo_branch: "master"
+ mock_args:
+   "--enable-plugin=tmpfs
+   --plugin-option=tmpfs:keep_mounted=True
+   --plugin-option=tmpfs:max_fs_size=50g
+   --plugin-option=tmpfs:required_ram_mb=4096"

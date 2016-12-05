@@ -118,6 +118,9 @@ class ConfigParser(object):
         self.parser.add_argument('--keep-builddir',
                                  help='Keep build directory and its logs and '
                                  'artifacts.', action='store_true')
+        self.parser.add_argument('--mock-args',
+                                 help='Arguments passed to mock command',
+                                 default='')
         self.parser.add_argument('--build-versions-repository-url',
                                  help='Build versions repository URL')
         self.parser.add_argument('--build-version',

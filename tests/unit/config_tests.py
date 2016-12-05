@@ -20,6 +20,7 @@ class TestConfigParser(unittest.TestCase):
         ('--keep-builddir', 'keep_builddir', True),
         ('--build-versions-repository-url=foo', 'build_versions_repository_url', 'foo'),
         ('--build-version=foo', 'build_version', 'foo'),
+        ('--mock-args=foo', 'mock_args', 'foo'),
     ])
     def test_parse_arguments_list_WithLongArgument_ShouldParseArgumentValue(self, argument, key, expected):
         cfg = ConfigParser()
@@ -39,6 +40,7 @@ class TestConfigParser(unittest.TestCase):
         ('keep_builddir', False),
         ('build_versions_repository_url', None),
         ('build_version', None),
+        ('mock_args', ''),
     ])
     def test_parse_arguments_list_WithoutArgument_ShouldUseDefaultValue(self, key, expected):
         cfg = ConfigParser()
