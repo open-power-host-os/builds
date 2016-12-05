@@ -21,6 +21,7 @@ import sys
 import yaml
 
 from lib import log_helper
+from lib import utils
 
 LOG = logging.getLogger(__name__)
 
@@ -210,6 +211,6 @@ def setup_default_config():
 
     proxy = CONF.get('http_proxy')
     if proxy:
-        set_http_proxy_env(proxy)
+        utils.set_http_proxy_env(proxy)
 
     return CONF
