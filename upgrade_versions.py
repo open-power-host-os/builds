@@ -25,10 +25,8 @@ import git
 from lib import config
 from lib import distro_utils
 from lib import exception
-from lib import log_helper
 from lib import packages_manager
 from lib import repository
-from lib import utils
 from lib import rpm_package
 from lib.versions_repository import setup_versions_repository
 

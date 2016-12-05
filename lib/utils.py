@@ -15,12 +15,9 @@
 
 import logging
 import os
-import platform
 import subprocess
-import sys
 
 from lib import exception
-from lib import log_helper
 
 LOG = logging.getLogger(__name__)
 
