@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from functools import partial
 from functools import total_ordering
 import os
 import logging
@@ -21,6 +22,7 @@ import yaml
 
 from lib import config
 from lib import exception
+from lib import package_source
 from lib import repository
 from lib import utils
 
@@ -54,6 +56,7 @@ class Package(object):
         self.dependencies = []
         self.build_dependencies = []
         self.result_packages = []
+        self.sources = []
         self.repository = None
         self.build_files = None
         self.download_build_files = []
@@ -94,11 +97,16 @@ class Package(object):
         Download package source code and build files.
         Optionally, do the same for its dependencies, recursively.
         """
+        # Download all package sources
+        repositories_path = CONF.get('default').get('repositories_path')
+        download_f = partial(package_source.download, dest=repositories_path)
+        self.sources = map(download_f, self.sources)
+
+        # This is kept for backwards compatibility with older
+        # 'versions' repositories.
         if self.clone_url:
             self._download_source_code()
-            # Else let it download later during build with a custom
-            # command.
-            # TODO Remove this "if" and do not allow custom commands
+
         self._download_build_files()
         if recurse:
             for dep in (self.dependencies + self.build_dependencies):
@@ -123,29 +131,23 @@ class Package(object):
                 "Failed to open %s's YAML descriptor" % self.name)
 
         self.name = self.package_data.get('name')
-        self.clone_url = self.package_data.get('clone_url', None)
-        self.download_source = self.package_data.get('download_source', None)
+        self.sources = self.package_data.get('sources', [])
 
-        # Most packages keep their version in a VERSION file
-        # or in the .spec file. For those that don't, we need
-        # a custom file and regex.
         version = self.package_data.get('version', {})
         self.version_file_regex = (version.get('file'),
                                    version.get('regex'))
 
-        # NOTE(maurosr): Unfortunately some of the packages we build
-        # depend on a gziped file which changes according to the build
-        # version so we need to get that name somehow, grep the
-        # specfile would be uglier imho.
+        # These are all being kept for compatibility reasons. They are
+        # required in order to build old 'versions' repositories.
+        #
+        # This should be removed when backwards compatibility is no longer a
+        # requirement. {{{
+        self.clone_url = self.package_data.get('clone_url', None)
+        self.download_source = self.package_data.get('download_source', None)
         self.expects_source = self.package_data.get('expects_source')
-
-        # NOTE(maurosr): branch and commit id are special cases for the
-        # future, we plan to use tags on every project for every build
-        # globally set in config.yaml, then this would allow some user
-        # customization to set their preferred commit id/branch or even
-        # a custom git tree.
         self.branch = self.package_data.get('branch', None)
         self.commit_id = self.package_data.get('commit_id', None)
+        # }}}
 
         LOG.info("%s: Loaded package metadata successfully" % self.name)
 
