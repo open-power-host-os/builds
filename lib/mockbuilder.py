@@ -80,7 +80,7 @@ class Mock(build_system.PackageBuilder):
 
     def _build_srpm(self, package):
         LOG.info("%s: Building SRPM" % package.name)
-        cmd = ("%s -r %s %s --buildsrpm --no-clean --spec %s --source %s "
+        cmd = ("%s -r %s %s --buildsrpm --no-clean --spec %s --sources %s "
                "--resultdir=%s" % (MOCK_BIN,
                                    self.mock_config,
                                    self.mock_args,
