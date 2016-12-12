@@ -36,11 +36,11 @@ def run_command(cmd, **kwargs):
                                stderr=subprocess.PIPE, shell=shell, **kwargs)
     output, error_output = process.communicate()
 
+    LOG.debug("stdout: %s" % output)
+    LOG.debug("stderr: %s" % error_output)
+
     if process.returncode:
         raise exception.SubprocessError(cmd=cmd, returncode=process.returncode,
                                         stdout=output, stderr=error_output)
-
-    LOG.debug("stdout: %s" % output)
-    LOG.debug("stderr: %s" % error_output)
 
     return output
