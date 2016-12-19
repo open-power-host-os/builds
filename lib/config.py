@@ -186,7 +186,7 @@ class ConfigParser(object):
 
         # drop None values
         for key, value in args.items():
-            if not value:
+            if value is None:
                 args.pop(key)
 
         config['default'].update(args)
