@@ -12,9 +12,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import logging
-import os
-import sys
 
 from lib import config
 from lib import distro_utils
@@ -25,11 +24,10 @@ from lib.versions_repository import setup_versions_repository
 LOG = logging.getLogger(__name__)
 
 
-def main(args):
-    CONF = config.setup_default_config()
+def run(CONF):
     setup_versions_repository(CONF)
-    packages_to_build = (CONF.get('default').get('packages')
-                         or config.discover_packages())
+    packages_to_build = (CONF.get('default').get('packages') or
+                         config.discover_packages())
     distro = distro_utils.get_distro(
         CONF.get('default').get('distro_name'),
         CONF.get('default').get('distro_version'),
@@ -44,12 +42,3 @@ def main(args):
         return exc.errno
     else:
         return 0
-
-
-if __name__ == '__main__':
-    if os.getuid() is 0:
-        print("Please, do not run this script as root, run "
-              "setup_environment.py script in order to properly setup user and"
-              " directory for build scripts")
-        sys.exit(3)
-    sys.exit(main(sys.argv[1:]))

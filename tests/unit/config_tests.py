@@ -11,41 +11,54 @@ import unittest
 class TestConfigParser(unittest.TestCase):
 
     @parameterized.expand([
-        ('--config-file=foo', 'config_file', 'foo'),
-        ('--packages=foo', 'packages', ['foo']),
-        ('--log-file=foo', 'log_file', 'foo'),
-        ('--verbose', 'verbose', True),
-        ('--result-dir=foo', 'result_dir', 'foo'),
-        ('--repositories-path=foo', 'repositories_path', 'foo'),
-        ('--keep-builddir', 'keep_builddir', True),
-        ('--build-versions-repository-url=foo', 'build_versions_repository_url', 'foo'),
-        ('--build-version=foo', 'build_version', 'foo'),
-        ('--mock-args=foo', 'mock_args', 'foo'),
+        (['--config-file=foo', 'build-package'], 'config_file', 'foo'),
+        (['--log-file=foo', 'build-package'], 'log_file', 'foo'),
+        (['--verbose', 'build-package'], 'verbose', True),
+        (['build-package', '--packages=foo'], 'packages', ['foo']),
+        (['build-package', '--result-dir=foo'], 'result_dir', 'foo'),
+        (['build-package', '--repositories-path=foo'], 'repositories_path', 'foo'),
+        (['build-package', '--keep-builddir'], 'keep_builddir', True),
+        (['build-package', '--build-versions-repository-url=foo'], 'build_versions_repository_url', 'foo'),
+        (['build-package', '--build-version=foo'], 'build_version', 'foo'),
+        (['build-package', '--mock-args=foo'], 'mock_args', 'foo'),
+        (['release-notes', '--push-repo-url=foo'], 'push_repo_url', 'foo'),
+        (['release-notes', '--push-repo-branch=foo'], 'push_repo_branch', 'foo'),
+        (['release-notes', '--committer-name=foo'], 'committer_name', 'foo'),
+        (['release-notes', '--committer-email=foo'], 'committer_email', 'foo'),
+        (['set-env', '--user=foo'], 'user', 'foo'),
+        (['build-iso', '--packages-dir=foo'], 'packages_dir', 'foo'),
+        (['build-iso', '--mock-args=foo'], 'mock_args', 'foo'),
     ])
-    def test_parse_arguments_list_WithLongArgument_ShouldParseArgumentValue(self, argument, key, expected):
+    def test_parse_arguments_list_WithLongArgument_ShouldParseArgumentValue(self, arguments, key, expected):
         cfg = ConfigParser()
 
-        result_dict = cfg.parse_arguments_list([argument])
+        result_dict = cfg.parse_arguments_list(arguments)
         value = result_dict.get(key)
 
         eq_(value, expected)
 
     @parameterized.expand([
-        ('config_file', './config.yaml'),
-        ('packages', None),
-        ('log_file', '/var/log/host-os/builds.log'),
-        ('verbose', False),
-        ('result_dir', './result'),
-        ('repositories_path', '/var/lib/host-os/repositories'),
-        ('keep_builddir', False),
-        ('build_versions_repository_url', None),
-        ('build_version', None),
-        ('mock_args', ''),
+        (['build-package'], 'config_file', './config.yaml'),
+        (['build-package'], 'log_file', '/var/log/host-os/builds.log'),
+        (['build-package'], 'verbose', False),
+        (['build-package'], 'keep_builddir', False),
+        (['build-package'], 'packages', None),
+        (['build-package'], 'result_dir', './result'),
+        (['build-package'], 'repositories_path', '/var/lib/host-os/repositories'),
+        (['build-package'], 'build_versions_repository_url', None),
+        (['build-package'], 'build_version', None),
+        (['build-package'], 'mock_args', ''),
+        (['release-notes'], 'push_repo_url', None),
+        (['release-notes'], 'push_repo_branch', 'master'),
+        (['release-notes'], 'committer_name', None),
+        (['release-notes'], 'committer_email', None),
+        (['build-iso'], 'packages_dir', './result'),
+        (['build-iso'], 'mock_args', ''),
     ])
-    def test_parse_arguments_list_WithoutArgument_ShouldUseDefaultValue(self, key, expected):
+    def test_parse_arguments_list_WithoutArgument_ShouldUseDefaultValue(self, arguments, key, expected):
         cfg = ConfigParser()
 
-        result_dict = cfg.parse_arguments_list([])
+        result_dict = cfg.parse_arguments_list(arguments)
         value = result_dict.get(key)
 
         eq_(value, expected)

@@ -18,11 +18,9 @@ import copy
 import logging
 import os
 import re
-import sys
 
 import git
 
-from lib import config
 from lib import distro_utils
 from lib import exception
 from lib import packages_manager
@@ -170,7 +168,8 @@ class Version(object):
 
 
 def push_new_versions(versions_repo, release_date, versions_repo_push_url,
-        versions_repo_push_branch, committer_name, committer_email):
+                      versions_repo_push_branch, committer_name,
+                      committer_email):
     """
     Push updated versions to the remote Git repository, using the
     system's configured git committer and SSH credentials.
@@ -199,8 +198,7 @@ def push_new_versions(versions_repo, release_date, versions_repo_push_url,
         raise repository.PushError(push_info)
 
 
-def main(args):
-    CONF = config.setup_default_config()
+def run(CONF):
     versions_repo = setup_versions_repository(CONF)
     packages_to_update = CONF.get('default').get('packages') or PACKAGES
     distro = distro_utils.get_distro(
@@ -236,7 +234,3 @@ def main(args):
     release_date = datetime.today().date().isoformat()
     push_new_versions(versions_repo, release_date, push_repo_url,
                       push_repo_branch, committer_name, committer_email)
-
-
-if __name__ == '__main__':
-    sys.exit(main(sys.argv[1:]))
