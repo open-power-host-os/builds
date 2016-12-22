@@ -225,7 +225,7 @@ class ConfigParser(object):
 
         # drop None values
         for key, value in args.items():
-            if not value:
+            if value is None:
                 args.pop(key)
 
         # update iso node with iso subcommand args and then drop them from args
