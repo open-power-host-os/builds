@@ -12,6 +12,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from functools import partial
+
 
 import datetime
 import logging
@@ -21,6 +23,7 @@ import shutil
 from lib import config
 from lib import build_system
 from lib import exception
+from lib import package_source
 from lib import utils
 
 CONF = config.get_config().CONF
@@ -80,14 +83,13 @@ class Mock(build_system.PackageBuilder):
 
     def _build_srpm(self, package):
         LOG.info("%s: Building SRPM" % package.name)
-        cmd = ("%s -r %s %s --buildsrpm --no-clean --spec %s --source %s "
+        cmd = ("%s -r %s %s --buildsrpm --no-clean --spec %s --sources %s "
                "--resultdir=%s" % (MOCK_BIN,
                                    self.mock_config,
                                    self.mock_args,
                                    package.spec_file.path,
                                    self.archive,
                                    self.build_dir))
-
         utils.run_command(cmd)
 
     def _prepare(self, package):
@@ -98,7 +100,14 @@ class Mock(build_system.PackageBuilder):
 
     def _prepare_archive(self, package):
         LOG.info("%s: Preparing archive." % package.name)
-        if package.repository:
+
+        if package.sources:
+            archive_to_build_dir = partial(package_source.archive,
+                                           directory=self.build_dir)
+            archived_sources = map(archive_to_build_dir, package.sources)
+            package.sources = archived_sources
+            self.archive = self.build_dir
+        elif package.repository:
             self.archive = package.repository.archive(package.expects_source,
                                                       package.commit_id,
                                                       self.build_dir)
@@ -113,7 +122,6 @@ class Mock(build_system.PackageBuilder):
             files.append(os.path.join(package.build_files, f))
         cmd = cmd + " --copyin %s %s" % (" ".join(files),
                                          MOCK_CHROOT_BUILD_DIR)
-
         utils.run_command(cmd)
 
     def clean(self):
