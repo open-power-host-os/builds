@@ -135,6 +135,10 @@ class Package(object):
 
         self.name = self.package_data.get('name')
         self.sources = self.package_data.get('sources', [])
+        for source in self.sources:
+            if 'archive' not in source.values()[0]:
+                source_name = source.keys()[0]
+                source[source_name]['archive'] = self.name
 
         version = self.package_data.get('version', {})
         self.version_file_regex = (version.get('file'),
