@@ -65,8 +65,11 @@ class Package(object):
         # build versions. This keeps compatibility.
         OLD_DEPENDENCIES_DIRS = ["build_dependencies", "dependencies"]
         PACKAGES_DIRS = [""] + OLD_DEPENDENCIES_DIRS
-        build_versions_repo_dir = CONF.get('default').get(
-            'build_versions_repo_dir')
+        versions_repo_url = CONF.get('default').get('build_versions_repository_url')
+        versions_repo_name = os.path.basename(os.path.splitext(versions_repo_url)[0])
+        build_versions_repo_dir = os.path.join(
+            CONF.get('default').get('build_versions_repo_dir'),
+            versions_repo_name)
         for rel_packages_dir in PACKAGES_DIRS:
             packages_dir = os.path.join(
                 build_versions_repo_dir, rel_packages_dir)
@@ -153,7 +156,7 @@ class Package(object):
 
     def _setup_repository(self, dest=None, branch=None):
         self.repository = repository.get_git_repository(
-            self.name, self.clone_url, dest)
+            self.clone_url, dest)
         self.repository.checkout(self.commit_id or self.branch or branch)
 
     def _download_source(self, build_dir):

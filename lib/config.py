@@ -30,8 +30,9 @@ BUILD_REPO_ARGS = {
     ('--build-version',):
         dict(help='Select build version from versions repository'),
     ('--build-versions-repo-dir',):
-        dict(help='Directory to clone the build versions repository',
-             default='./components'),
+        dict(help='Directory to clone the build versions repository. '
+             'A subdirectory with the name of the git repository will be created here',
+             default='.'),
     ('--http-proxy',):
         dict(help='HTTP proxy URL'),
 }
@@ -115,7 +116,7 @@ def discover_packages():
     a yaml file with the same name.
     Considering the example:
 
-    components
+    versions
     +-- kernel
     |   +-- kernel.yaml
     +-- libvirt
@@ -128,8 +129,12 @@ def discover_packages():
     "kernel" and "libvirt" will be discovered, "not-a-package" and "file"
     will not.
     """
-    build_versions_repo_dir = get_config().CONF.get('default').get(
-        'build_versions_repo_dir')
+    config = get_config().CONF.get('default')
+    versions_repo_url = config.get('build_versions_repository_url')
+    versions_repo_name = os.path.basename(os.path.splitext(versions_repo_url)[0])
+    build_versions_repo_dir = os.path.join(
+        config.get('build_versions_repo_dir'),
+        versions_repo_name)
     package_list = []
     try:
         package_list = [
