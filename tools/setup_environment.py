@@ -19,7 +19,6 @@ import pwd
 from lib import utils
 
 USER_EXISTS = 9
-DIRECTORY_EXISTS = 17
 
 
 def setup_user(user):
@@ -36,11 +35,8 @@ def setup_user(user):
 
 
 def setup_directory(directory, uid, gid):
-    try:
+    if not os.path.isdir(directory):
         os.makedirs(directory)
-    except OSError as e:
-        if e.errno is DIRECTORY_EXISTS:
-            pass
     os.chown(directory, uid, gid)
 
 
