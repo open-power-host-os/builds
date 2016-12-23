@@ -31,6 +31,7 @@ def set_http_proxy_env(proxy):
 def run_command(cmd, **kwargs):
     LOG.debug("Command: %s" % cmd)
     shell = kwargs.pop('shell', True)
+    success_return_codes = kwargs.pop('success_return_codes', [0])
 
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE, shell=shell, **kwargs)
@@ -39,7 +40,7 @@ def run_command(cmd, **kwargs):
     LOG.debug("stdout: %s" % output)
     LOG.debug("stderr: %s" % error_output)
 
-    if process.returncode:
+    if process.returncode not in success_return_codes:
         raise exception.SubprocessError(cmd=cmd, returncode=process.returncode,
                                         stdout=output, stderr=error_output)
 

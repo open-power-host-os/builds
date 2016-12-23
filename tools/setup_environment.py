@@ -16,7 +16,6 @@
 import os
 import pwd
 
-from lib import exception
 from lib import utils
 
 USER_EXISTS = 9
@@ -26,14 +25,7 @@ DIRECTORY_EXISTS = 17
 def setup_user(user):
     # just add the user first and if it exists proceed gracefully
     useradd_cmd = "useradd -M %s" % (user)
-    try:
-        utils.run_command(useradd_cmd)
-    except exception.SubprocessError as e:
-        # pylint: disable=no-member
-        if e.returncode is USER_EXISTS:
-            pass
-        else:
-            raise
+    utils.run_command(useradd_cmd, success_return_codes=[0, USER_EXISTS])
     print("Created user %s." % user)
     group = "mock"
     group_cmd = "usermod -a -G %s %s" % (group, user)
