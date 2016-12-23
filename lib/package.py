@@ -144,7 +144,7 @@ class Package(object):
         # requirement. {{{
         self.clone_url = self.package_data.get('clone_url', None)
         self.download_source = self.package_data.get('download_source', None)
-        self.expects_source = self.package_data.get('expects_source')
+        self.expects_source = self.package_data.get('expects_source', self.name)
         self.branch = self.package_data.get('branch', None)
         self.commit_id = self.package_data.get('commit_id', None)
         # }}}
@@ -161,6 +161,9 @@ class Package(object):
         An alternative to just execute a given command to obtain sources.
         """
         utils.run_command(self.download_source, cwd=build_dir)
+        # automatically append tar.gz if expects_source has no extension
+        if self.expects_source == self.name:
+            self.expects_source = "%s.tar.gz" % self.name
         return os.path.join(build_dir, self.expects_source)
 
     def _download_build_files(self):
