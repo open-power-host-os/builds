@@ -108,21 +108,19 @@ class Mock(build_system.PackageBuilder):
             package.sources = archived_sources
             self.archive = self.build_dir
         elif package.repository:
-            self.archive = package.repository.archive(package.expects_source,
-                                                      package.commit_id,
-                                                      self.build_dir)
+            file_path = package.repository.archive(package.expects_source,
+                                                   package.commit_id,
+                                                   self.build_dir)
+            self.archive = os.path.dirname(file_path)
         else:
-            self.archive = package._download_source(self.build_dir)
+            file_path = package._download_source(self.build_dir)
+            self.archive = os.path.dirname(file_path)
 
     def _copy_files_to_chroot(self, package):
-        cmd = "%s -r %s %s " % (MOCK_BIN, self.mock_config, self.mock_args)
-
-        files = []
         for f in os.listdir(package.build_files):
-            files.append(os.path.join(package.build_files, f))
-        cmd = cmd + " --copyin %s %s" % (" ".join(files),
-                                         MOCK_CHROOT_BUILD_DIR)
-        utils.run_command(cmd)
+            file_path = os.path.join(package.build_files, f)
+            LOG.info("copying %s to %s" % (file_path, self.archive))
+            shutil.copy(file_path, self.archive)
 
     def clean(self):
         utils.run_command("%s --clean" % MOCK_BIN)
