@@ -39,6 +39,8 @@ $ sudo yum localinstall epel-release-7-5.noarch.rpm # Note the version may chang
  - svn
  - wget
  - python-lxml
+ - nosync
+ - lzop
 
 ::
 
