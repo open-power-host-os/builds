@@ -7,7 +7,7 @@ necessary to the correct functioning of builds.
 What?
 -----
 
- * Mock settings for ppc64el CentOS 7.2
+ * Mock settings for ppc64el CentOS 7
 
     This is already contributed upstream, and released, but not available CentOS
-    7.2's mock.
+    7's mock.
