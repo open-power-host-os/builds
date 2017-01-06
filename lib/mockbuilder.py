@@ -123,7 +123,8 @@ class Mock(build_system.PackageBuilder):
             shutil.copy(file_path, self.archive)
 
     def clean(self):
-        utils.run_command("%s --clean" % MOCK_BIN)
+        utils.run_command("%s --clean -r %s %s" % (MOCK_BIN, self.mock_config,
+                                                   self.mock_args))
 
     def _install_external_dependencies(self, package):
         cmd = "%s -r %s %s " % (MOCK_BIN, self.mock_config, self.mock_args)
