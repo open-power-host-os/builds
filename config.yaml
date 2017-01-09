@@ -31,7 +31,6 @@ iso:
             - "iprutils"
             - "kernel"
             - "kimchi"
-            - "libguestfs"
             - "libseccomp"
             - "libvirt"
             - "libvirt-daemon-kvm"
