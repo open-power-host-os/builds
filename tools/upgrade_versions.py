@@ -227,12 +227,8 @@ def run(CONF):
                         download_source_code=False, distro=distro)
 
     for pkg in pm.packages:
-        try:
-            pkg_version = Version(pkg)
-            pkg_version.update(committer_name, committer_email)
-        except exception.PackageError as e:
-            LOG.exception("Failed to update versions")
-            return e.error_code
+        pkg_version = Version(pkg)
+        pkg_version.update(committer_name, committer_email)
 
     release_date = datetime.today().date().isoformat()
     push_new_versions(versions_repo, release_date, push_repo_url,

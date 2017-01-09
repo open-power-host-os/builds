@@ -13,15 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from lib import exception
 from lib import iso_spinner
 
 
 def run(CONF):
     spinner = iso_spinner.MockPungiSpinner(CONF)
-    try:
-        spinner.build()
-    except exception.BaseException as exc:
-        return exc.error_code
-    else:
-        return 0
+    spinner.build()
