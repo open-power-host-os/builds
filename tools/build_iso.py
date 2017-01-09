@@ -22,6 +22,6 @@ def run(CONF):
     try:
         spinner.build()
     except exception.BaseException as exc:
-        return exc.errno
+        return exc.error_code
     else:
         return 0

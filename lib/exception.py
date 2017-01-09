@@ -16,49 +16,52 @@
 
 class BaseException(Exception):
 
-    msg = "Failed to build packages"
-    errno = 1
+    DEFAULT_MESSAGE = "Failed to build packages"
+    error_code = 1
 
     def __init__(self, message=None, **kwargs):
         if message is None:
-            message = self.msg % kwargs
+            message = self.DEFAULT_MESSAGE % kwargs
         for key, value in kwargs.items():
             setattr(self, key, value)
         super(BaseException, self).__init__(message)
 
 
 class DistributionError(BaseException):
-    msg = "Distribution not Supported"
+    DEFAULT_MESSAGE = "Distribution not Supported"
 
 
 class DistributionDetectionError(DistributionError):
-    msg = "Failed to detect system's GNU/Linux distribution"
+    DEFAULT_MESSAGE = "Failed to detect system's GNU/Linux distribution"
 
 
 class DistributionNotSupportedError(DistributionError):
-    msg = "%(distribution)s distribution is not supported"
+    DEFAULT_MESSAGE = "%(distribution)s distribution is not supported"
 
 
 class DistributionVersionNotSupportedError(DistributionError):
-    msg = "%(distribution)s version %(version)s is not supported"
+    DEFAULT_MESSAGE = "%(distribution)s version %(version)s is not supported"
 
 
 class PackageError(BaseException):
-    msg = "Failed to gather %(package)s's information"
+    DEFAULT_MESSAGE = "Failed to gather %(package)s's information"
 
 
 class PackageSpecError(PackageError):
-    msg = "%(package)s's spec for %(distro)s %(distro_version)s not Found."
+    DEFAULT_MESSAGE = (
+        "%(package)s's spec for %(distro)s %(distro_version)s not Found.")
 
 
 class PackageDescriptorError(PackageError):
-    msg = "Missing data in %(package)s's YAML descriptor"
+    DEFAULT_MESSAGE = "Missing data in %(package)s's YAML descriptor"
 
 
 class RepositoryError(BaseException):
-    msg = "Failed to setup %(repo_name)s's repository at %(repo_path)s."
+    DEFAULT_MESSAGE = (
+        "Failed to setup %(repo_name)s's repository at %(repo_path)s.")
 
 
 class SubprocessError(BaseException):
-    msg = ("%(cmd)s returned non-zero exit code: ret:%(returncode)i, stdout: "
-           "%(stdout)s, stderr: %(stderr)s")
+    DEFAULT_MESSAGE = (
+        "%(cmd)s returned non-zero exit code: ret:%(returncode)i, "
+        "stdout: %(stdout)s, stderr: %(stderr)s")

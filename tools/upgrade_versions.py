@@ -232,7 +232,7 @@ def run(CONF):
             pkg_version.update(committer_name, committer_email)
         except exception.PackageError as e:
             LOG.exception("Failed to update versions")
-            return e.errno
+            return e.error_code
 
     release_date = datetime.today().date().isoformat()
     push_new_versions(versions_repo, release_date, push_repo_url,

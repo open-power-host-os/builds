@@ -39,6 +39,6 @@ def run(CONF):
         bm()
     except exception.BaseException as exc:
         LOG.exception("Failed to build packages")
-        return exc.errno
+        return exc.error_code
     else:
         return 0

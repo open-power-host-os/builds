@@ -24,6 +24,6 @@ def setup_versions_repository(config):
         versions_repo.checkout(branch)
     except exception.RepositoryError as exc:
         LOG.exception("Failed to checkout versions repository")
-        sys.exit(exc.errno)
+        sys.exit(exc.error_code)
 
     return versions_repo
