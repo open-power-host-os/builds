@@ -17,6 +17,8 @@ import os
 import sys
 
 from lib import config
+from lib.exception import SubprocessError
+from lib.utils import run_command
 from tools import build_iso
 from tools import build_package
 from tools import create_release_notes
@@ -31,11 +33,42 @@ SUBCOMMANDS = {
     'set-env': setup_environment,
     'build-iso': build_iso,
 }
+REQUIRED_PACKAGES_FILE_PATH = "rpm_requirements.txt"
+MISSING_PACKAGES_ERROR = 4
+
+def is_package_installed(package_name):
+    """
+    Checks if a RPM package is installed
+    """
+
+    cmd = "rpm -q %s" % package_name
+    try:
+        run_command(cmd, shell=True)
+    except SubprocessError as e:
+        # rpm returns 1 when search string is not found and other non-zero values
+        # if an error occurred
+        #pylint: disable=no-member
+        if e.returncode == 1:
+            return False
+        else:
+            raise
+
+    return True
 
 
 if __name__ == '__main__':
     CONF = config.setup_default_config()
     subcommand = CONF.get('default').get('subcommand')
+
+    # validate if all required packages are installed
+    with open(REQUIRED_PACKAGES_FILE_PATH) as f:
+        required_packages = f.read().splitlines()
+    missing_packages = [p for p in required_packages
+        if not is_package_installed(p)]
+    if missing_packages:
+        print("Following packages should be installed before running this "
+              "script: %s" % ", ".join(missing_packages))
+        sys.exit(MISSING_PACKAGES_ERROR)
 
     if os.getuid() is 0 and subcommand != 'set-env':
         print("Please, do not run this command as root, run "
