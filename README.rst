@@ -34,17 +34,17 @@ $ sudo yum localinstall epel-release-7-5.noarch.rpm # Note the version may chang
  - bzip2
  - git
  - GitPython
+ - lzop
  - mock
+ - nosync
+ - python-lxml
  - PyYAML
  - svn
  - wget
- - python-lxml
- - nosync
- - lzop
 
 ::
 
-$ sudo yum install -y bzip2 git GitPython mock PyYAML svn wget
+$ sudo yum install -y bzip2 git GitPython lzop mock nosync python-lxml PyYAML svn wget
 
 Settings
 --------
