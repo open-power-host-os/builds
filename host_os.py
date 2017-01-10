@@ -25,6 +25,10 @@ from tools import create_release_notes
 from tools import setup_environment
 from tools import upgrade_versions
 
+INSUFFICIENT_PRIVILEGE_ERROR = 3
+TOO_MUCH_PRIVILEGE_ERROR = 4
+MISSING_PACKAGES_ERROR = 5
+REQUIRED_PACKAGES_FILE_PATH = "rpm_requirements.txt"
 LOG = logging.getLogger(__name__)
 SUBCOMMANDS = {
     'build-package': build_package,
@@ -33,8 +37,7 @@ SUBCOMMANDS = {
     'set-env': setup_environment,
     'build-iso': build_iso,
 }
-REQUIRED_PACKAGES_FILE_PATH = "rpm_requirements.txt"
-MISSING_PACKAGES_ERROR = 4
+
 
 def is_package_installed(package_name):
     """
@@ -74,11 +77,11 @@ if __name__ == '__main__':
         print("Please, do not run this command as root, run "
               "host_os.py set-env --user <YOUR_USER_LOGIN> command in order to "
               "properly setup user and directory for build scripts")
-        sys.exit(3)
+        sys.exit(TOO_MUCH_PRIVILEGE_ERROR)
 
     if os.getuid() is not 0 and subcommand == 'set-env':
         print("The set-env command should be run with root privileges")
-        sys.exit(3)
+        sys.exit(INSUFFICIENT_PRIVILEGE_ERROR)
 
     return_code = 0
     try:

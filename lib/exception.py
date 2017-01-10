@@ -29,39 +29,52 @@ class BaseException(Exception):
 
 class DistributionError(BaseException):
     DEFAULT_MESSAGE = "Distribution not Supported"
+    # Subclass errors are in the form 0b0001xxx
+    error_code = 8
 
 
 class DistributionDetectionError(DistributionError):
     DEFAULT_MESSAGE = "Failed to detect system's GNU/Linux distribution"
+    error_code = 9
 
 
 class DistributionNotSupportedError(DistributionError):
     DEFAULT_MESSAGE = "%(distribution)s distribution is not supported"
+    error_code = 10
 
 
 class DistributionVersionNotSupportedError(DistributionError):
     DEFAULT_MESSAGE = "%(distribution)s version %(version)s is not supported"
+    error_code = 11
 
 
 class PackageError(BaseException):
     DEFAULT_MESSAGE = "Failed to gather %(package)s's information"
+    # Subclass errors are in the form 0b0010xxx
+    error_code = 16
 
 
 class PackageSpecError(PackageError):
     DEFAULT_MESSAGE = (
         "%(package)s's spec for %(distro)s %(distro_version)s not Found.")
+    error_code = 17
 
 
 class PackageDescriptorError(PackageError):
     DEFAULT_MESSAGE = "Missing data in %(package)s's YAML descriptor"
+    error_code = 18
 
 
 class RepositoryError(BaseException):
     DEFAULT_MESSAGE = (
         "Failed to setup %(repo_name)s's repository at %(repo_path)s.")
+    # Subclass errors are in the form 0b0011xxx
+    error_code = 24
 
 
 class SubprocessError(BaseException):
     DEFAULT_MESSAGE = (
         "%(cmd)s returned non-zero exit code: ret:%(returncode)i, "
         "stdout: %(stdout)s, stderr: %(stderr)s")
+    # Subclass errors are in the form 0b0100xxx
+    error_code = 32
