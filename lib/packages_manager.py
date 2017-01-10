@@ -40,8 +40,8 @@ class PackagesManager(object):
                 package = packages_class.get_instance(
                     package_name, **packages_keyword_args)
             except exception.PackageError:
-                LOG.error("Failed to load the package in components. "
-                          "See the logs for more information")
+                LOG.error("Failed to load the %s package metadata from the git repository. "
+                          "See the logs for more information" % package_name)
                 raise
             if download_source_code:
                 package.download_files()

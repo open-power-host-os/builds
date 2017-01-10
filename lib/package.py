@@ -62,7 +62,7 @@ class Package(object):
         self.download_build_files = []
 
         # Dependencies packages may be present in those directories in older
-        # build versions. This keeps compatibility.
+        # versions of package metadata. This keeps compatibility.
         OLD_DEPENDENCIES_DIRS = ["build_dependencies", "dependencies"]
         PACKAGES_DIRS = [""] + OLD_DEPENDENCIES_DIRS
         versions_repo_url = CONF.get('default').get('build_versions_repository_url')

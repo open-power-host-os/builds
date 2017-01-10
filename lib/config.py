@@ -26,11 +26,11 @@ from lib import utils
 LOG = logging.getLogger(__name__)
 BUILD_REPO_ARGS = {
     ('--build-versions-repository-url',):
-        dict(help='Build versions git repository URL'),
+        dict(help='Packages metadata git repository URL'),
     ('--build-version',):
-        dict(help='Build versions git repository branch'),
+        dict(help='Packages metadata git repository branch'),
     ('--build-versions-repo-dir',):
-        dict(help='Directory to clone the build versions git repository. '
+        dict(help='Directory to clone the packages metadata git repository. '
              'A subdirectory with the name of the git repository will be created here',
              default='.'),
     ('--http-proxy',):
@@ -112,7 +112,7 @@ def discover_packages():
     Simple mechanism for discoverability of the packages we build.
 
     A discoverable package, and thus potentially buildable, will be assumed as
-    any directory name under the build versions git repository directory containing
+    any directory name under the packages metadata git repository directory containing
     a yaml file with the same name.
     Considering the example:
 
