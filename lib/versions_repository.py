@@ -12,7 +12,7 @@ LOG = logging.getLogger(__name__)
 
 def setup_versions_repository(config):
     """
-    Clone and checkout the versions repository and halt execution if
+    Clone and checkout the versions git repository and halt execution if
     anything fails.
     """
     path, _ = os.path.split(
