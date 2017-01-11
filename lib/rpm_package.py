@@ -169,9 +169,14 @@ class RPM_Package(Package):
                 dep = RPM_Package.get_instance(dep_name, self.distro)
                 self.build_dependencies.append(dep)
 
-            self.rpmmacro = files.get('rpmmacro', None)
-            if self.rpmmacro:
-                self.rpmmacro = os.path.join(self.package_dir, self.rpmmacro)
+            default_rpm_macros_file_rel_path = os.path.join(
+                self.distro.lsb_name, self.distro.version, "rpmmacro")
+            rpm_macros_file_rel_path = files.get('rpmmacro', default_rpm_macros_file_rel_path)
+            rpm_macros_file_path = os.path.join(self.package_dir, rpm_macros_file_rel_path)
+            if os.path.isfile(rpm_macros_file_path):
+                self.rpmmacro = rpm_macros_file_path
+            else:
+                self.rpmmacro = None
 
             default_spec_file_rel_path = os.path.join(
                 self.distro.lsb_name, self.distro.version, "%s.spec" % self.name)
