@@ -86,15 +86,18 @@ class Version(object):
         changelog = None
 
         pkg = copy.copy(self.pkg)
-        pkg.commit_id = None
+        pkg.sources[0]["git"]["commit_id"] = None
         pkg.download_files(recurse=False)
-        pkg.commit_id = pkg.repository.head.commit.hexsha
+        newest_commit_id = pkg.sources[0]["git"]["repo"].head.commit.hexsha
 
-        if pkg.commit_id == self.pkg.commit_id:
+        if newest_commit_id == self.pkg.sources[0]["git"]["commit_id"]:
             LOG.debug("%s: no changes.", self.pkg)
             return
 
-        self._read_version_from_repo(pkg.repository.working_tree_dir)
+        pkg.sources[0]["git"]["commit_id"] = newest_commit_id
+
+        self._read_version_from_repo(
+            pkg.sources[0]["git"]["repo"].working_tree_dir)
 
         result = rpm_package.compare_versions(
             self.pkg.version, self._repo_version)

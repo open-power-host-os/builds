@@ -48,11 +48,23 @@ class PackageReleaseInfo(object):
 
     def __str__(self):
         string = " -\n"
-        PACKAGE_ATTRIBUTES = ["name", "clone_url", "version", "release",
-                              "branch", "commit_id"]
-        for attribute in PACKAGE_ATTRIBUTES:
-            string += "   {name}: {value}\n".format(
-                name=attribute, value=self.package.__getattribute__(attribute))
+
+        if self.package.sources and "git" in self.package.sources[0]:
+            main_git_source = self.package.sources[0]["git"]
+        else:
+            main_git_source = None
+
+        PACKAGE_ATTRIBUTES = [
+            ("name", self.package.name),
+            ("clone_url", main_git_source["src"] if main_git_source else ""),
+            ("version", self.package.version),
+            ("release",  self.package.release),
+            ("branch", main_git_source["branch"] if main_git_source else ""),
+            ("commit_id",
+             main_git_source["commit_id"] if main_git_source else ""),
+        ]
+        for name, value in PACKAGE_ATTRIBUTES:
+            string += "   {name}: {value}\n".format(name=name, value=value)
         return string
 
 
