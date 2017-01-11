@@ -147,8 +147,8 @@ class RPM_Package(Package):
                 distro_attrib_name = self.distro.lsb_name.lower()
 
             # load distro files
-            files = self.package_data.get('files').get(
-                distro_attrib_name).get(self.distro.version)
+            files = self.package_data.get('files', {}).get(
+                distro_attrib_name, {}).get(self.distro.version, {})
 
             self.build_files = files.get('build_files', None)
             if self.build_files:
@@ -169,8 +169,11 @@ class RPM_Package(Package):
             if self.rpmmacro:
                 self.rpmmacro = os.path.join(self.package_dir, self.rpmmacro)
 
-            self.spec_file = SpecFile(
-                os.path.join(self.package_dir, files.get('spec')))
+            default_spec_file_rel_path = os.path.join(
+                self.distro.lsb_name, self.distro.version, "%s.spec" % self.name)
+            spec_file_rel_path = files.get('spec', default_spec_file_rel_path)
+            self.spec_file_path = os.path.join(self.package_dir, spec_file_rel_path)
+            self.spec_file = SpecFile(self.spec_file_path)
 
             if os.path.isfile(self.spec_file.path):
                 LOG.info("Package found: %s for %s %s" % (
