@@ -15,6 +15,7 @@
 
 import logging
 import os
+import urlparse
 import utils
 
 import git
@@ -35,12 +36,16 @@ class PushError(Exception):
         super(PushError, self).__init__(message)
 
 
-def get_git_repository(name, remote_repo_url, parent_dir_path):
+def get_git_repository(remote_repo_url, parent_dir_path):
     """
-    Get a local git repository located in a subdirectory of the parent
-    dir, according to specified name.
+    Get a local git repository located in a subdirectory of the parent directory,
+    named after the file name of the URL path (git default).
     If it does not exist, clone it from the specified URL.
     """
+    # infer git repository name from its URL
+    url_parts = urlparse.urlparse(remote_repo_url)
+    name = os.path.basename(os.path.splitext(url_parts.path)[0])
+
     repo_path = os.path.join(parent_dir_path, name)
     if os.path.exists(repo_path):
         return GitRepository(repo_path)

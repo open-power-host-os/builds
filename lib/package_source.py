@@ -50,8 +50,7 @@ def _git_download(source, directory):
         raise ValueError('invalid git source dict: missing both `commit_id` '
                          'and `branch`')
 
-    repo = repository.get_git_repository(git_source['archive'],
-                                         git_source['src'],
+    repo = repository.get_git_repository(git_source['src'],
                                          directory)
     repo.checkout(commit_id or branch)
     source['git']['repo'] = repo
@@ -120,7 +119,7 @@ def _hg_archive(source, directory):
     """
     archive_name = source['hg']['archive']
     archive_file = os.path.join(directory, archive_name + ".tar.gz")
- 
+
     cmd = 'hg archive -t tgz "{}"'.format(archive_file)
     utils.run_command(cmd, cwd=source['hg']['dest'])
 

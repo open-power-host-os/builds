@@ -62,11 +62,14 @@ class Package(object):
         self.download_build_files = []
 
         # Dependencies packages may be present in those directories in older
-        # build versions. This keeps compatibility.
+        # versions of package metadata. This keeps compatibility.
         OLD_DEPENDENCIES_DIRS = ["build_dependencies", "dependencies"]
         PACKAGES_DIRS = [""] + OLD_DEPENDENCIES_DIRS
-        build_versions_repo_dir = CONF.get('default').get(
-            'build_versions_repo_dir')
+        versions_repo_url = CONF.get('default').get('build_versions_repository_url')
+        versions_repo_name = os.path.basename(os.path.splitext(versions_repo_url)[0])
+        build_versions_repo_dir = os.path.join(
+            CONF.get('default').get('build_versions_repo_dir'),
+            versions_repo_name)
         for rel_packages_dir in PACKAGES_DIRS:
             packages_dir = os.path.join(
                 build_versions_repo_dir, rel_packages_dir)
@@ -132,6 +135,10 @@ class Package(object):
 
         self.name = self.package_data.get('name')
         self.sources = self.package_data.get('sources', [])
+        for source in self.sources:
+            if 'archive' not in source.values()[0]:
+                source_name = source.keys()[0]
+                source[source_name]['archive'] = self.name
 
         version = self.package_data.get('version', {})
         self.version_file_regex = (version.get('file'),
@@ -153,7 +160,7 @@ class Package(object):
 
     def _setup_repository(self, dest=None, branch=None):
         self.repository = repository.get_git_repository(
-            self.name, self.clone_url, dest)
+            self.clone_url, dest)
         self.repository.checkout(self.commit_id or self.branch or branch)
 
     def _download_source(self, build_dir):

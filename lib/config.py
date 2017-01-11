@@ -26,12 +26,13 @@ from lib import utils
 LOG = logging.getLogger(__name__)
 BUILD_REPO_ARGS = {
     ('--build-versions-repository-url',):
-        dict(help='Build versions repository URL'),
+        dict(help='Packages metadata git repository URL'),
     ('--build-version',):
-        dict(help='Select build version from versions repository'),
+        dict(help='Packages metadata git repository branch'),
     ('--build-versions-repo-dir',):
-        dict(help='Directory to clone the build versions repository',
-             default='./components'),
+        dict(help='Directory to clone the packages metadata git repository. '
+             'A subdirectory with the name of the git repository will be created here',
+             default='.'),
     ('--http-proxy',):
         dict(help='HTTP proxy URL'),
 }
@@ -111,11 +112,11 @@ def discover_packages():
     Simple mechanism for discoverability of the packages we build.
 
     A discoverable package, and thus potentially buildable, will be assumed as
-    any directory name under the build versions repository directory containing
+    any directory name under the packages metadata git repository directory containing
     a yaml file with the same name.
     Considering the example:
 
-    components
+    versions
     +-- kernel
     |   +-- kernel.yaml
     +-- libvirt
@@ -128,8 +129,12 @@ def discover_packages():
     "kernel" and "libvirt" will be discovered, "not-a-package" and "file"
     will not.
     """
-    build_versions_repo_dir = get_config().CONF.get('default').get(
-        'build_versions_repo_dir')
+    config = get_config().CONF.get('default')
+    versions_repo_url = config.get('build_versions_repository_url')
+    versions_repo_name = os.path.basename(os.path.splitext(versions_repo_url)[0])
+    build_versions_repo_dir = os.path.join(
+        config.get('build_versions_repo_dir'),
+        versions_repo_name)
     package_list = []
     try:
         package_list = [

@@ -17,7 +17,6 @@ from datetime import datetime
 import logging
 import os
 import shutil
-import urlparse
 
 import git
 
@@ -92,10 +91,8 @@ def publish_release_notes(
     WEBSITE_POSTS_DIR = "_posts"
 
     # Name is last path part without the file extension (".git")
-    website_repo_path = urlparse.urlsplit(website_pull_repo_url).path
-    website_repo_name = os.path.basename(website_repo_path).rsplit(".", 1)[0]
     website_repo = repository.get_git_repository(
-        website_repo_name, website_pull_repo_url, os.getcwd())
+        website_pull_repo_url, os.getcwd())
     website_repo.checkout(website_pull_repo_branch)
 
     LOG.info("Copying file to repository directory")
