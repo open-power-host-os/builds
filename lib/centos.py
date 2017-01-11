@@ -18,7 +18,7 @@ import os
 from lib import distro
 from lib import mockbuilder
 
-CENTOS_VERSIONS = ["7.2", ]
+CENTOS_VERSIONS = ["7", ]
 
 
 class CentOS(distro.LinuxDistribution):
@@ -28,7 +28,7 @@ class CentOS(distro.LinuxDistribution):
     def __init__(self, name, version, arch_and_endianness):
         super(CentOS, self).__init__(name=name, version=version,
                                      arch_and_endianness=arch_and_endianness)
-        mock_config_dir = os.path.join(os.getcwd(), 'extras/centOS/7.2/mock')
+        mock_config_dir = os.path.join(os.getcwd(), 'extras/centOS/7/mock')
         self.package_builder = mockbuilder.Mock(os.path.join(
             mock_config_dir,
             'epel-7-ppc64le.cfg'))
