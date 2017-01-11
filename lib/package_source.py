@@ -129,8 +129,9 @@ def _hg_archive(source, directory):
 
 def _url_archive(source, directory):
     file_path = source['url']['dest']
-    file_name = os.path.basename(file_path)
-    archive_path = os.path.join(directory, file_name)
+    file_ext = ".".join(os.path.basename(file_path).split(".")[1:])
+    archive_name = source['url']['archive']
+    archive_path = os.path.join(directory, archive_name + "." + file_ext)
 
     shutil.move(file_path, archive_path)
     source['url']['archive'] = archive_path
