@@ -36,7 +36,7 @@ class PushError(Exception):
         super(PushError, self).__init__(message)
 
 
-def get_git_repository(remote_repo_url, parent_dir_path):
+def get_git_repository(remote_repo_url, parent_dir_path, shallow=False):
     """
     Get a local git repository located in a subdirectory of the parent directory,
     named after the file name of the URL path (git default).
@@ -55,6 +55,8 @@ def get_git_repository(remote_repo_url, parent_dir_path):
         http_proxy = CONF.get('http_proxy')
         if http_proxy:
             options["config"] = "http.proxy=%s" % http_proxy
+        if shallow:
+            options["depth"] = 1
         return GitRepository.clone_from(remote_repo_url,
                                         repo_path,
                                         **options)

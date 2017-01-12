@@ -52,7 +52,8 @@ def _git_download(source, directory):
                          'and `branch`')
 
     repo = repository.get_git_repository(git_source['src'],
-                                         directory)
+                                         directory,
+                                         git_source.get('shallow'))
     repo.checkout(commit_id or branch, ref_to_fetch)
     source['git']['repo'] = repo
     return source
