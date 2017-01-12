@@ -105,7 +105,8 @@ def _git_archive(source, directory):
     repo = git_source['repo']
     archived_file_path = repo.archive(git_source['archive'],
                                       git_source['commit_id'],
-                                      directory)
+                                      directory,
+                                      archive_src_dir = git_source['archive_src_dir'])
     git_source['archive'] = archived_file_path
     source['git'] = git_source
     return source

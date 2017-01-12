@@ -140,6 +140,7 @@ class Package(object):
             source[source_name].setdefault('archive', self.name)
             if source_name == 'git':
                 source[source_name].setdefault('ref_to_fetch', None)
+                source[source_name].setdefault('archive_src_dir', None)
 
         version = self.package_data.get('version', {})
         self.version_file_regex = (version.get('file'),

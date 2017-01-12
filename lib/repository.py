@@ -146,7 +146,7 @@ class GitRepository(git.Repo):
                      % dict(name=submodule.name, url=submodule.url))
             submodule.update(init=True)
 
-    def archive(self, archive_name, commit_id, build_dir):
+    def archive(self, archive_name, commit_id, build_dir, archive_src_dir=None):
         # TODO(olavph): use git.Repo.archive instead of run_command
         archive_file = os.path.join(build_dir, archive_name + ".tar")
 
@@ -160,6 +160,8 @@ class GitRepository(git.Repo):
         # Generates project's archive.
         cmd = "git archive --prefix=%s/ --format tar --output %s HEAD" % (
             archive_name, archive_file)
+        if archive_src_dir:
+            cmd += " %s" % archive_src_dir
         utils.run_command(cmd, cwd=self.working_tree_dir)
 
         # Concatenate tar files. It's fine to fail when we don't have a
