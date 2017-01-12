@@ -136,9 +136,11 @@ class Package(object):
         self.name = self.package_data.get('name')
         self.sources = self.package_data.get('sources', [])
         for source in self.sources:
+            source_name = source.keys()[0]
             if 'archive' not in source.values()[0]:
-                source_name = source.keys()[0]
                 source[source_name]['archive'] = self.name
+            if source_name == 'git':
+                source[source_name].setdefault('ref_to_fetch', None)
 
         version = self.package_data.get('version', {})
         self.version_file_regex = (version.get('file'),

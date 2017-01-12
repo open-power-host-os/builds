@@ -85,7 +85,7 @@ class GitRepository(git.Repo):
     def name(self):
         return os.path.basename(self.working_tree_dir)
 
-    def checkout(self, ref_name):
+    def checkout(self, ref_name, ref_to_fetch=None):
         """
         Check out the reference name, resetting the index state.
         The reference may be a branch, tag or commit.
@@ -94,7 +94,10 @@ class GitRepository(git.Repo):
                  % dict(name=self.name))
         for remote in self.remotes:
             try:
-                remote.fetch()
+                if ref_to_fetch:
+                    remote.fetch("%s:%s" % (ref_to_fetch, ref_name))
+                else:
+                    remote.fetch()
             except git.exc.GitCommandError:
                 LOG.debug("Failed to fetch %s remote for %s"
                           % (remote.name, self.name))

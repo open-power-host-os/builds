@@ -45,6 +45,7 @@ def _git_download(source, directory):
     git_source = source['git']
     commit_id = git_source.get('commit_id')
     branch = git_source.get('branch')
+    ref_to_fetch = git_source.get('ref_to_fetch')
 
     if commit_id is None and branch is None:
         raise ValueError('invalid git source dict: missing both `commit_id` '
@@ -52,7 +53,7 @@ def _git_download(source, directory):
 
     repo = repository.get_git_repository(git_source['src'],
                                          directory)
-    repo.checkout(commit_id or branch)
+    repo.checkout(commit_id or branch, ref_to_fetch)
     source['git']['repo'] = repo
     return source
 
