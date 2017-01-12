@@ -51,33 +51,27 @@ def get_git_repository(remote_repo_url, parent_dir_path):
         return GitRepository(repo_path)
     else:
         CONF = config.get_config().CONF
+        options = {}
+        http_proxy = CONF.get('http_proxy')
+        if http_proxy:
+            options["config"] = "http.proxy=%s" % http_proxy
         return GitRepository.clone_from(remote_repo_url,
                                         repo_path,
-                                        proxy=CONF.get('http_proxy'))
+                                        **options)
 
 
 class GitRepository(git.Repo):
 
     @classmethod
-    def clone_from(cls, remote_repo_url, repo_path, proxy=None, *args, **kwargs):
+    def clone_from(cls, remote_repo_url, repo_path, *args, **kwargs):
         """
         Clone a repository from a remote URL into a local path.
         """
         LOG.info("Cloning repository from '%s' into '%s'" %
                  (remote_repo_url, repo_path))
         try:
-            if proxy:
-                git_cmd = git.cmd.Git()
-                git_cmd.execute(['git',
-                                 '-c',
-                                 "http.proxy='{}'".format(proxy),
-                                 'clone',
-                                 remote_repo_url,
-                                 repo_path])
-                return GitRepository(repo_path)
-            else:
-                return super(GitRepository, cls).clone_from(
-                    remote_repo_url, repo_path, *args, **kwargs)
+            return super(GitRepository, cls).clone_from(
+                remote_repo_url, repo_path, *args, **kwargs)
         except git.exc.GitCommandError:
             message = "Failed to clone repository"
             LOG.exception(message)
