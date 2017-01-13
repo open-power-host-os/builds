@@ -1,0 +1,10 @@
+bzip2
+git
+GitPython
+lzop
+mock
+nosync
+python-lxml
+PyYAML
+subversion
+wget

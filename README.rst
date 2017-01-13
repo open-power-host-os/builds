@@ -33,22 +33,11 @@ RPM Based distributions
 $ sudo yum install --downloadonly --downloaddir=. epel-release
 $ sudo yum localinstall epel-release-7-5.noarch.rpm # Note the version may change.
 
-* Install
-
- - bzip2
- - git
- - GitPython
- - mock
- - PyYAML
- - svn
- - wget
- - python-lxml
- - nosync
- - lzop
+* Install RPM dependencies
 
 ::
 
-$ sudo yum install -y bzip2 git GitPython mock PyYAML svn wget
+$ sudo yum install -y $(cat rpm_requirements.txt)
 
 Settings
 --------
