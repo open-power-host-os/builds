@@ -17,7 +17,6 @@ import logging
 
 from lib import config
 from lib import distro_utils
-from lib import exception
 from lib import build_manager
 from lib.versions_repository import setup_versions_repository
 
@@ -35,10 +34,4 @@ def run(CONF):
 
     LOG.info("Building packages: %s", ", ".join(packages_to_build))
     bm = build_manager.BuildManager(packages_to_build, distro)
-    try:
-        bm()
-    except exception.BaseException as exc:
-        LOG.exception("Failed to build packages")
-        return exc.errno
-    else:
-        return 0
+    bm()

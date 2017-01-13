@@ -1,7 +1,5 @@
 import logging
 import os
-import sys
-
 
 from lib import exception
 from lib import repository
@@ -22,8 +20,8 @@ def setup_versions_repository(config):
     try:
         versions_repo = repository.get_git_repository(url, path)
         versions_repo.checkout(branch)
-    except exception.RepositoryError as exc:
-        LOG.exception("Failed to checkout versions repository")
-        sys.exit(exc.errno)
+    except exception.RepositoryError:
+        LOG.error("Failed to checkout versions repository")
+        raise
 
     return versions_repo
