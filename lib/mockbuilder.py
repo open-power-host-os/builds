@@ -142,7 +142,7 @@ class Mock(build_system.PackageBuilder):
     def _create_build_directory(self, package):
         self.build_dir = os.path.join(
             os.getcwd(), 'build',
-            datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S'))
+            datetime.datetime.now().isoformat())
         os.makedirs(self.build_dir)
         os.chmod(self.build_dir, 0777)
 
