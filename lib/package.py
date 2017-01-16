@@ -137,8 +137,7 @@ class Package(object):
         self.sources = self.package_data.get('sources', [])
         for source in self.sources:
             source_name = source.keys()[0]
-            if 'archive' not in source.values()[0]:
-                source[source_name]['archive'] = self.name
+            source[source_name].setdefault('archive', self.name)
             if source_name == 'git':
                 source[source_name].setdefault('ref_to_fetch', None)
 
