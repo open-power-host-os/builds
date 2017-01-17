@@ -35,6 +35,8 @@ RELEASE_FILE_CONTENT_TEMPLATE = """\
 ---
 title: OpenPOWER Host OS release
 layout: release
+builds_commit: {builds_commit}
+versions_commit: {versions_commit}
 packages:
 {packages_info}
 ---
@@ -68,7 +70,7 @@ class PackageReleaseInfo(object):
         return string
 
 
-def write_version_info(release, file_path, packages):
+def write_version_info(release, file_path, versions_repo, packages):
     """
     Write release information to a file.
     It contains packages names, branches and commit IDs.
@@ -76,6 +78,10 @@ def write_version_info(release, file_path, packages):
     LOG.info("Writing release {release} information to file: {file_path}".format(
         **locals()))
     format_dict = {"release": release}
+
+    format_dict["builds_commit"] = (
+        repository.GitRepository(".").head.commit.hexsha)
+    format_dict["versions_commit"] = versions_repo.head.commit.hexsha
 
     packages_info = ""
     packages.sort()
@@ -135,7 +141,7 @@ def publish_release_notes(
 
 
 def run(CONF):
-    setup_versions_repository(CONF)
+    versions_repo = setup_versions_repository(CONF)
 
     packages_names = (CONF.get('default').get('packages')
                       or config.discover_packages())
@@ -166,7 +172,7 @@ def run(CONF):
 
     release_date = datetime.today().date().isoformat()
     release_file_name = RELEASE_FILE_NAME_TEMPLATE.format(date=release_date)
-    write_version_info(release_date, release_file_name,
+    write_version_info(release_date, release_file_name, versions_repo,
                        package_manager.packages)
     publish_release_notes(
         release_date, release_file_name, release_notes_repo_url,
