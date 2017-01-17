@@ -40,6 +40,7 @@ class Mock(build_system.PackageBuilder):
         self.result_dir = CONF.get('default').get('result_dir')
         self.build_dir = None
         self.archive = None
+        self.timestamp = datetime.datetime.now().isoformat()
 
     def initialize(self):
         """
@@ -141,8 +142,7 @@ class Mock(build_system.PackageBuilder):
 
     def _create_build_directory(self, package):
         self.build_dir = os.path.join(
-            os.getcwd(), 'build',
-            datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S'))
+            os.getcwd(), 'build', self.timestamp, package.name)
         os.makedirs(self.build_dir)
         os.chmod(self.build_dir, 0777)
 
