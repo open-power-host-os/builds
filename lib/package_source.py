@@ -1,9 +1,11 @@
 import os
 import shutil
+import socket
 import urllib2
 
 
 from lib import config
+from lib import exception
 from lib import repository
 from lib import utils
 
@@ -19,9 +21,6 @@ def _hg_download(source, directory):
     dest = os.path.join(directory, repo_name)
     command = 'hg '
 
-    if proxy:
-        command += '-c http_proxy.host="{}" '.format(proxy)
-
     commit_id = hg_source.get('commit_id')
     branch = hg_source.get('branch')
 
@@ -29,10 +28,26 @@ def _hg_download(source, directory):
         raise ValueError('invalid hg source dict: missing both `commit_id` '
                          'and `branch`')
 
-    command += 'clone "{}" -r "{}" "{}"'.format(hg_source['src'],
+    command += 'clone "{}" -r "{}" "{}" '.format(hg_source['src'],
                                                 hg_source['branch'],
                                                 dest)
-    utils.run_command(command)
+    if proxy:
+        command += '--config http_proxy.host="{}" '.format(proxy)
+    command += "--ssh '/usr/bin/env ssh -o ConnectTimeout={}'"
+
+    def _clone_repository(timeout):
+        cmd = command.format(timeout)
+        utils.run_command(cmd)
+
+    def _is_timeout_error(exc):
+        if not isinstance(exc, exception.SubprocessError):
+            return False
+        return ('timed out' in exc.stdout or 'timed out' in exc.stderr)
+
+    utils.retry_on_timeout(_clone_repository,
+                           is_timeout_error_f=_is_timeout_error,
+                           initial_timeout=60)
+
     source['hg']['dest'] = dest
     return source
 
@@ -50,8 +65,11 @@ def _git_download(source, directory):
         raise ValueError('invalid git source dict: missing both `commit_id` '
                          'and `branch`')
 
-    repo = repository.get_git_repository(git_source['src'],
-                                         directory)
+    def _download_repository():
+        return repository.get_git_repository(git_source['src'], directory)
+
+    repo = utils.retry_on_error(_download_repository,
+                                error=exception.RepositoryError)
     repo.checkout(commit_id or branch)
     source['git']['repo'] = repo
     return source
@@ -67,7 +85,14 @@ def _url_download(source, directory):
 
     CHUNK_SIZE = 16 << 1024
 
-    response = urllib2.urlopen(source['url']['src'])
+    def _open_url(timeout):
+        return urllib2.urlopen(source['url']['src'], timeout=timeout)
+
+    response = utils.retry_on_timeout(_open_url,
+                                      lambda exc: isinstance(exc,
+                                                             socket.timeout),
+                                      initial_timeout=10)
+
     with open(dest, 'wb') as f:
         while True:
             chunk = response.read(CHUNK_SIZE)
