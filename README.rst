@@ -106,7 +106,6 @@ project's root.
 A suggested set of packages tested is the following:
 
  - kernel
- - libseccomp
  - libvirt
  - libvirt-client
  - libvirt-daemon
@@ -141,11 +140,11 @@ A suggested set of packages tested is the following:
  - SLOF
 
 You can use the following command to install, for instance,
-libseccomp's RPM:
+kernel's RPM:
 
 ::
 
-$ sudo yum localinstall result/libseccomp-2.3.1-0.el7.centos.1.ppc64le.rpm
+$ sudo yum localinstall result/kernel-4.9.0-4.el7.centos.ppc64le.rpm
 
 Note that some of those packages are debuginfo which are recommended
 in order to provide useful information for bugs in the case of any
