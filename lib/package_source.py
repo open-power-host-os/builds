@@ -45,14 +45,16 @@ def _git_download(source, directory):
     git_source = source['git']
     commit_id = git_source.get('commit_id')
     branch = git_source.get('branch')
+    ref_to_fetch = git_source.get('ref_to_fetch')
 
     if commit_id is None and branch is None:
         raise ValueError('invalid git source dict: missing both `commit_id` '
                          'and `branch`')
 
     repo = repository.get_git_repository(git_source['src'],
-                                         directory)
-    repo.checkout(commit_id or branch)
+                                         directory,
+                                         git_source.get('shallow'))
+    repo.checkout(commit_id or branch, ref_to_fetch)
     source['git']['repo'] = repo
     return source
 
@@ -104,7 +106,8 @@ def _git_archive(source, directory):
     repo = git_source['repo']
     archived_file_path = repo.archive(git_source['archive'],
                                       git_source['commit_id'],
-                                      directory)
+                                      directory,
+                                      archive_src_dir = git_source['archive_src_dir'])
     git_source['archive'] = archived_file_path
     source['git'] = git_source
     return source

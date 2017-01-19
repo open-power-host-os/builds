@@ -36,7 +36,7 @@ class PushError(Exception):
         super(PushError, self).__init__(message)
 
 
-def get_git_repository(remote_repo_url, parent_dir_path):
+def get_git_repository(remote_repo_url, parent_dir_path, shallow=False):
     """
     Get a local git repository located in a subdirectory of the parent directory,
     named after the file name of the URL path (git default).
@@ -51,33 +51,29 @@ def get_git_repository(remote_repo_url, parent_dir_path):
         return GitRepository(repo_path)
     else:
         CONF = config.get_config().CONF
+        options = {}
+        http_proxy = CONF.get('http_proxy')
+        if http_proxy:
+            options["config"] = "http.proxy=%s" % http_proxy
+        if shallow:
+            options["depth"] = 1
         return GitRepository.clone_from(remote_repo_url,
                                         repo_path,
-                                        proxy=CONF.get('http_proxy'))
+                                        **options)
 
 
 class GitRepository(git.Repo):
 
     @classmethod
-    def clone_from(cls, remote_repo_url, repo_path, proxy=None, *args, **kwargs):
+    def clone_from(cls, remote_repo_url, repo_path, *args, **kwargs):
         """
         Clone a repository from a remote URL into a local path.
         """
         LOG.info("Cloning repository from '%s' into '%s'" %
                  (remote_repo_url, repo_path))
         try:
-            if proxy:
-                git_cmd = git.cmd.Git()
-                git_cmd.execute(['git',
-                                 '-c',
-                                 "http.proxy='{}'".format(proxy),
-                                 'clone',
-                                 remote_repo_url,
-                                 repo_path])
-                return GitRepository(repo_path)
-            else:
-                return super(GitRepository, cls).clone_from(
-                    remote_repo_url, repo_path, *args, **kwargs)
+            return super(GitRepository, cls).clone_from(
+                remote_repo_url, repo_path, *args, **kwargs)
         except git.exc.GitCommandError:
             message = "Failed to clone repository"
             LOG.exception(message)
@@ -91,7 +87,7 @@ class GitRepository(git.Repo):
     def name(self):
         return os.path.basename(self.working_tree_dir)
 
-    def checkout(self, ref_name):
+    def checkout(self, ref_name, ref_to_fetch=None):
         """
         Check out the reference name, resetting the index state.
         The reference may be a branch, tag or commit.
@@ -100,7 +96,10 @@ class GitRepository(git.Repo):
                  % dict(name=self.name))
         for remote in self.remotes:
             try:
-                remote.fetch()
+                if ref_to_fetch:
+                    remote.fetch("%s:%s" % (ref_to_fetch, ref_name))
+                else:
+                    remote.fetch()
             except git.exc.GitCommandError:
                 LOG.debug("Failed to fetch %s remote for %s"
                           % (remote.name, self.name))
@@ -149,7 +148,7 @@ class GitRepository(git.Repo):
                      % dict(name=submodule.name, url=submodule.url))
             submodule.update(init=True)
 
-    def archive(self, archive_name, commit_id, build_dir):
+    def archive(self, archive_name, commit_id, build_dir, archive_src_dir=None):
         # TODO(olavph): use git.Repo.archive instead of run_command
         archive_file = os.path.join(build_dir, archive_name + ".tar")
 
@@ -163,6 +162,8 @@ class GitRepository(git.Repo):
         # Generates project's archive.
         cmd = "git archive --prefix=%s/ --format tar --output %s HEAD" % (
             archive_name, archive_file)
+        if archive_src_dir:
+            cmd += " %s" % archive_src_dir
         utils.run_command(cmd, cwd=self.working_tree_dir)
 
         # Concatenate tar files. It's fine to fail when we don't have a
