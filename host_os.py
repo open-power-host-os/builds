@@ -18,7 +18,7 @@ import sys
 
 from lib import config
 from lib import exception
-from lib.utils import run_command
+from lib.utils import is_package_installed
 from tools import build_iso
 from tools import build_package
 from tools import create_release_notes
@@ -37,26 +37,6 @@ SUBCOMMANDS = {
     'set-env': setup_environment,
     'build-iso': build_iso,
 }
-
-
-def is_package_installed(package_name):
-    """
-    Checks if a RPM package is installed
-    """
-
-    cmd = "rpm -q %s" % package_name
-    try:
-        run_command(cmd, shell=True)
-    except exception.SubprocessError as e:
-        # rpm returns 1 when search string is not found and other non-zero values
-        # if an error occurred
-        #pylint: disable=no-member
-        if e.returncode == 1:
-            return False
-        else:
-            raise
-
-    return True
 
 
 if __name__ == '__main__':

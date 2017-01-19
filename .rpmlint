@@ -1,0 +1,5 @@
+from Config import *
+
+addFilter("files-attr-not-set")
+addFilter("use-of-RPM_SOURCE_DIR")
+addFilter("hardcoded-library-path")
