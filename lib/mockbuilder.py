@@ -41,9 +41,10 @@ class Mock(build_system.PackageBuilder):
         self.archive = None
         self.timestamp = datetime.datetime.now().isoformat()
         self.common_mock_args = (
-            "%(binary_file)s -r %(config_file)s %(extra_args)s" % dict(
+            "%(binary_file)s -r %(config_file)s %(extra_args)s "
+            "--uniqueext %(suffix)s" % dict(
                 binary_file=binary_file, config_file=config_file,
-                extra_args=extra_args))
+                extra_args=extra_args, suffix=self.timestamp))
 
     def initialize(self):
         """
