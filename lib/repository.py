@@ -24,7 +24,6 @@ import gitdb
 from lib import config
 from lib import exception
 
-
 LOG = logging.getLogger(__name__)
 
 
@@ -54,6 +53,19 @@ def get_git_repository(remote_repo_url, parent_dir_path):
         return GitRepository.clone_from(remote_repo_url,
                                         repo_path,
                                         proxy=CONF.get('http_proxy'))
+
+
+def get_svn_repository(remote_repo_url, repo_path):
+    """
+    Get a local subversion repository located in a directory.
+    If it does not exist, check it out from the specified URL.
+    """
+    if os.path.exists(repo_path):
+        return SvnRepository(remote_repo_url, repo_path)
+    else:
+        # TODO: setup HTTP proxy by editing ~/.subversion/servers
+        return SvnRepository.checkout_from(remote_repo_url,
+                                           repo_path)
 
 
 class GitRepository(git.Repo):
@@ -178,3 +190,58 @@ class GitRepository(git.Repo):
         cmd = "gzip %s" % archive_file
         utils.run_command(cmd)
         return archive_file + ".gz"
+
+
+class SvnRepository():
+
+    @classmethod
+    def checkout_from(cls, remote_repo_url, repo_path):
+        """
+        Checkout a repository from a remote URL into a local path.
+        """
+        LOG.info("Checking out repository from '%s' into '%s'" %
+                 (remote_repo_url, repo_path))
+        try:
+            utils.run_command('svn checkout %(remote_repo_url)s %(local_target_path)s' %
+                dict(remote_repo_url=remote_repo_url, local_target_path=repo_path))
+            return SvnRepository(remote_repo_url, repo_path)
+        except:
+            message = "Failed to clone repository"
+            LOG.exception(message)
+            raise exception.RepositoryError(message=message)
+
+    def __init__(self, remote_repo_url, local_repo_path):
+        self.url = remote_repo_url
+        self.working_copy_dir = local_repo_path
+        LOG.info("Found existent repository at destination path %s" % local_repo_path)
+
+    @property
+    def name(self):
+        return os.path.basename(self.working_copy_dir)
+
+    def checkout(self, revision):
+        """
+        Check out a revision.
+        """
+        LOG.info("%(name)s: Updating svn repository"
+                 % dict(name=self.name))
+        try:
+            utils.run_command("svn update", cwd=self.working_copy_dir)
+        except:
+            LOG.debug("%(name)s: Failed to update svn repository"
+                      % dict(name=self.name))
+            pass
+        else:
+            LOG.info("%(name)s: Updated svn repository" % dict(name=self.name))
+
+        LOG.info("%(name)s: Checking out revision %(revision)s"
+                 % dict(name=self.name, revision=revision))
+        try:
+            utils.run_command("svn checkout %(repo_url)s@%(revision)s ." %
+                dict(repo_url=self.url, revision=revision),
+                cwd=self.working_copy_dir)
+        except:
+            message = ("Could not find revision %s at %s repository"
+                       % (revision, self.name))
+            LOG.exception(message)
+            raise exception.RepositoryError(message=message)
