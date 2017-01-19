@@ -105,13 +105,8 @@ class MockPungiSpinner(object):
             mock_spin_repo_name = self.config.get('mock_spin_repo').get('name')
             mock_spin_repo_dir = self.config.get('mock_spin_repo').get('dir')
             repo_urls[mock_spin_repo_name] = "file://%s/" % mock_spin_repo_dir
-            # FIXME: linux-firmware provided by HostOS conflicts with
-            #        ivtv-firmware, this hack must be removed as soon as its
-            #        problem has been sorted out
-            exclude_packages = "--excludepkgs=ivtv-firmware"
             for name, url in repo_urls.items():
-                repo = ("repo --name=%s --baseurl=%s %s\n" %
-                        (name, url, exclude_packages))
+                repo = ("repo --name=%s --baseurl=%s\n" % (name, url))
                 f.write(repo)
 
             f.write("%packages\n")
