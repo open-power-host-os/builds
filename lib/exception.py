@@ -78,3 +78,11 @@ class SubprocessError(BaseException):
         "stdout: %(stdout)s, stderr: %(stderr)s")
     # Subclass errors are in the form 0b0100xxx
     error_code = 32
+
+
+class TimeoutError(BaseException):
+    DEFAULT_MESSAGE = (
+        "Timeout failure on %(func_name)s after %(num_attempts)s attempts. "
+        "Initial timeout: %(initial_timeout)s, final timeout: "
+        "%(final_timeout)s.")
+    error_code = 40
