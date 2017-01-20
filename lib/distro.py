@@ -57,8 +57,11 @@ class LinuxDistribution(object):
         """
         self.package_builder.initialize()
         for package in packages:
+            package.lock()
             package.download_files(recurse=False)
             self.package_builder.build(package)
+            package.unlock()
+
         self.clean(packages)
 
     def clean(self, packages):
