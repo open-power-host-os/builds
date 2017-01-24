@@ -29,20 +29,20 @@ from lib import utils
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 MOCK_CHROOT_BUILD_DIR = "/builddir/build/SOURCES"
-MOCK_BIN = "/usr/bin/mock"
 
 
 class Mock(build_system.PackageBuilder):
     def __init__(self, config_file):
         super(Mock, self).__init__()
+        binary_file = CONF.get('default').get('mock_binary')
         extra_args = CONF.get('default').get('mock_args')
         self.result_dir = CONF.get('default').get('result_dir')
         self.build_dir = None
         self.archive = None
         self.timestamp = datetime.datetime.now().isoformat()
         self.common_mock_args = (
-            "%(binary)s -r %(config_file)s %(extra_args)s" % dict(
-                binary=MOCK_BIN, config_file=config_file,
+            "%(binary_file)s -r %(config_file)s %(extra_args)s" % dict(
+                binary_file=binary_file, config_file=config_file,
                 extra_args=extra_args))
 
     def initialize(self):
