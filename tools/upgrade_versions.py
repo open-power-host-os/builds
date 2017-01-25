@@ -33,7 +33,7 @@ LOG = logging.getLogger(__name__)
 PACKAGES = [
     'SLOF',
     'ginger',
-    'gingerbase',
+    'ginger-base',
     'kernel',
     'kimchi',
     'libservicelog',
