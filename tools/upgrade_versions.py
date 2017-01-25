@@ -62,14 +62,18 @@ def _sed_yaml_descriptor(yamlfile, old_commit, new_commit):
 
 
 def _get_git_log(repo, since_id):
+    """
+    Get log of commit SHA1 and short messages since the ID provided
+    (non-inclusive).
+    """
     log = []
     for commit in repo.iter_commits():
+        if commit.hexsha.startswith(since_id):
+            break
         commit_message = commit.message.split('\n')[0]
         commit_message = commit_message.replace("'", "")
         commit_message = commit_message.replace("\"", "")
         log.append("%s %s" % (commit.hexsha, commit_message))
-        if commit.hexsha.startswith(since_id):
-            break
 
     return log
 
