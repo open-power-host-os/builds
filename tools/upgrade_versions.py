@@ -83,7 +83,7 @@ class Version(object):
         LOG.info("%s: Current version: %s" % (self.pkg, self.pkg.version))
 
     def update(self, user_name, user_email):
-        pkg = copy.copy(self.pkg)
+        pkg = copy.deepcopy(self.pkg)
         pkg.sources[0]["git"]["commit_id"] = None
         pkg.download_files(recurse=False)
         newest_commit_id = pkg.sources[0]["git"]["repo"].head.commit.hexsha
@@ -111,16 +111,23 @@ class Version(object):
         pkg.spec_file.update_prerelease_tag(self._repo_prerelease)
         self._bump_release(pkg, change_log_header, user_name, user_email)
 
-    def _bump_release(self, pkg, change_log_lines=None, user_name=None,
+    def _bump_release(self, pkg, change_log_header=None, user_name=None,
                       user_email=None):
         LOG.info("%s: Bumping release" % self.pkg)
+        change_log_lines = []
+        if change_log_header is not None:
+            change_log_lines.append(change_log_header)
 
-        if self.pkg.commit_id:
+        old_commit_id = self.pkg.sources[0]["git"]["commit_id"]
+        if old_commit_id:
+            new_source = pkg.sources[0]["git"]
+            new_commit_id = new_source["commit_id"]
             LOG.info("Updating package %s from %s to %s" % (
-                self.pkg.name, self.pkg.commit_id, pkg.commit_id))
-            change_log_lines = _get_git_log(pkg.repository, self.pkg.commit_id)
-            _sed_yaml_descriptor(self.pkg.package_file, self.pkg.commit_id,
-                                 pkg.commit_id)
+                self.pkg.name, old_commit_id, new_commit_id))
+            change_log_lines += _get_git_log(
+                new_source["repo"], old_commit_id)
+            _sed_yaml_descriptor(
+                self.pkg.package_file, old_commit_id, new_commit_id)
 
         if change_log_lines:
             assert user_name is not None
