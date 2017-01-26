@@ -57,7 +57,6 @@ class Mock(build_system.PackageBuilder):
 
     def build(self, package):
         LOG.info("%s: Starting build process" % package.name)
-        self._prepare(package)
         self._build_srpm(package)
         self._install_external_dependencies(package)
         cmd = (self.common_mock_args + " --rebuild %s --no-clean --resultdir=%s"
@@ -92,6 +91,7 @@ class Mock(build_system.PackageBuilder):
         utils.run_command(cmd)
 
     def prepare_sources(self, package):
+        LOG.info("%s: Preparing source files." % package.name)
         self._create_build_directory(package)
         self._prepare_archive(package)
         if package.build_files:

@@ -162,6 +162,18 @@ class Package(object):
 
         LOG.info("%s: Loaded package metadata successfully" % self.name)
 
+        # Check if this package has shared resources that need to be
+        # locked from other processes
+        self.locking_enabled = False
+        # The URL source type is not downloaded to a shared location
+        for source in self.sources:
+            if "url" not in source:
+                self.locking_enabled = True
+                break
+        if not self.sources:
+            # Old sources format is used, it's better to enable locking
+            self.locking_enabled = True
+
     def _setup_repository(self, dest=None, branch=None):
         self.repository = repository.get_git_repository(
             self.clone_url, dest)
@@ -192,6 +204,10 @@ class Package(object):
         Currently, the only resource shared among scripts executed from
         different directories is the repository.
         """
+        if not self.locking_enabled:
+            LOG.debug("This package has no shared resources to lock")
+            return
+
         LOG.debug("Checking for lock on file {}.".format(self.lock_file_path))
         self.lock_file = open(self.lock_file_path, "w")
         try:
@@ -210,6 +226,9 @@ class Package(object):
         Unlocks the package to allow other processes to operate on its
         shared resources.
         """
+        if not self.locking_enabled:
+            return
+
         LOG.debug("Unlocking file {}".format(self.lock_file_path))
         fcntl.lockf(self.lock_file, fcntl.LOCK_UN)
         self.lock_file.close()
