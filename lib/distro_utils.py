@@ -20,7 +20,7 @@ from lib import centos
 from lib import exception
 
 DISTRIBUTIONS = {
-    "centOS": centos.CentOS,
+    "CentOS": centos.CentOS,
 }
 LOG = logging.getLogger(__name__)
 
