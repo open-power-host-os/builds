@@ -12,7 +12,7 @@ default:
  mock_binary: "/usr/bin/mock"
  mock_config:
   centOS:
-   '7': "./mock_configs/centOS/7/epel-7-ppc64le.cfg"
+   '7': "./mock_configs/centOS/7/centOS-7-ppc64le.cfg"
  mock_args:
    # If the system has less RAM than required, the plugin will be disabled
    "--enable-plugin=tmpfs
@@ -22,7 +22,7 @@ default:
 iso:
     iso_name: "OpenPOWER-Host_OS"
     log_file: "/var/log/host-os/iso.log"
-    mock_config: "./mock_configs/centOS/7/spin-iso-epel-7-ppc64le.cfg"
+    mock_config: "./mock_configs/centOS/7/spin-iso-centOS-7-ppc64le.cfg"
     packages_dir: "./result"
     kickstart_file: "host-os.ks"
     hostos_packages_groups:
