@@ -91,7 +91,7 @@ class Mock(build_system.PackageBuilder):
                % (package.spec_file.path, self.archive, self.build_dir))
         utils.run_command(cmd)
 
-    def _prepare(self, package):
+    def prepare_sources(self, package):
         self._create_build_directory(package)
         self._prepare_archive(package)
         if package.build_files:

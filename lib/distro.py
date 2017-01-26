@@ -59,8 +59,9 @@ class LinuxDistribution(object):
         for package in packages:
             package.lock()
             package.download_files(recurse=False)
-            self.package_builder.build(package)
+            self.package_builder.prepare_sources(package)
             package.unlock()
+            self.package_builder.build(package)
 
         self.clean(packages)
 
