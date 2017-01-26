@@ -75,6 +75,26 @@ def _git_download(source, directory):
     return source
 
 
+def _svn_download(source, directory):
+    """
+    Checkout a Subversion [source] to [directory] and returns a dict with a key
+    pointing to the cloned repository
+    """
+    svn_source = source['svn']
+    commit_id = svn_source.get('commit_id')
+    branch = svn_source.get('branch')
+
+    if commit_id is None and branch is None:
+        raise ValueError('invalid subversion source dict: missing both `commit_id` '
+                         'and `branch`')
+
+    repo = repository.get_svn_repository(svn_source['src'],
+                                         directory)
+    repo.checkout(commit_id or branch)
+    source['svn']['repo'] = repo
+    source['svn']['dest'] = directory
+    return source
+
 def _url_download(source, directory):
     """
     Downloads a file from URL [source] to [directory] and returns a source
@@ -103,16 +123,23 @@ def _url_download(source, directory):
     return source
 
 
-def download(source, directory='/tmp'):
+def download(source, directory='/tmp', local_copy_subdir_name=None):
     """
     Download files specified by [source] to [directory].
+    git and hg download to a subdir with the repository name.
+    As svn has no standard URL format from which to infer the repository name, it downloads
+    to a subdir named [local_copy_subdir_name]
     """
     keys = source.keys()
 
+    # TODO: currently ignoring subdir_name for all sources except svn, this is
+    # not consistent
     if keys == ['git']:
         return _git_download(source, directory)
     elif keys == ['hg']:
         return _hg_download(source, directory)
+    elif keys == ['svn']:
+        return _svn_download(source, os.path.join(directory, local_copy_subdir_name))
     elif keys == ['url']:
         return _url_download(source, directory)
     else:
@@ -152,6 +179,17 @@ def _hg_archive(source, directory):
     return source
 
 
+def _svn_archive(source, directory):
+    archive_name = source['svn']['archive']
+    archive_file = os.path.join(directory, archive_name + ".tar.gz")
+
+    cmd = "tar --transform 's,^\.,{0},' -cvzf {1} . --exclude='*/.svn'".format(
+        archive_name, archive_file)
+    utils.run_command(cmd, cwd=source['svn']['dest'])
+
+    source['svn']['archive'] = archive_file
+    return source
+
 def _url_archive(source, directory):
     file_path = source['url']['dest']
     file_ext = ".".join(os.path.basename(file_path).split(".")[1:])
@@ -179,6 +217,8 @@ def archive(source, directory=''):
         return _git_archive(source, directory)
     elif keys == ['hg']:
         return _hg_archive(source, directory)
+    elif keys == ['svn']:
+        return _svn_archive(source, directory)
     elif keys == ['url']:
         return _url_archive(source, directory)
     else:

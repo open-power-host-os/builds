@@ -102,7 +102,7 @@ class Package(object):
         """
         # Download all package sources
         repositories_path = CONF.get('default').get('repositories_path')
-        download_f = partial(package_source.download, directory=repositories_path)
+        download_f = partial(package_source.download, directory=repositories_path, local_copy_subdir_name=self.name)
         self.sources = map(download_f, self.sources)
 
         # This is kept for backwards compatibility with older
