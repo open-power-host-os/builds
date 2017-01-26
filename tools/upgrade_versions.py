@@ -83,8 +83,6 @@ class Version(object):
         LOG.info("%s: Current version: %s" % (self.pkg, self.pkg.version))
 
     def update(self, user_name, user_email):
-        changelog = None
-
         pkg = copy.copy(self.pkg)
         pkg.sources[0]["git"]["commit_id"] = None
         pkg.download_files(recurse=False)
@@ -99,33 +97,35 @@ class Version(object):
         self._read_version_from_repo(
             pkg.sources[0]["git"]["repo"].working_tree_dir)
 
+        change_log_header = None
         result = rpm_package.compare_versions(
             self.pkg.version, self._repo_version)
         if result < 0:
             pkg.spec_file.update_version(self._repo_version)
-            changelog = "Version update"
+            change_log_header = "Version update"
         elif result > 0:
             raise exception.PackageError(
                 "Current version (%s) is greater than repo version (%s)" %
                 (self.pkg.version, self._repo_version))
 
         pkg.spec_file.update_prerelease_tag(self._repo_prerelease)
-        self._bump_release(pkg, changelog, user_name, user_email)
+        self._bump_release(pkg, change_log_header, user_name, user_email)
 
-    def _bump_release(self, pkg, log=None, user_name=None, user_email=None):
+    def _bump_release(self, pkg, change_log_lines=None, user_name=None,
+                      user_email=None):
         LOG.info("%s: Bumping release" % self.pkg)
 
         if self.pkg.commit_id:
             LOG.info("Updating package %s from %s to %s" % (
                 self.pkg.name, self.pkg.commit_id, pkg.commit_id))
-            log = _get_git_log(pkg.repository, self.pkg.commit_id)
+            change_log_lines = _get_git_log(pkg.repository, self.pkg.commit_id)
             _sed_yaml_descriptor(self.pkg.package_file, self.pkg.commit_id,
                                  pkg.commit_id)
 
-        if log:
+        if change_log_lines:
             assert user_name is not None
             assert user_email is not None
-            pkg.spec_file.bump_release(log, user_name, user_email)
+            pkg.spec_file.bump_release(change_log_lines, user_name, user_email)
 
     def _read_version_from_repo(self, repo_path):
 
