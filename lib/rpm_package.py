@@ -147,13 +147,17 @@ class RPM_Package(Package):
                 distro_attrib_name = self.distro.lsb_name.lower()
 
             # load distro files
-            files = self.package_data.get('files').get(
-                distro_attrib_name).get(self.distro.version)
+            files = self.package_data.get('files', {}).get(
+                distro_attrib_name, {}).get(self.distro.version, {})
 
-            self.build_files = files.get('build_files', None)
-            if self.build_files:
-                self.build_files = os.path.join(
-                    self.package_dir, self.build_files)
+            default_build_files_dir_rel_path = os.path.join(
+                self.distro.lsb_name, self.distro.version, "SOURCES")
+            build_files_dir_rel_path = files.get('build_files') or default_build_files_dir_rel_path
+            build_files_dir_path = os.path.join(self.package_dir, build_files_dir_rel_path)
+            if os.path.isdir(build_files_dir_path):
+                self.build_files = build_files_dir_path
+            else:
+                self.build_files = None
             self.download_build_files = files.get('download_build_files', [])
 
             # list of dependencies
@@ -165,12 +169,20 @@ class RPM_Package(Package):
                 dep = RPM_Package.get_instance(dep_name, self.distro)
                 self.build_dependencies.append(dep)
 
-            self.rpmmacro = files.get('rpmmacro', None)
-            if self.rpmmacro:
-                self.rpmmacro = os.path.join(self.package_dir, self.rpmmacro)
+            default_rpm_macros_file_rel_path = os.path.join(
+                self.distro.lsb_name, self.distro.version, "rpmmacro")
+            rpm_macros_file_rel_path = files.get('rpmmacro', default_rpm_macros_file_rel_path)
+            rpm_macros_file_path = os.path.join(self.package_dir, rpm_macros_file_rel_path)
+            if os.path.isfile(rpm_macros_file_path):
+                self.rpmmacro = rpm_macros_file_path
+            else:
+                self.rpmmacro = None
 
-            self.spec_file = SpecFile(
-                os.path.join(self.package_dir, files.get('spec')))
+            default_spec_file_rel_path = os.path.join(
+                self.distro.lsb_name, self.distro.version, "%s.spec" % self.name)
+            spec_file_rel_path = files.get('spec', default_spec_file_rel_path)
+            self.spec_file_path = os.path.join(self.package_dir, spec_file_rel_path)
+            self.spec_file = SpecFile(self.spec_file_path)
 
             if os.path.isfile(self.spec_file.path):
                 LOG.info("Package found: %s for %s %s" % (

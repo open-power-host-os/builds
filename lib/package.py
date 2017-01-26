@@ -133,7 +133,7 @@ class Package(object):
             raise exception.PackageDescriptorError(
                 "Failed to open %s's YAML descriptor" % self.name)
 
-        self.name = self.package_data.get('name')
+        self.name = os.path.splitext(os.path.basename(self.package_file))[0]
         self.sources = self.package_data.get('sources', [])
         for source in self.sources:
             if 'archive' not in source.values()[0]:
