@@ -26,8 +26,8 @@ from lib import exception
 from lib import packages_manager
 from lib import repository
 from lib import rpm_package
-from lib.versions_repository import setup_versions_repository
 from lib.utils import replace_str_in_file
+from lib.versions_repository import setup_versions_repository
 
 LOG = logging.getLogger(__name__)
 PACKAGES = [
@@ -122,6 +122,7 @@ class Version(object):
                 new_source["repo"], old_commit_id)
             replace_str_in_file(
                 self.pkg.package_file, old_commit_id, new_commit_id)
+            pkg.spec_file.update_commit_id(old_commit_id, new_commit_id)
 
         if change_log_lines:
             assert user_name is not None
