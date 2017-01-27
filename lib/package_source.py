@@ -88,8 +88,12 @@ def _svn_download(source, directory):
         raise ValueError('invalid subversion source dict: missing both `commit_id` '
                          'and `branch`')
 
-    repo = repository.get_svn_repository(svn_source['src'],
-                                         directory)
+    def _download_repository():
+        return repository.get_svn_repository(svn_source['src'], directory)
+
+    repo = utils.retry_on_error(_download_repository,
+                                error=exception.RepositoryError)
+
     repo.checkout(commit_id or branch)
     source['svn']['repo'] = repo
     source['svn']['dest'] = directory
