@@ -44,7 +44,7 @@ def retry_on_error(f, error=Exception, failure_handler=None,
 
     def _reraise_exception(exc):
         raise exc
-    
+
     failure_handler = failure_handler or _reraise_exception
 
     while True:
@@ -54,6 +54,9 @@ def retry_on_error(f, error=Exception, failure_handler=None,
             max_retries -= 1
             if max_retries < 0:
                 return failure_handler(exc)
+            LOG.debug("Function {function} failed, retrying in {seconds} "
+                      "seconds.".format(function=f,
+                                        seconds=seconds_between_retries))
             time.sleep(seconds_between_retries)
 
 
@@ -89,7 +92,7 @@ def retry_on_timeout(f, is_timeout_error_f,
         except Exception as exc:
             if not is_timeout_error_f(exc):
                 raise exc
-   
+
             retries_left -= 1
 
             if retries_left < 0:
