@@ -140,8 +140,8 @@ class RPM_Package(Package):
         super(RPM_Package, self)._load()
         try:
             # keeps backwards compatibility with old yaml files which have 'centos'
-            # instead of 'centOS'
-            if self.distro.lsb_name in self.package_data.get('files'):
+            # instead of 'CentOS'
+            if self.distro.lsb_name in self.package_data.get('files', {}):
                 distro_attrib_name = self.distro.lsb_name
             else:
                 distro_attrib_name = self.distro.lsb_name.lower()
