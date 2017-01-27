@@ -9,6 +9,10 @@ default:
  arch_and_endianness: 'ppc64le'
  release_notes_repo_url: "https://github.com/open-power-host-os/open-power-host-os.github.io.git"
  release_notes_repo_branch: "master"
+ mock_binary: "/usr/bin/mock"
+ mock_config:
+  centOS:
+   '7': "./extras/centOS/7/mock/epel-7-ppc64le.cfg"
  mock_args:
    # If the system has less RAM than required, the plugin will be disabled
    "--enable-plugin=tmpfs

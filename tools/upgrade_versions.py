@@ -227,8 +227,10 @@ def run(CONF):
                         download_source_code=False, distro=distro)
 
     for pkg in pm.packages:
+        pkg.lock()
         pkg_version = Version(pkg)
         pkg_version.update(committer_name, committer_email)
+        pkg.unlock()
 
     release_date = datetime.today().date().isoformat()
     push_new_versions(versions_repo, release_date, push_repo_url,

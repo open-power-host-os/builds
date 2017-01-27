@@ -33,7 +33,8 @@ class BuildManager(object):
     def __call__(self):
         try:
             self.packages_manager.prepare_packages(
-                packages_class=RPM_Package, distro=self.distro)
+                packages_class=RPM_Package, distro=self.distro,
+                download_source_code=False)
         # distro related issues
         except (exception.DistributionNotSupportedError,
                 exception.DistributionVersionNotSupportedError,

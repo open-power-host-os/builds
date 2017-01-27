@@ -15,8 +15,9 @@
 
 from functools import partial
 from functools import total_ordering
-import os
+import fcntl
 import logging
+import os
 import urllib2
 import yaml
 
@@ -60,6 +61,9 @@ class Package(object):
         self.repository = None
         self.build_files = None
         self.download_build_files = []
+        locks_dir = CONF.get('default').get('repositories_path')
+        self.lock_file_path = os.path.join(
+            locks_dir, self.name + ".lock")
 
         # Dependencies packages may be present in those directories in older
         # versions of package metadata. This keeps compatibility.
@@ -158,6 +162,18 @@ class Package(object):
 
         LOG.info("%s: Loaded package metadata successfully" % self.name)
 
+        # Check if this package has shared resources that need to be
+        # locked from other processes
+        self.locking_enabled = False
+        # The URL source type is not downloaded to a shared location
+        for source in self.sources:
+            if "url" not in source:
+                self.locking_enabled = True
+                break
+        if not self.sources:
+            # Old sources format is used, it's better to enable locking
+            self.locking_enabled = True
+
     def _setup_repository(self, dest=None, branch=None):
         self.repository = repository.get_git_repository(
             self.clone_url, dest)
@@ -180,3 +196,39 @@ class Package(object):
             filename = os.path.join(self.build_files, url.split('/')[-1])
             with open(filename, "wb") as file_data:
                 file_data.write(data)
+
+    def lock(self):
+        """
+        Locks the package to avoid concurrent operations on its shared
+        resources.
+        Currently, the only resource shared among scripts executed from
+        different directories is the repository.
+        """
+        if not self.locking_enabled:
+            LOG.debug("This package has no shared resources to lock")
+            return
+
+        LOG.debug("Checking for lock on file {}.".format(self.lock_file_path))
+        self.lock_file = open(self.lock_file_path, "w")
+        try:
+            fcntl.lockf(self.lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except IOError as exc:
+            RESOURCE_UNAVAILABLE_ERROR = 11
+            if exc.errno == RESOURCE_UNAVAILABLE_ERROR:
+                LOG.info("Waiting for other process to finish operations "
+                         "on {}.".format(self.name))
+            else:
+                raise
+        fcntl.lockf(self.lock_file, fcntl.LOCK_EX)
+
+    def unlock(self):
+        """
+        Unlocks the package to allow other processes to operate on its
+        shared resources.
+        """
+        if not self.locking_enabled:
+            return
+
+        LOG.debug("Unlocking file {}".format(self.lock_file_path))
+        fcntl.lockf(self.lock_file, fcntl.LOCK_UN)
+        self.lock_file.close()
