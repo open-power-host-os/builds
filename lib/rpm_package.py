@@ -103,8 +103,8 @@ class SpecFile(object):
 
         self.write_content()
 
-    def bump_release(self, log, user_name, user_email):
-        comment = "\n".join(['- ' + l for l in log.splitlines()])
+    def bump_release(self, change_log_lines, user_name, user_email):
+        comment = "\n".join(['- ' + l for l in change_log_lines])
         user_string = "%(user_name)s <%(user_email)s>" % locals()
         cmd = "rpmdev-bumpspec -c '%s' -u '%s' %s" % (
             comment, user_string, self.path)
