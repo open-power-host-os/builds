@@ -221,10 +221,25 @@ class ConfigParser(object):
         # parse the 'config-file' argument early so that we can use
         # the defaults defined in the config file to override the ones
         # in the 'add_argument' calls below.
-        config_file = self.parser.parse_known_args()[0].config_file
+        command_line_args = self.parser.parse_known_args()[0]
+        config_file = command_line_args.config_file
 
         config = self.parse_config_file(config_file)
         self.parser.set_defaults(**config['default'])
+
+        # Each subcommand may have a node for specific configurations
+        # at the same level of the 'default' node
+        COMMAND_TO_CONFIG_NODE = {
+            "build-iso": "iso"
+        }
+        if command_line_args.subcommand in COMMAND_TO_CONFIG_NODE:
+            # Override the default configurations with the ones specific
+            # to the subcommand. This makes sure the specific
+            # configurations are used instead of the generic ones, which
+            # are already set above, avoiding conflicts on
+            # configurations with the same name.
+            node_name = COMMAND_TO_CONFIG_NODE[command_line_args.subcommand]
+            self.parser.set_defaults(**config[node_name])
 
         args = self.parse_arguments_list(sys.argv[1:])
 
