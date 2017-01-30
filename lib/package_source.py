@@ -90,11 +90,14 @@ def _svn_download(source, directory):
 
     def _download_repository():
         return repository.get_svn_repository(svn_source['src'], directory)
-
     repo = utils.retry_on_error(_download_repository,
                                 error=exception.RepositoryError)
 
-    repo.checkout(commit_id or branch)
+    def _checkout_repository():
+        repo.checkout(commit_id or branch)
+    utils.retry_on_error(_checkout_repository,
+                         error=exception.RepositoryError)
+
     source['svn']['repo'] = repo
     source['svn']['dest'] = directory
     return source
