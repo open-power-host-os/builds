@@ -20,8 +20,8 @@ import sys
 
 
 class LogHelper(object):
-    def __init__(self, logfile=None, verbose=False, rotate_size=None):
-        self.logfile = logfile
+    def __init__(self, log_file_path=None, verbose=False, rotate_size=None):
+        self.log_file_path = log_file_path
 
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
@@ -34,23 +34,23 @@ class LogHelper(object):
         sh.setFormatter(logging.Formatter('%(message)s'))
         logger.addHandler(sh)
 
-        if logfile:
+        if log_file_path:
             self._directory_setup()
-            logger.info("Logs available at %s" % logfile)
+            logger.info("Logs available at %s" % log_file_path)
 
             # NOTE(maurosr): RotatingFileHandler expects file size in bytes, in
             # short terms we're defining 2MB limit here.
             if not rotate_size:
                 rotate_size = 2 << 20
             rfh = logging.handlers.RotatingFileHandler(
-                logfile, maxBytes=rotate_size, backupCount=1)
+                log_file_path, maxBytes=rotate_size, backupCount=1)
             rfh.setLevel(logging.DEBUG)
             rfh.setFormatter(logging.Formatter(
                 '%(asctime)s | %(levelname)s | %(name)s: %(message)s'))
             logger.addHandler(rfh)
 
     def _directory_setup(self):
-        logpath, _ = os.path.split(self.logfile)
+        logpath, _ = os.path.split(self.log_file_path)
 
         # empty logpath means local directory and thus the next steps are
         # unnecessary
