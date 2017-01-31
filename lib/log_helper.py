@@ -23,8 +23,6 @@ class LogHelper(object):
     def __init__(self, logfile=None, verbose=False, rotate_size=None):
         self.logfile = logfile
 
-        self._directory_setup()
-
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
 
@@ -36,19 +34,20 @@ class LogHelper(object):
         sh.setFormatter(logging.Formatter('%(message)s'))
         logger.addHandler(sh)
 
-        logger.info("Logs available at %s" % logfile)
+        if logfile:
+            self._directory_setup()
+            logger.info("Logs available at %s" % logfile)
 
-        # NOTE(maurosr): RotatingFileHandler expects file size in bytes, in
-        # short terms we're defining 2MB limit here.
-        if not rotate_size:
-            rotate_size = 2 << 20
-        rfh = logging.handlers.RotatingFileHandler(logfile,
-                                                   maxBytes=rotate_size,
-                                                   backupCount=1)
-        rfh.setLevel(logging.DEBUG)
-        rfh.setFormatter(logging.Formatter('%(asctime)s | %(levelname)s | '
-                                           '%(name)s: %(message)s'))
-        logger.addHandler(rfh)
+            # NOTE(maurosr): RotatingFileHandler expects file size in bytes, in
+            # short terms we're defining 2MB limit here.
+            if not rotate_size:
+                rotate_size = 2 << 20
+            rfh = logging.handlers.RotatingFileHandler(
+                logfile, maxBytes=rotate_size, backupCount=1)
+            rfh.setLevel(logging.DEBUG)
+            rfh.setFormatter(logging.Formatter(
+                '%(asctime)s | %(levelname)s | %(name)s: %(message)s'))
+            logger.addHandler(rfh)
 
     def _directory_setup(self):
         logpath, _ = os.path.split(self.logfile)
