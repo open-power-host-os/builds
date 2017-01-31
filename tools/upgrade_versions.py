@@ -104,9 +104,9 @@ class Version(object):
                 (self.pkg.version, self._repo_version))
 
         pkg.spec_file.update_prerelease_tag(self._repo_prerelease)
-        self._bump_release(pkg, change_log_header, user_name, user_email)
+        self._update_release_and_change_log(pkg, change_log_header, user_name, user_email)
 
-    def _bump_release(self, pkg, change_log_header=None, user_name=None,
+    def _update_release_and_change_log(self, pkg, change_log_header=None, user_name=None,
                       user_email=None):
         LOG.info("%s: Bumping release" % self.pkg)
         change_log_lines = []
@@ -128,7 +128,7 @@ class Version(object):
         if change_log_lines:
             assert user_name is not None
             assert user_email is not None
-            pkg.spec_file.bump_release(change_log_lines, user_name, user_email)
+            pkg.spec_file.update_release_and_change_log(change_log_lines, user_name, user_email)
 
     def _read_version_from_repo(self, repo_path):
 
