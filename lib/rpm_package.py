@@ -103,7 +103,7 @@ class SpecFile(object):
 
         self.write_content()
 
-    def update_release_and_change_log(self, change_log_lines, user_name, user_email):
+    def bump_release(self, change_log_lines, user_name, user_email):
         comment = "\n".join(['- ' + l for l in change_log_lines])
         user_string = "%(user_name)s <%(user_email)s>" % locals()
         cmd = "rpmdev-bumpspec -c '%s' -u '%s' %s" % (
@@ -118,9 +118,6 @@ class SpecFile(object):
         self.write_content()
         LOG.info("Updated '%s' prerelease tag to: %s"
                  % (self.path, new_prerelease))
-
-    def update_commit_id(self, old_commit_id, new_commit_id):
-        utils.replace_str_in_file(self.path, old_commit_id, new_commit_id)
 
     def _replace_macro_definition(self, macro_name, replacement):
         """
