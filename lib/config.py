@@ -62,15 +62,23 @@ RELEASE_NOTES_ARGS = {
         dict(help='Branch of the release notes repository to checkout'),
 }
 PUSH_REPO_ARGS = {
+    ('--no-commit-updates',):
+        dict(help='Commit file updates to local repository', action='store_false',
+             dest='commit_updates'),
+    ('--no-push-updates',):
+        dict(help='Push file updates to remote repository', action='store_false',
+             dest='push_updates'),
     ('--push-repo-url',):
         dict(help='URL of the repository used for pushing'),
     ('--push-repo-branch',):
         dict(help='Branch of the repository used for pushing',
              default='master'),
-    ('--committer-name',):
-        dict(help='Name used when creating a commit and bumping spec files'),
-    ('--committer-email',):
-        dict(help='Email used when creating a commit and bumping spec files'),
+    ('--updater-name',):
+        dict(help='Name used when updating RPM specification files change logs '
+             'and creating git commits'),
+    ('--updater-email',):
+        dict(help='Email used when updating RPM specification files change logs '
+             'and creating git commits'),
 }
 SETUP_ENVIRONMENT_ARGS = {
     ('--user', '-u'):

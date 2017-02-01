@@ -228,13 +228,16 @@ def run(CONF):
         CONF.get('default').get('distro_name'),
         CONF.get('default').get('distro_version'),
         CONF.get('default').get('arch_and_endianness'))
+    commit_updates = CONF.get('default').get('commit_updates')
+    push_updates = CONF.get('default').get('push_updates')
     push_repo_url = CONF.get('default').get('push_repo_url')
     push_repo_branch = CONF.get('default').get('push_repo_branch')
-    committer_name = CONF.get('default').get('committer_name')
-    committer_email = CONF.get('default').get('committer_email')
+    updater_name = CONF.get('default').get('updater_name')
+    updater_email = CONF.get('default').get('updater_email')
 
-    REQUIRED_PARAMETERS = ["push_repo_url", "push_repo_branch",
-                           "committer_name", "committer_email"]
+    REQUIRED_PARAMETERS = ["updater_name", "updater_email"]
+    if push_updates:
+        REQUIRED_PARAMETERS += ["push_repo_url", "push_repo_branch"]
     for parameter in REQUIRED_PARAMETERS:
         if CONF.get('default').get(parameter) is None:
             LOG.error("Parameter '%s' is required", parameter)
@@ -249,10 +252,12 @@ def run(CONF):
     for pkg in pm.packages:
         pkg.lock()
         pkg_version = Version(pkg)
-        pkg_version.update(committer_name, committer_email)
+        pkg_version.update(updater_name, updater_email)
         pkg.unlock()
 
     release_date = datetime.today().date().isoformat()
-    commit_weekly_build_packages_updates(
-        versions_repo, release_date, committer_name, committer_email)
-    push_packages_head_commit(versions_repo, push_repo_url, push_repo_branch)
+    if commit_updates:
+        commit_weekly_build_packages_updates(
+            versions_repo, release_date, updater_name, updater_email)
+        if push_updates:
+            push_packages_head_commit(versions_repo, push_repo_url, push_repo_branch)
