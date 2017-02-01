@@ -137,3 +137,14 @@ def create_directory(directory):
     """
     if not os.path.isdir(directory):
         os.makedirs(directory)
+
+
+def replace_str_in_file(file_path, search, replacement):
+
+    lines = []
+    with file(file_path, "r") as f:
+        lines = f.readlines()
+    with file(file_path, "w") as f:
+        for line in lines:
+            line = line.replace(search, replacement)
+            f.write(line)
