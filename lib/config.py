@@ -88,7 +88,7 @@ SUBCOMMANDS = [
     ('release-notes', 'Create release notes',
         [RELEASE_NOTES_ARGS, PUSH_REPO_ARGS, BUILD_REPO_ARGS]),
     ('upgrade-versions', 'Upgrade packages versions',
-        [PUSH_REPO_ARGS, BUILD_REPO_ARGS]),
+        [PACKAGE_ARGS, PUSH_REPO_ARGS, BUILD_REPO_ARGS]),
     ('set-env', 'Setup user and directory for build scripts',
         [SETUP_ENVIRONMENT_ARGS]),
     ('build-iso', 'Build ISO image',
