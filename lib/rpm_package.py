@@ -119,7 +119,7 @@ class SpecFile(object):
         LOG.info("Updated '%s' prerelease tag to: %s"
                  % (self.path, new_prerelease))
 
-    def update_commit_id(self, old_commit_id, new_commit_id):
+    def replace_commit_id(self, old_commit_id, new_commit_id):
         utils.replace_str_in_file(self.path, old_commit_id, new_commit_id)
 
     def _replace_macro_definition(self, macro_name, replacement):
