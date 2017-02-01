@@ -22,7 +22,7 @@ from lib import utils
 
 
 class LogHelper(object):
-    def __init__(self, log_file_path=None, verbose=False, rotate_size=None):
+    def __init__(self, log_file_path=None, verbose=False, rotate_size=0):
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
 
@@ -40,10 +40,6 @@ class LogHelper(object):
 
             logger.info("Logs available at %s" % log_file_path)
 
-            # NOTE(maurosr): RotatingFileHandler expects file size in bytes, in
-            # short terms we're defining 2MB limit here.
-            if not rotate_size:
-                rotate_size = 2 << 20
             rfh = logging.handlers.RotatingFileHandler(
                 log_file_path, maxBytes=rotate_size, backupCount=1)
             rfh.setLevel(logging.DEBUG)

@@ -185,7 +185,7 @@ class ConfigParser(object):
                                  action='store_true')
         self.parser.add_argument('--log-size',
                                  help='Size in bytes above which the log file '
-                                 'should rotate', type=int)
+                                 'should rotate', type=int, default=2<<20)
         self._add_subparser()
 
     def _add_subparser(self):
