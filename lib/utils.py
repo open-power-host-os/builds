@@ -129,3 +129,11 @@ def run_command(cmd, **kwargs):
                                         stdout=output, stderr=error_output)
 
     return output
+
+
+def create_directory(directory):
+    """
+    Create a directory it if it does not exist.
+    """
+    if not os.path.isdir(directory):
+        os.makedirs(directory)

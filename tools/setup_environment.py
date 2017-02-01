@@ -35,8 +35,10 @@ def setup_user(user):
 
 
 def setup_directory(directory, uid, gid):
-    if not os.path.isdir(directory):
-        os.makedirs(directory)
+    """
+    Set the directory's owners, creating it if it does not exist.
+    """
+    utils.create_directory(directory)
     os.chown(directory, uid, gid)
 
 

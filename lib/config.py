@@ -185,7 +185,7 @@ class ConfigParser(object):
                                  action='store_true')
         self.parser.add_argument('--log-size',
                                  help='Size in bytes above which the log file '
-                                 'should rotate', type=int)
+                                 'should rotate', type=int, default=2<<20)
         self._add_subparser()
 
     def _add_subparser(self):
@@ -270,7 +270,7 @@ def setup_default_config():
         print("Failed to parse settings")
         sys.exit(2)
 
-    log_helper.LogHelper(logfile=CONF.get('default').get('log_file'),
+    log_helper.LogHelper(log_file_path=CONF.get('default').get('log_file'),
                          verbose=CONF.get('default').get('verbose'),
                          rotate_size=CONF.get('default').get('log_size'))
 

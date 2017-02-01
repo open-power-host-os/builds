@@ -18,13 +18,11 @@ import logging.handlers
 import os
 import sys
 
+from lib import utils
+
 
 class LogHelper(object):
-    def __init__(self, logfile=None, verbose=False, rotate_size=None):
-        self.logfile = logfile
-
-        self._directory_setup()
-
+    def __init__(self, log_file_path=None, verbose=False, rotate_size=0):
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
 
@@ -36,31 +34,15 @@ class LogHelper(object):
         sh.setFormatter(logging.Formatter('%(message)s'))
         logger.addHandler(sh)
 
-        logger.info("Logs available at %s" % logfile)
+        if log_file_path:
+            log_dir, _ = os.path.split(log_file_path)
+            utils.create_directory(log_dir)
 
-        # NOTE(maurosr): RotatingFileHandler expects file size in bytes, in
-        # short terms we're defining 2MB limit here.
-        if not rotate_size:
-            rotate_size = 2 << 20
-        rfh = logging.handlers.RotatingFileHandler(logfile,
-                                                   maxBytes=rotate_size,
-                                                   backupCount=1)
-        rfh.setLevel(logging.DEBUG)
-        rfh.setFormatter(logging.Formatter('%(asctime)s | %(levelname)s | '
-                                           '%(name)s: %(message)s'))
-        logger.addHandler(rfh)
+            logger.info("Logs available at %s" % log_file_path)
 
-    def _directory_setup(self):
-        logpath, _ = os.path.split(self.logfile)
-
-        # empty logpath means local directory and thus the next steps are
-        # unnecessary
-        if logpath:
-            try:
-                os.makedirs(logpath)
-            except OSError:
-                # failed to create
-                if not os.path.exists(logpath):
-                    raise
-                # Directory already exists
-                pass
+            rfh = logging.handlers.RotatingFileHandler(
+                log_file_path, maxBytes=rotate_size, backupCount=1)
+            rfh.setLevel(logging.DEBUG)
+            rfh.setFormatter(logging.Formatter(
+                '%(asctime)s | %(levelname)s | %(name)s: %(message)s'))
+            logger.addHandler(rfh)
