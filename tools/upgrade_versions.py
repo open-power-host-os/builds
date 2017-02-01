@@ -224,12 +224,23 @@ def run(CONF):
     committer_name = CONF.get('default').get('committer_name')
     committer_email = CONF.get('default').get('committer_email')
 
-    REQUIRED_PARAMETERS = ["push_repo_url", "push_repo_branch",
-                           "committer_name", "committer_email"]
+    REQUIRED_PARAMETERS = ["committer_name", "committer_email"]
+                           
+    REQUIRED_PUSH_REPO_PARAMETERS = ["push_repo_url", "push_repo_branch"]
+
     for parameter in REQUIRED_PARAMETERS:
         if CONF.get('default').get(parameter) is None:
             LOG.error("Parameter '%s' is required", parameter)
             return 1
+
+    push_repo = True
+    for parameter in REQUIRED_PUSH_REPO_PARAMETERS:
+        if CONF.get('default').get(parameter) is None:
+            LOG.info("Parameter '%s' is required for pushing", parameter)
+            push_repo = False
+
+    if not push_repo:
+        LOG.info("Upgrade will be executed without pushing repository")
 
     LOG.info("Checking for updates in packages versions: %s",
              ", ".join(packages_to_update))
@@ -243,6 +254,7 @@ def run(CONF):
         pkg_version.update(committer_name, committer_email)
         pkg.unlock()
 
-    release_date = datetime.today().date().isoformat()
-    push_new_versions(versions_repo, release_date, push_repo_url,
-                      push_repo_branch, committer_name, committer_email)
+    if push_repo:
+        release_date = datetime.today().date().isoformat()
+        push_new_versions(versions_repo, release_date, push_repo_url,
+                          push_repo_branch, committer_name, committer_email)
