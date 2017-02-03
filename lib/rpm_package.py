@@ -161,9 +161,15 @@ class RPM_Package(Package):
             self.download_build_files = files.get('download_build_files', [])
 
             # list of dependencies
+            for dep_name in files.get('install_dependencies', []):
+                dep = RPM_Package.get_instance(dep_name, self.distro)
+                self.install_dependencies.append(dep)
+
+            # keeps backward compatibility with old yaml files which have 'dependencies'
+            # instead of 'install_dependencies'
             for dep_name in files.get('dependencies', []):
                 dep = RPM_Package.get_instance(dep_name, self.distro)
-                self.dependencies.append(dep)
+                self.install_dependencies.append(dep)
 
             for dep_name in files.get('build_dependencies', []):
                 dep = RPM_Package.get_instance(dep_name, self.distro)

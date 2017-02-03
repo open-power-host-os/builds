@@ -47,8 +47,8 @@ class Scheduler(object):
         else:
             if p not in visited:
                 visited.append(p)
-                if p.dependencies:
-                    order.extend(self._dfs(p.dependencies, visited))
+                if p.install_dependencies:
+                    order.extend(self._dfs(p.install_dependencies, visited))
                 if p.build_dependencies:
                     order.extend(self._dfs(p.build_dependencies, visited))
                 order.append(p)

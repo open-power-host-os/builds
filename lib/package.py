@@ -54,7 +54,7 @@ class Package(object):
         self.name = name
         self.clone_url = None
         self.download_source = None
-        self.dependencies = []
+        self.install_dependencies = []
         self.build_dependencies = []
         self.result_packages = []
         self.sources = []
@@ -116,7 +116,7 @@ class Package(object):
 
         self._download_build_files()
         if recurse:
-            for dep in (self.dependencies + self.build_dependencies):
+            for dep in (self.install_dependencies + self.build_dependencies):
                 dep.download_files()
 
     def _download_source_code(self):
