@@ -27,6 +27,11 @@ class BaseException(Exception):
         super(BaseException, self).__init__(message)
 
 
+class RequiredParameterMissing(BaseException):
+    DEFAULT_MESSAGE = "Required parameter '%(parameter)s' is missing"
+    error_code = 6
+
+
 class DistributionError(BaseException):
     DEFAULT_MESSAGE = "Distribution not Supported"
     # Subclass errors are in the form 0b0001xxx
