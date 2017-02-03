@@ -125,12 +125,10 @@ class Mock(build_system.PackageBuilder):
         utils.run_command(self.common_mock_args + " --clean")
 
     def _install_external_dependencies(self, package):
-        if package.build_dependencies or package.install_dependencies:
+        if package.build_dependencies:
             cmd = self.common_mock_args
             install = " --install"
             for dep in package.build_dependencies:
-                install = " ".join([install, " ".join(dep.result_packages)])
-            for dep in package.install_dependencies:
                 install = " ".join([install, " ".join(dep.result_packages)])
 
             cmd = cmd + install
