@@ -119,6 +119,32 @@ class SpecFile(object):
         LOG.info("Updated '%s' prerelease tag to: %s"
                  % (self.path, new_prerelease))
 
+    def update_commit_id(self, old_commit_id, new_commit_id):
+
+        # change log may contain old commit IDs and we do not want to replace them
+
+        # read up to change log
+        lines = []
+        CHANGE_LOG_TAG = "%changelog"
+        change_log_lines = []
+        started_change_log = False
+        with file(self.path, "r") as f:
+            for line in f:
+                if CHANGE_LOG_TAG in line:
+                    started_change_log = True
+                if not started_change_log:
+                    lines.append(line)
+                else:
+                    change_log_lines.append(line)
+
+        # replace commit ID up to change log
+        with file(self.path, "w") as f:
+            for line in lines:
+                line = line.replace(old_commit_id, new_commit_id)
+                f.write(line)
+            for line in change_log_lines:
+                f.write(line)
+
     def _replace_macro_definition(self, macro_name, replacement):
         """
         Updates the file content cache, replacing the macro value.

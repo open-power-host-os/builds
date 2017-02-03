@@ -26,8 +26,8 @@ from lib import exception
 from lib import packages_manager
 from lib import repository
 from lib import rpm_package
+from lib.utils import replace_str_in_file
 from lib.versions_repository import setup_versions_repository
-
 
 LOG = logging.getLogger(__name__)
 PACKAGES = [
@@ -49,16 +49,6 @@ PACKAGES = [
 
 # prerelease strings supported as last element in the version regex
 PRERELEASE_TERMS = ['rc']
-
-
-def _sed_yaml_descriptor(yamlfile, old_commit, new_commit):
-    lines = []
-    with file(yamlfile, "r") as f:
-        lines = f.readlines()
-    with file(yamlfile, "w") as f:
-        for line in lines:
-            line = line.replace(old_commit, new_commit)
-            f.write(line)
 
 
 def _get_git_log(repo, since_id):
@@ -130,8 +120,9 @@ class Version(object):
                 self.pkg.name, old_commit_id, new_commit_id))
             change_log_lines += _get_git_log(
                 new_source["repo"], old_commit_id)
-            _sed_yaml_descriptor(
+            replace_str_in_file(
                 self.pkg.package_file, old_commit_id, new_commit_id)
+            pkg.spec_file.update_commit_id(old_commit_id, new_commit_id)
 
         if change_log_lines:
             assert user_name is not None
@@ -181,20 +172,17 @@ class Version(object):
             raise exception.PackageError(msg)
 
 
-def push_new_versions(versions_repo, release_date, versions_repo_push_url,
-                      versions_repo_push_branch, committer_name,
-                      committer_email):
+def commit_weekly_build_packages_updates(
+    versions_repo, release_date, committer_name, committer_email):
     """
-    Push updated versions to the remote Git repository, using the
-    system's configured git committer and SSH credentials.
+    Commit packages metadata updates in versions Git repository done by a weekly build
+
+    Args:
+        versions_repo (GitRepository): packages metadata git repository
+        release_date (str): release date
+        committer_name (str): committer name
+        committer_email (str): committer email
     """
-    LOG.info("Pushing packages versions updates on release dated {date}"
-             .format(date=release_date))
-
-    LOG.info("Creating remote for URL {}".format(versions_repo_push_url))
-    VERSIONS_REPO_REMOTE = "push-remote"
-    versions_repo.create_remote(VERSIONS_REPO_REMOTE, versions_repo_push_url)
-
     LOG.info("Adding files to repository index")
     versions_repo.index.add(["*"])
 
@@ -202,6 +190,27 @@ def push_new_versions(versions_repo, release_date, versions_repo_push_url,
     commit_message = "Weekly build {date}".format(date=release_date)
     actor = git.Actor(committer_name, committer_email)
     versions_repo.index.commit(commit_message, author=actor, committer=actor)
+
+
+def push_packages_head_commit(
+    versions_repo, versions_repo_push_url, versions_repo_push_branch):
+    """
+    Push packages metadata changes in versions local Git repository to the remote
+    Git repository, using the system's configured SSH credentials.
+
+    Args:
+        versions_repo (GitRepository): git repository
+        versions_repo_push_url (str): remote git repository URL
+        versions_repo_push_branch (str): remote git repository branch
+
+    Raises:
+        repository.PushError if push fails
+    """
+    LOG.info("Pushing packages versions updates")
+
+    LOG.info("Creating remote for URL {}".format(versions_repo_push_url))
+    VERSIONS_REPO_REMOTE = "push-remote"
+    versions_repo.create_remote(VERSIONS_REPO_REMOTE, versions_repo_push_url)
 
     LOG.info("Pushing changes to remote repository")
     remote = versions_repo.remote(VERSIONS_REPO_REMOTE)
@@ -219,13 +228,16 @@ def run(CONF):
         CONF.get('default').get('distro_name'),
         CONF.get('default').get('distro_version'),
         CONF.get('default').get('arch_and_endianness'))
+    commit_updates = CONF.get('default').get('commit_updates')
+    push_updates = CONF.get('default').get('push_updates')
     push_repo_url = CONF.get('default').get('push_repo_url')
     push_repo_branch = CONF.get('default').get('push_repo_branch')
-    committer_name = CONF.get('default').get('committer_name')
-    committer_email = CONF.get('default').get('committer_email')
+    updater_name = CONF.get('default').get('updater_name')
+    updater_email = CONF.get('default').get('updater_email')
 
-    REQUIRED_PARAMETERS = ["push_repo_url", "push_repo_branch",
-                           "committer_name", "committer_email"]
+    REQUIRED_PARAMETERS = ["updater_name", "updater_email"]
+    if push_updates:
+        REQUIRED_PARAMETERS += ["push_repo_url", "push_repo_branch"]
     for parameter in REQUIRED_PARAMETERS:
         if CONF.get('default').get(parameter) is None:
             LOG.error("Parameter '%s' is required", parameter)
@@ -240,9 +252,12 @@ def run(CONF):
     for pkg in pm.packages:
         pkg.lock()
         pkg_version = Version(pkg)
-        pkg_version.update(committer_name, committer_email)
+        pkg_version.update(updater_name, updater_email)
         pkg.unlock()
 
     release_date = datetime.today().date().isoformat()
-    push_new_versions(versions_repo, release_date, push_repo_url,
-                      push_repo_branch, committer_name, committer_email)
+    if commit_updates:
+        commit_weekly_build_packages_updates(
+            versions_repo, release_date, updater_name, updater_email)
+        if push_updates:
+            push_packages_head_commit(versions_repo, push_repo_url, push_repo_branch)
