@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import fnmatch
 import logging
 import os
 import subprocess
@@ -137,3 +138,45 @@ def create_directory(directory):
     """
     if not os.path.isdir(directory):
         os.makedirs(directory)
+
+
+def is_package_installed(package_name):
+    """
+    Checks if a RPM package is installed
+
+    Args:
+        package_name (str): package name
+
+    Returns:
+        bool: if RPM package is installed
+    """
+
+    cmd = "rpm -q %s" % package_name
+    try:
+        run_command(cmd, shell=True)
+    except exception.SubprocessError as e:
+        # rpm returns 1 when search string is not found and other non-zero values
+        # if an error occurred
+        #pylint: disable=no-member
+        if e.returncode == 1:
+            return False
+        else:
+            raise
+
+    return True
+
+
+def recursive_glob(directory, pattern):
+    """
+    Find all files matching a pattern according to the rules used by Linux shell
+
+    Args:
+        directory (str): searched directory
+        pattern (str): glob pattern
+    """
+
+    matches = []
+    for root, _, filenames in os.walk(directory):
+        for filename in fnmatch.filter(filenames, pattern):
+            matches.append(os.path.join(root, filename))
+    return matches
