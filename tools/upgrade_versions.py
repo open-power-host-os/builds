@@ -27,7 +27,7 @@ from lib import packages_manager
 from lib import repository
 from lib import rpm_package
 from lib.versions_repository import setup_versions_repository
-
+from lib.utils import replace_str_in_file
 
 LOG = logging.getLogger(__name__)
 PACKAGES = [
@@ -49,16 +49,6 @@ PACKAGES = [
 
 # prerelease strings supported as last element in the version regex
 PRERELEASE_TERMS = ['rc']
-
-
-def _sed_yaml_descriptor(yamlfile, old_commit, new_commit):
-    lines = []
-    with file(yamlfile, "r") as f:
-        lines = f.readlines()
-    with file(yamlfile, "w") as f:
-        for line in lines:
-            line = line.replace(old_commit, new_commit)
-            f.write(line)
 
 
 def _get_git_log(repo, since_id):
@@ -130,7 +120,7 @@ class Version(object):
                 self.pkg.name, old_commit_id, new_commit_id))
             change_log_lines += _get_git_log(
                 new_source["repo"], old_commit_id)
-            _sed_yaml_descriptor(
+            replace_str_in_file(
                 self.pkg.package_file, old_commit_id, new_commit_id)
 
         if change_log_lines:
