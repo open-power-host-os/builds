@@ -148,7 +148,7 @@ class RPM_Package(Package):
 
             # load distro files
             files = self.package_data.get('files', {}).get(
-                distro_attrib_name, {}).get(self.distro.version, {})
+                distro_attrib_name, {}).get(self.distro.version, {}) or {}
 
             default_build_files_dir_rel_path = os.path.join(
                 self.distro.lsb_name, self.distro.version, "SOURCES")
