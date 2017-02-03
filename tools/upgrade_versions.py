@@ -172,20 +172,17 @@ class Version(object):
             raise exception.PackageError(msg)
 
 
-def push_new_versions(versions_repo, release_date, versions_repo_push_url,
-                      versions_repo_push_branch, committer_name,
-                      committer_email):
+def commit_weekly_build_packages_updates(
+    versions_repo, release_date, committer_name, committer_email):
     """
-    Push updated versions to the remote Git repository, using the
-    system's configured git committer and SSH credentials.
+    Commit packages metadata updates in versions Git repository done by a weekly build
+
+    Args:
+        versions_repo (GitRepository): packages metadata git repository
+        release_date (str): release date
+        committer_name (str): committer name
+        committer_email (str): committer email
     """
-    LOG.info("Pushing packages versions updates on release dated {date}"
-             .format(date=release_date))
-
-    LOG.info("Creating remote for URL {}".format(versions_repo_push_url))
-    VERSIONS_REPO_REMOTE = "push-remote"
-    versions_repo.create_remote(VERSIONS_REPO_REMOTE, versions_repo_push_url)
-
     LOG.info("Adding files to repository index")
     versions_repo.index.add(["*"])
 
@@ -193,6 +190,27 @@ def push_new_versions(versions_repo, release_date, versions_repo_push_url,
     commit_message = "Weekly build {date}".format(date=release_date)
     actor = git.Actor(committer_name, committer_email)
     versions_repo.index.commit(commit_message, author=actor, committer=actor)
+
+
+def push_packages_head_commit(
+    versions_repo, versions_repo_push_url, versions_repo_push_branch):
+    """
+    Push packages metadata changes in versions local Git repository to the remote
+    Git repository, using the system's configured SSH credentials.
+
+    Args:
+        versions_repo (GitRepository): git repository
+        versions_repo_push_url (str): remote git repository URL
+        versions_repo_push_branch (str): remote git repository branch
+
+    Raises:
+        repository.PushError if push fails
+    """
+    LOG.info("Pushing packages versions updates")
+
+    LOG.info("Creating remote for URL {}".format(versions_repo_push_url))
+    VERSIONS_REPO_REMOTE = "push-remote"
+    versions_repo.create_remote(VERSIONS_REPO_REMOTE, versions_repo_push_url)
 
     LOG.info("Pushing changes to remote repository")
     remote = versions_repo.remote(VERSIONS_REPO_REMOTE)
@@ -235,5 +253,6 @@ def run(CONF):
         pkg.unlock()
 
     release_date = datetime.today().date().isoformat()
-    push_new_versions(versions_repo, release_date, push_repo_url,
-                      push_repo_branch, committer_name, committer_email)
+    commit_weekly_build_packages_updates(
+        versions_repo, release_date, committer_name, committer_email)
+    push_packages_head_commit(versions_repo, push_repo_url, push_repo_branch)
