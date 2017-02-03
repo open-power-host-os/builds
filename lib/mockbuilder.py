@@ -17,6 +17,7 @@ from functools import partial
 
 import datetime
 import logging
+import glob
 import os
 import shutil
 
@@ -36,7 +37,6 @@ class Mock(build_system.PackageBuilder):
         super(Mock, self).__init__()
         binary_file = CONF.get('default').get('mock_binary')
         extra_args = CONF.get('default').get('mock_args')
-        self.result_dir = CONF.get('default').get('result_dir')
         self.build_dir = None
         self.archive = None
         self.timestamp = datetime.datetime.now().isoformat()
@@ -129,7 +129,9 @@ class Mock(build_system.PackageBuilder):
             cmd = self.common_mock_args
             install = " --install"
             for dep in package.build_dependencies:
-                install = " ".join([install, " ".join(dep.result_packages)])
+                dep_rpms_glob = os.path.join(dep.build_results_dir, "*.rpm")
+                rpm_files = glob.iglob(dep_rpms_glob)
+                install = " ".join([install, " ".join(rpm_files)])
 
             cmd = cmd + install
             LOG.info("%s: Installing dependencies on chroot" % package.name)
@@ -145,18 +147,18 @@ class Mock(build_system.PackageBuilder):
         shutil.rmtree(self.build_dir)
 
     def _save_rpm(self, package):
-        if not os.path.exists(self.result_dir):
-            LOG.info("Creating directory to store RPM at %s " %
-                     self.result_dir)
-            os.makedirs(self.result_dir)
-            os.chmod(self.result_dir, 0777)
+        if not os.path.exists(package.build_results_dir):
+            LOG.info("Creating directory to store RPMs at %s " %
+                     package.build_results_dir)
+            os.makedirs(package.build_results_dir)
+            os.chmod(package.build_results_dir, 0777)
 
-        LOG.info("%s: Saving RPMs at %s" % (package.name, self.result_dir))
+        LOG.info("%s: Saving RPMs at %s"
+                 % (package.name, package.build_results_dir))
         for f in os.listdir(self.build_dir):
             if f.endswith(".rpm") and not f.endswith(".src.rpm"):
-                LOG.info("Saving %s at result directory %s" % (f,
-                         self.result_dir))
+                LOG.info("Saving %s at result directory %s" % (
+                    f, package.build_results_dir))
                 orig = os.path.join(self.build_dir, f)
-                dest = os.path.join(self.result_dir, f)
+                dest = os.path.join(package.build_results_dir, f)
                 shutil.move(orig, dest)
-                package.result_packages.append(dest)

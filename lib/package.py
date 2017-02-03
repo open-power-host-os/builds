@@ -56,7 +56,8 @@ class Package(object):
         self.download_source = None
         self.install_dependencies = []
         self.build_dependencies = []
-        self.result_packages = []
+        self.build_results_dir = os.path.join(
+            CONF.get('default').get('result_dir'), self.name)
         self.sources = []
         self.repository = None
         self.build_files = None
