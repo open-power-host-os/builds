@@ -13,11 +13,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.ofrom lib import utils
 
+import grp
 import os
-import pwd
+import stat
 
 from lib import utils
 
+MOCK_GROUP_ID = grp.getgrnam('mock').gr_gid
 USER_EXISTS = 9
 
 
@@ -30,34 +32,45 @@ def setup_user(user):
     group_cmd = "usermod -a -G %s %s" % (group, user)
     print("Added user %s to group %s" % (user, group))
     utils.run_command(group_cmd)
-    userdata = pwd.getpwnam(user)
-    return userdata.pw_uid, userdata.pw_gid
 
 
-def setup_directory(directory, uid, gid):
+def set_group_permissions(gid, path):
+    file_perms = os.stat(path)
+    # add group read permission
+    perms = file_perms.st_mode | stat.S_IRGRP
+    # add group write permission
+    perms = perms | stat.S_IWGRP
+    if os.path.isdir(path):
+        # add group execution permission
+        perms = perms | stat.S_IXGRP
+    os.chmod(path, perms)
+    os.chown(path, -1, gid)
+
+
+def setup_directory(directory, gid):
     """
     Set the directory's owners, creating it if it does not exist.
     """
     utils.create_directory(directory)
-    os.chown(directory, uid, gid)
+    set_group_permissions(gid, directory)
+    for root, dirnames, filenames in os.walk(directory):
+        for path in dirnames + filenames:
+            set_group_permissions(gid, os.path.join(root, path))
 
 
-def setup_default_directories(log_directory, repository_directory, uid, gid):
-    setup_directory(repository_directory, uid, gid)
-    setup_directory(log_directory, uid, gid)
+def setup_default_directories(directories, gid):
+    for dirname in directories:
+        setup_directory(dirname, gid)
 
 
-def main(user):
+def run(CONF):
     # NOTE(maurosr): this is just a helper script in order to do some
     # environment settings as it would be done if our scripts were installed
     # through a package like rpm or deb. If the user decides to use different
     # user or log files he needs to handle permissions by his own.
-    log_dir = "/var/log/host-os"
-    repo_dir = "/var/lib/host-os/repositories"
+    log_dir = os.path.dirname(CONF.get('default').get('log_file'))
+    repo_dir = CONF.get('default').get('repositories_path')
+    user = CONF.get('default').get('user')
 
-    uid, gid = setup_user(user)
-    setup_default_directories(log_dir, repo_dir, uid, gid)
-
-
-def run(CONF):
-    main(CONF.get('default').get('user'))
+    setup_user(user)
+    setup_default_directories([log_dir, repo_dir], MOCK_GROUP_ID)
