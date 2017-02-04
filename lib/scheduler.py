@@ -47,8 +47,11 @@ class Scheduler(object):
         else:
             if p not in visited:
                 visited.append(p)
-                if p.dependencies:
-                    order.extend(self._dfs(p.dependencies, visited))
+                # runtime dependencies do not need to be built before the package,
+                # they can be built anytime. We randomly chose to prioritize building
+                # installation dependencies before the package.
+                if p.install_dependencies:
+                    order.extend(self._dfs(p.install_dependencies, visited))
                 if p.build_dependencies:
                     order.extend(self._dfs(p.build_dependencies, visited))
                 order.append(p)
