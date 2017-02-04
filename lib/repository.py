@@ -50,9 +50,9 @@ def get_git_repository(remote_repo_url, parent_dir_path):
         return GitRepository(repo_path)
     else:
         CONF = config.get_config().CONF
-        return GitRepository.clone_from(remote_repo_url,
-                                        repo_path,
-                                        proxy=CONF.get('http_proxy'))
+        return GitRepository.clone_from(
+            remote_repo_url, repo_path,
+            proxy=CONF.get('default').get('http_proxy'))
 
 
 def get_svn_repository(remote_repo_url, repo_path):
