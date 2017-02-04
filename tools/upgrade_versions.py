@@ -240,8 +240,7 @@ def run(CONF):
         REQUIRED_PARAMETERS += ["push_repo_url", "push_repo_branch"]
     for parameter in REQUIRED_PARAMETERS:
         if CONF.get('default').get(parameter) is None:
-            LOG.error("Parameter '%s' is required", parameter)
-            return 1
+            raise exception.RequiredParameterMissing(parameter=parameter)
 
     LOG.info("Checking for updates in packages versions: %s",
              ", ".join(packages_to_update))
