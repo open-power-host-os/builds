@@ -15,11 +15,10 @@
 
 import logging
 
-import lib.centos
 from lib import exception
-import lib.scheduler
 from lib.packages_manager import PackagesManager
 from lib.rpm_package import RPM_Package
+from lib.scheduler import Scheduler
 
 LOG = logging.getLogger(__name__)
 
@@ -46,5 +45,5 @@ class BuildManager(object):
         self.build()
 
     def build(self):
-        scheduler = lib.scheduler.Scheduler()
+        scheduler = Scheduler()
         self.distro.build_packages(scheduler(self.packages_manager.packages))
