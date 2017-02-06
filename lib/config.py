@@ -282,7 +282,7 @@ def setup_default_config():
                          verbose=CONF.get('default').get('verbose'),
                          rotate_size=CONF.get('default').get('log_size'))
 
-    proxy = CONF.get('http_proxy')
+    proxy = CONF.get('default').get('http_proxy')
     if proxy:
         utils.set_http_proxy_env(proxy)
 
