@@ -17,7 +17,6 @@ from functools import partial
 
 import datetime
 import logging
-import glob
 import os
 import shutil
 
@@ -77,6 +76,7 @@ class Mock(build_system.PackageBuilder):
             raise
 
         msg = "%s: Success! RPMs built!" % (package.name)
+        self._copy_rpms(self.build_dir, package.build_cache_dir)
         self._copy_rpms(self.build_dir, package.build_results_dir)
         LOG.info(msg)
         if not CONF.get('default').get('keep_builddir'):
@@ -128,9 +128,7 @@ class Mock(build_system.PackageBuilder):
             cmd = self.common_mock_args
             install = " --install"
             for dep in package.build_dependencies:
-                dep_rpms_glob = os.path.join(dep.build_results_dir, "*.rpm")
-                rpm_files = glob.iglob(dep_rpms_glob)
-                install = " ".join([install, " ".join(rpm_files)])
+                install = " ".join([install, " ".join(dep.cached_build_results)])
 
             cmd = cmd + install
             LOG.info("%s: Installing dependencies on chroot" % package.name)

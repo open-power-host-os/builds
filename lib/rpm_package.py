@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import glob
 import os
 import logging
 import re
@@ -226,6 +227,17 @@ class RPM_Package(Package):
                     distro_version=self.distro.version)
         except TypeError:
             raise exception.PackageDescriptorError(package=self.name)
+
+    @property
+    def cached_build_results(self):
+        """
+        Get the files cached from the last build of this package.
+
+        Returns:
+            [str]: paths to the resulting files of the last build
+        """
+        result_files_glob = os.path.join(self.build_cache_dir, "*.rpm")
+        return glob.glob(result_files_glob)
 
     @property
     def version(self):

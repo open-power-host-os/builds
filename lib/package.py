@@ -30,6 +30,9 @@ from lib import utils
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 
+# TODO: make this configurable by a base dir parameter
+BUILD_CACHE_DIR = "cache"
+
 
 @total_ordering
 class Package(object):
@@ -56,6 +59,7 @@ class Package(object):
         self.download_source = None
         self.install_dependencies = []
         self.build_dependencies = []
+        self.build_cache_dir = os.path.join(BUILD_CACHE_DIR, self.name)
         self.build_results_dir = os.path.join(
             CONF.get('default').get('result_dir'), self.name)
         self.sources = []
@@ -233,3 +237,13 @@ class Package(object):
         LOG.debug("Unlocking file {}".format(self.lock_file_path))
         fcntl.lockf(self.lock_file, fcntl.LOCK_UN)
         self.lock_file.close()
+
+    @property
+    def cached_build_results(self):
+        """
+        Get the files cached from the last build of this package.
+
+        Returns:
+            [str]: paths to the resulting files of the last build
+        """
+        return list()
