@@ -53,7 +53,15 @@ class Package(object):
             cls.__created_packages[package_name] = package
         return package
 
-    def __init__(self, name):
+    def __init__(self, name, force_rebuild=True):
+        """
+        Create a new package instance.
+
+        Args:
+            name: package name
+            force_rebuild: whether to force the rebuild of the package
+                in case its build results already exist
+        """
         self.name = name
         self.clone_url = None
         self.download_source = None
@@ -69,6 +77,7 @@ class Package(object):
         locks_dir = CONF.get('default').get('repositories_path')
         self.lock_file_path = os.path.join(
             locks_dir, self.name + ".lock")
+        self.force_rebuild = force_rebuild
 
         # Dependencies packages may be present in those directories in older
         # versions of package metadata. This keeps compatibility.

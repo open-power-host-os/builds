@@ -189,17 +189,20 @@ class RPM_Package(Package):
 
             # list of dependencies
             for dep_name in files.get('install_dependencies', []):
-                dep = RPM_Package.get_instance(dep_name, self.distro)
+                dep = RPM_Package.get_instance(
+                    dep_name, self.distro, force_rebuild=self.force_rebuild)
                 self.install_dependencies.append(dep)
 
             # keeps backward compatibility with old yaml files which have 'dependencies'
             # instead of 'install_dependencies'
             for dep_name in files.get('dependencies', []):
-                dep = RPM_Package.get_instance(dep_name, self.distro)
+                dep = RPM_Package.get_instance(
+                    dep_name, self.distro, force_rebuild=self.force_rebuild)
                 self.install_dependencies.append(dep)
 
             for dep_name in files.get('build_dependencies', []):
-                dep = RPM_Package.get_instance(dep_name, self.distro)
+                dep = RPM_Package.get_instance(
+                    dep_name, self.distro, force_rebuild=self.force_rebuild)
                 self.build_dependencies.append(dep)
 
             default_rpm_macros_file_rel_path = os.path.join(

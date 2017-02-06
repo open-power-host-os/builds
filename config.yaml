@@ -21,6 +21,7 @@ default:
    --plugin-option=tmpfs:required_ram_mb=39800"
  commit_updates: True
  push_updates: True
+ force_rebuild: False
 iso:
     iso_name: "OpenPOWER-Host_OS"
     log_file: "/var/log/host-os/iso.log"
