@@ -69,7 +69,7 @@ def run(CONF):
     # through a package like rpm or deb. If the user decides to use different
     # user or log files he needs to handle permissions by his own.
     log_dir = os.path.dirname(CONF.get('default').get('log_file'))
-    repo_dir = CONF.get('default').get('repositories_path')
+    repo_dir = CONF.get('default').get('packages_repos_target_path')
     user = CONF.get('default').get('user')
 
     setup_user(user)
