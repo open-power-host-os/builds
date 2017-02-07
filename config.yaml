@@ -3,6 +3,8 @@ default:
  packages_repos_target_path: "/var/lib/host-os/repositories"
  build_versions_repository_url: "https://github.com/open-power-host-os/versions.git"
  build_version: 'master'
+ packages_metadata_repo_target_path: '.'
+ http_proxy: ''
  distro_name: 'CentOS'
  distro_version: '7'
  arch_and_endianness: 'ppc64le'
