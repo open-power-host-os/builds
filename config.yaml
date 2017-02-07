@@ -1,8 +1,8 @@
 default:
  work_dir: 'workspace'
  result_dir: 'result'
- build_versions_repository_url: "https://github.com/open-power-host-os/versions.git"
- build_version: 'master'
+ packages_metadata_repo_url: "https://github.com/open-power-host-os/versions.git"
+ packages_metadata_repo_branch: 'master'
  http_proxy: ''
  distro_name: 'CentOS'
  distro_version: '7'

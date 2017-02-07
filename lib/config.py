@@ -27,9 +27,9 @@ from lib.constants import REPOSITORIES_DIR
 LOG = logging.getLogger(__name__)
 LOG_FILE_NAME = 'builds.log'
 BUILD_REPO_ARGS = {
-    ('--build-versions-repository-url',):
+    ('--packages-metadata-repo-url',):
         dict(help='Packages metadata git repository URL'),
-    ('--build-version',):
+    ('--packages-metadata-repo-branch',):
         dict(help='Packages metadata git repository branch'),
     ('--http-proxy',):
         dict(help='HTTP proxy URL'),
@@ -141,18 +141,16 @@ def discover_packages():
     will not.
     """
     config = get_config().CONF.get('default')
-    versions_repo_url = config.get('build_versions_repository_url')
+    versions_repo_url = config.get('packages_metadata_repo_url')
     versions_repo_name = os.path.basename(os.path.splitext(versions_repo_url)[0])
-    build_versions_repo_dir = os.path.join(
-        config.get('work_dir'),
-        REPOSITORIES_DIR,
-        versions_repo_name)
+    versions_repo_target_path = os.path.join(
+        CONF.get('default').get('work_dir'), REPOSITORIES_DIR, versions_repo_name)
     package_list = []
     try:
         package_list = [
-            package for package in os.listdir(build_versions_repo_dir)
-            if os.path.isdir(os.path.join(build_versions_repo_dir, package)) and
-            os.path.isfile(os.path.join(build_versions_repo_dir, package,
+            package for package in os.listdir(versions_repo_target_path)
+            if os.path.isdir(os.path.join(versions_repo_target_path, package)) and
+            os.path.isfile(os.path.join(versions_repo_target_path, package,
                                         "".join([package, ".yaml"])))
         ]
     except OSError:
