@@ -154,9 +154,8 @@ def run(CONF):
         CONF.get('default').get('distro_name'),
         CONF.get('default').get('distro_version'),
         CONF.get('default').get('arch_and_endianness'))
-    release_notes_repo_url = CONF.get('default').get('release_notes_repo_url')
-    release_notes_repo_branch = CONF.get('default').get(
-        'release_notes_repo_branch')
+    release_notes_repo_url = CONF.get('release_notes').get('release_notes_repo_url')
+    release_notes_repo_branch = CONF.get('release_notes').get('release_notes_repo_branch')
     commit_updates = CONF.get('default').get('commit_updates')
     push_updates = CONF.get('default').get('push_updates')
     push_repo_url = CONF.get('default').get('push_repo_url')
