@@ -149,7 +149,7 @@ def run(CONF):
     version_milestone = read_version_and_milestone(versions_repo)
     
     packages_names = (CONF.get('common').get('packages')
-                      or config.discover_packages())
+                      or packages_manager.discover_packages())
     distro = distro_utils.get_distro(
         CONF.get('common').get('distro_name'),
         CONF.get('common').get('distro_version'),

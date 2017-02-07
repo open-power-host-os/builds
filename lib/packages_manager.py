@@ -14,9 +14,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import os
 
 from lib import config
 from lib import exception
+from lib.constants import REPOSITORIES_DIR
 from lib.package import Package
 
 CONF = config.get_config().CONF
@@ -46,3 +48,45 @@ class PackagesManager(object):
             if download_source_code:
                 package.download_files()
             self.packages.append(package)
+
+
+def discover_packages():
+    """
+    Simple mechanism for discoverability of the packages we build.
+
+    A discoverable package, and thus potentially buildable, will be assumed as
+    any directory name under the packages metadata git repository directory containing
+    a yaml file with the same name.
+    Considering the example:
+
+    versions
+    +-- kernel
+    |   +-- kernel.yaml
+    +-- libvirt
+    |   +-- libvirt.yaml
+    |   +-- someother_file_or_directory
+    +-- not-a-package
+    |   +-- not-following-standards.yaml
+    +-- file
+
+    "kernel" and "libvirt" will be discovered, "not-a-package" and "file"
+    will not.
+    """
+    config = CONF.get('common')
+    versions_repo_url = config.get('packages_metadata_repo_url')
+    versions_repo_name = os.path.basename(os.path.splitext(versions_repo_url)[0])
+    versions_repo_target_path = os.path.join(config.get('work_dir'),
+        REPOSITORIES_DIR, versions_repo_name)
+    package_list = []
+    try:
+        package_list = [
+            package for package in os.listdir(versions_repo_target_path)
+            if os.path.isdir(os.path.join(versions_repo_target_path, package)) and
+            os.path.isfile(os.path.join(versions_repo_target_path, package,
+                                        "".join([package, ".yaml"])))
+        ]
+    except OSError:
+        LOG.error("No packages found in versions repository directory")
+        raise
+
+    return package_list
