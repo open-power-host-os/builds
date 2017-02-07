@@ -50,6 +50,12 @@ PACKAGE_ARGS = {
         dict(help='Keep build directory and its logs and artifacts.',
              action='store_true'),
 }
+DISTRO_ARGS = {
+    ('--distro-name',):
+        dict(help='Base Linux distribution'),
+    ('--distro-version',):
+        dict(help='Base Linux distribution version')
+}
 MOCK_ARGS = {
     ('--mock-args',):
         dict(help='Arguments passed to mock command',
@@ -92,11 +98,11 @@ ISO_ARGS = {
 }
 SUBCOMMANDS = [
     ('build-package', 'Build packages.',
-        [PACKAGE_ARGS, MOCK_ARGS, BUILD_REPO_ARGS]),
+        [PACKAGE_ARGS, MOCK_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
     ('release-notes', 'Create release notes',
-        [RELEASE_NOTES_ARGS, PUSH_REPO_ARGS, BUILD_REPO_ARGS]),
+        [RELEASE_NOTES_ARGS, PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
     ('upgrade-versions', 'Upgrade packages versions',
-        [PUSH_REPO_ARGS, BUILD_REPO_ARGS]),
+        [PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
     ('set-env', 'Setup user and directory for build scripts',
         [SETUP_ENVIRONMENT_ARGS]),
     ('build-iso', 'Build ISO image',
