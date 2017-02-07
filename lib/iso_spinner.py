@@ -28,7 +28,7 @@ LOG = logging.getLogger(__name__)
 class MockPungiSpinner(object):
 
     def __init__(self, config):
-        self.config = config.get("iso")
+        self.config = config.get("build_iso")
         self.distro = self.config.get("iso_name")
         self.version = datetime.date.today().strftime("%y%m%d")
         (_, _, self.arch) = distro_utils.detect_distribution()

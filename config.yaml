@@ -24,7 +24,7 @@ default:
 release_notes:
  release_notes_repo_url: "https://github.com/open-power-host-os/open-power-host-os.github.io.git"
  release_notes_repo_branch: "master"
-iso:
+build_iso:
     iso_name: "OpenPOWER-Host_OS"
     log_file: "/var/log/host-os/iso.log"
     mock_config: "./mock_configs/CentOS/7/spin-iso-CentOS-7-ppc64le.cfg"
