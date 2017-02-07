@@ -251,7 +251,8 @@ class ConfigParser(object):
         # Each subcommand may have a node for specific configurations
         # at the same level of the 'default' node
         COMMAND_TO_CONFIG_NODE = {
-            "build-iso": "iso"
+            "build-iso": "iso",
+            "release-notes": "release_notes"
         }
         if command_line_args.subcommand in COMMAND_TO_CONFIG_NODE:
             # Override the default configurations with the ones specific
@@ -271,9 +272,11 @@ class ConfigParser(object):
 
         # update iso node with iso subcommand args and then drop them from args
         for key, value in args.items():
-            if key in config['iso']:
-                config['iso'][key] = value
-                args.pop(key)
+            for node in COMMAND_TO_CONFIG_NODE.values():
+                if key in config[node]:
+                    config[node][key] = value
+                    args.pop(key)
+                    break
 
         config['default'].update(args)
         self._CONF = config

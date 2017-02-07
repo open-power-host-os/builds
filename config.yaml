@@ -7,8 +7,6 @@ default:
  distro_name: 'CentOS'
  distro_version: '7'
  arch_and_endianness: 'ppc64le'
- release_notes_repo_url: "https://github.com/open-power-host-os/open-power-host-os.github.io.git"
- release_notes_repo_branch: "master"
  mock_binary: "/usr/bin/mock"
  mock_config:
   CentOS:
@@ -22,6 +20,9 @@ default:
  commit_updates: True
  push_updates: True
  force_rebuild: False
+release_notes:
+ release_notes_repo_url: "https://github.com/open-power-host-os/open-power-host-os.github.io.git"
+ release_notes_repo_branch: "master"
 iso:
     iso_name: "OpenPOWER-Host_OS"
     log_file: "/var/log/host-os/iso.log"
