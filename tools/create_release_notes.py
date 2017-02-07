@@ -145,7 +145,7 @@ def run(CONF):
     versions_repo = setup_versions_repository(CONF)
 
     packages_names = (CONF.get('common').get('packages')
-                      or config.discover_packages())
+                      or packages_manager.discover_packages())
     distro = distro_utils.get_distro(
         CONF.get('common').get('distro_name'),
         CONF.get('common').get('distro_version'),

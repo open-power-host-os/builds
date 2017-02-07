@@ -17,13 +17,12 @@ import logging
 
 import git
 
-from lib import config
 from lib import distro_utils
 from lib import exception
 from lib import repository
+from lib.packages_manager import discover_packages
 from lib.versions_repository import setup_versions_repository
 from lib.versions_repository import update_versions_in_readme
-
 
 LOG = logging.getLogger(__name__)
 
@@ -77,7 +76,7 @@ def push_changes_to_head(repo, repo_url, repo_branch):
 def run(CONF):
     versions_repo = setup_versions_repository(CONF)
     packages = (CONF.get('common').get('packages') or
-                config.discover_packages())
+                discover_packages())
 
     arch_and_endianness = CONF.get('common').get('arch_and_endianness')
     distro = distro_utils.get_distro(CONF.get('common').get('distro_name'),

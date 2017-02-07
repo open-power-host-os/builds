@@ -21,13 +21,13 @@ import re
 
 import git
 
-from lib import config
 from lib import distro_utils
 from lib import exception
 from lib import packages_manager
 from lib import repository
 from lib import rpm_package
 from lib.utils import replace_str_in_file
+from lib.packages_manager import discover_packages
 from lib.versions_repository import setup_versions_repository
 from lib.versions_repository import update_versions_in_readme
 
@@ -256,7 +256,7 @@ def run(CONF):
         pkg_version.update(updater_name, updater_email)
         pkg.unlock()
 
-    packages = config.discover_packages()
+    packages = discover_packages()
     update_versions_in_readme(versions_repo, distro, packages)
 
     release_date = datetime.today().date().isoformat()
