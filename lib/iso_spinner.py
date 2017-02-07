@@ -33,7 +33,7 @@ class MockPungiSpinner(object):
         self.timestamp = datetime.datetime.now().isoformat()
         self.result_dir = os.path.join(config.get('default').get('result_dir'),
                                        'iso', self.timestamp)
-        self.config = config.get("iso")
+        self.config = config.get("build_iso")
         self.distro = self.config.get("iso_name")
         self.version = datetime.date.today().strftime("%y%m%d")
         (_, _, self.arch) = distro_utils.detect_distribution()
