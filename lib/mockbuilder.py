@@ -55,6 +55,7 @@ class Mock(build_system.PackageBuilder):
         utils.run_command(cmd)
 
     def build(self, package):
+        self.clean_cache_dir(package)
         LOG.info("%s: Starting build process" % package.name)
         self._build_srpm(package)
         self._install_external_dependencies(package)
@@ -122,6 +123,18 @@ class Mock(build_system.PackageBuilder):
 
     def clean(self):
         utils.run_command(self.common_mock_args + " --clean")
+
+    def clean_cache_dir(self, package):
+        """
+        Delete the package's cached results directory.
+
+        Args:
+            package: package whose cached results will be removed
+        """
+        if os.path.isdir(package.build_cache_dir):
+            LOG.debug("%s: Cleaning previously cached build results."
+                      % package.name)
+            shutil.rmtree(package.build_cache_dir)
 
     def _install_external_dependencies(self, package):
         if package.build_dependencies:
