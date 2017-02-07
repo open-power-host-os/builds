@@ -140,7 +140,7 @@ def discover_packages():
     "kernel" and "libvirt" will be discovered, "not-a-package" and "file"
     will not.
     """
-    config = get_config().CONF.get('default')
+    config = get_config().CONF.get('common')
     versions_repo_url = config.get('packages_metadata_repo_url')
     versions_repo_name = os.path.basename(os.path.splitext(versions_repo_url)[0])
     versions_repo_target_path = os.path.join(
@@ -236,10 +236,10 @@ class ConfigParser(object):
         config_file = command_line_args.config_file
 
         config = self.parse_config_file(config_file)
-        self.parser.set_defaults(**config['default'])
+        self.parser.set_defaults(**config['common'])
 
         # Each subcommand may have a node for specific configurations
-        # at the same level of the 'default' node
+        # at the same level of the 'common' node
         COMMAND_TO_CONFIG_NODE = {
             "build-iso": "build_iso",
             "release-notes": "release_notes"
@@ -268,7 +268,7 @@ class ConfigParser(object):
                     config[node_name][key] = value
                     args.pop(key)
 
-        config['default'].update(args)
+        config['common'].update(args)
         self._CONF = config
         return config
 
@@ -284,13 +284,13 @@ def setup_default_config():
         print("Failed to parse settings")
         sys.exit(2)
 
-    log_file_path = os.path.join(CONF.get('default').get('work_dir'),
+    log_file_path = os.path.join(CONF.get('common').get('work_dir'),
                                  LOG_FILE_NAME)
     log_helper.LogHelper(log_file_path=log_file_path,
-                         verbose=CONF.get('default').get('verbose'),
-                         rotate_size=CONF.get('default').get('log_size'))
+                         verbose=CONF.get('common').get('verbose'),
+                         rotate_size=CONF.get('common').get('log_size'))
 
-    proxy = CONF.get('default').get('http_proxy')
+    proxy = CONF.get('common').get('http_proxy')
     if proxy:
         utils.set_http_proxy_env(proxy)
 

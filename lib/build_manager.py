@@ -32,7 +32,7 @@ class BuildManager(object):
         self.repositories = None
 
     def __call__(self):
-        force_rebuild = CONF.get('default').get('force_rebuild')
+        force_rebuild = CONF.get('common').get('force_rebuild')
         try:
             self.packages_manager.prepare_packages(
                 packages_class=RPM_Package, distro=self.distro,

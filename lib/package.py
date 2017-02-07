@@ -31,8 +31,8 @@ from lib.constants import REPOSITORIES_DIR
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 
-BUILD_CACHE_DIR = os.path.join(CONF.get('default').get('work_dir'), "cache")
-PACKAGES_REPOS_TARGET_PATH = os.path.join(CONF.get('default').get('work_dir'),
+BUILD_CACHE_DIR = os.path.join(CONF.get('common').get('work_dir'), "cache")
+PACKAGES_REPOS_TARGET_PATH = os.path.join(CONF.get('common').get('work_dir'),
                                           REPOSITORIES_DIR)
 
 
@@ -83,7 +83,7 @@ class Package(object):
         # versions of package metadata. This keeps compatibility.
         OLD_DEPENDENCIES_DIRS = ["build_dependencies", "dependencies"]
         PACKAGES_DIRS = [""] + OLD_DEPENDENCIES_DIRS
-        versions_repo_url = CONF.get('default').get('packages_metadata_repo_url')
+        versions_repo_url = CONF.get('common').get('packages_metadata_repo_url')
         versions_repo_name = os.path.basename(os.path.splitext(versions_repo_url)[0])
         versions_repo_target_path = os.path.join(
             PACKAGES_REPOS_TARGET_PATH,

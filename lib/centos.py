@@ -32,6 +32,6 @@ class CentOS(distro.LinuxDistribution):
     def __init__(self, name, version, arch_and_endianness):
         super(CentOS, self).__init__(name=name, version=version,
                                      arch_and_endianness=arch_and_endianness)
-        config_file = CONF.get('default').get('mock_config').get(name).get(
+        config_file = CONF.get('common').get('mock_config').get(name).get(
             version)
         self.package_builder = mockbuilder.Mock(config_file)

@@ -225,23 +225,23 @@ def push_packages_head_commit(
 
 def run(CONF):
     versions_repo = setup_versions_repository(CONF)
-    packages_to_update = CONF.get('default').get('packages') or PACKAGES
+    packages_to_update = CONF.get('common').get('packages') or PACKAGES
     distro = distro_utils.get_distro(
-        CONF.get('default').get('distro_name'),
-        CONF.get('default').get('distro_version'),
-        CONF.get('default').get('arch_and_endianness'))
-    commit_updates = CONF.get('default').get('commit_updates')
-    push_updates = CONF.get('default').get('push_updates')
-    push_repo_url = CONF.get('default').get('push_repo_url')
-    push_repo_branch = CONF.get('default').get('push_repo_branch')
-    updater_name = CONF.get('default').get('updater_name')
-    updater_email = CONF.get('default').get('updater_email')
+        CONF.get('common').get('distro_name'),
+        CONF.get('common').get('distro_version'),
+        CONF.get('common').get('arch_and_endianness'))
+    commit_updates = CONF.get('common').get('commit_updates')
+    push_updates = CONF.get('common').get('push_updates')
+    push_repo_url = CONF.get('common').get('push_repo_url')
+    push_repo_branch = CONF.get('common').get('push_repo_branch')
+    updater_name = CONF.get('common').get('updater_name')
+    updater_email = CONF.get('common').get('updater_email')
 
     REQUIRED_PARAMETERS = ["updater_name", "updater_email"]
     if push_updates:
         REQUIRED_PARAMETERS += ["push_repo_url", "push_repo_branch"]
     for parameter in REQUIRED_PARAMETERS:
-        if CONF.get('default').get(parameter) is None:
+        if CONF.get('common').get(parameter) is None:
             raise exception.RequiredParameterMissing(parameter=parameter)
 
     LOG.info("Checking for updates in packages versions: %s",

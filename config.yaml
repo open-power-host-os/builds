@@ -1,4 +1,4 @@
-default:
+common:
  work_dir: 'workspace'
  result_dir: 'result'
  packages_metadata_repo_url: "https://github.com/open-power-host-os/versions.git"

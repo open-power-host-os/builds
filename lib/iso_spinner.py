@@ -29,16 +29,16 @@ LOG = logging.getLogger(__name__)
 class MockPungiSpinner(object):
 
     def __init__(self, config):
-        self.work_dir = config.get('default').get('work_dir')
+        self.work_dir = config.get('common').get('work_dir')
         self.timestamp = datetime.datetime.now().isoformat()
-        self.result_dir = os.path.join(config.get('default').get('result_dir'),
+        self.result_dir = os.path.join(config.get('common').get('result_dir'),
                                        'iso', self.timestamp)
         self.config = config.get("build_iso")
         self.distro = self.config.get("iso_name")
         self.version = datetime.date.today().strftime("%y%m%d")
         (_, _, self.arch) = distro_utils.detect_distribution()
-        self.mock_binary = config.get('default').get('mock_binary')
-        self.mock_args = config.get('default').get('mock_args')
+        self.mock_binary = config.get('common').get('mock_binary')
+        self.mock_args = config.get('common').get('mock_args')
 
     def _run_mock_command(self, cmd):
         try:
