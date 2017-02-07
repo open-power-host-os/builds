@@ -18,9 +18,9 @@ def setup_versions_repository(config):
     anything fails.
     """
     path, _ = os.path.split(
-        config.get('default').get('build_versions_repo_dir'))
-    url = config.get('default').get('build_versions_repository_url')
-    branch = config.get('default').get('build_version')
+        config.get('default').get('packages_metadata_repo_target_path'))
+    url = config.get('default').get('packages_metadata_repo_url')
+    branch = config.get('default').get('packages_metadata_repo_branch')
     try:
         versions_repo = repository.get_git_repository(url, path)
         versions_repo.checkout(branch)
