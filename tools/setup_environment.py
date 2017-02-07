@@ -68,9 +68,9 @@ def run(CONF):
     # environment settings as it would be done if our scripts were installed
     # through a package like rpm or deb. If the user decides to use different
     # user or log files he needs to handle permissions by his own.
-    log_dir = os.path.dirname(CONF.get('default').get('log_file'))
-    repo_dir = CONF.get('default').get('packages_repos_target_path')
-    user = CONF.get('default').get('user')
+    log_dir = os.path.dirname(CONF.get('common').get('log_file'))
+    repo_dir = CONF.get('common').get('packages_repos_target_path')
+    user = CONF.get('common').get('user')
 
     setup_user(user)
     setup_default_directories([log_dir, repo_dir], MOCK_GROUP_ID)

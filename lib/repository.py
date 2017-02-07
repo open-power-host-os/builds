@@ -64,7 +64,7 @@ def get_git_repository(remote_repo_url, parent_dir_path):
         CONF = config.get_config().CONF
         return GitRepository.clone_from(
             remote_repo_url, repo_path,
-            proxy=CONF.get('default').get('http_proxy'))
+            proxy=CONF.get('common').get('http_proxy'))
 
 
 def get_svn_repository(remote_repo_url, repo_path):
@@ -217,7 +217,7 @@ class SvnRepository():
         command = 'svn checkout '
 
         CONF = config.get_config().CONF
-        proxy = CONF.get('default').get('http_proxy')
+        proxy = CONF.get('common').get('http_proxy')
 
         if proxy:
             url = urlparse.urlparse(proxy)

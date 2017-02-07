@@ -72,7 +72,7 @@ class Package(object):
         self.repository = None
         self.build_files = None
         self.download_build_files = []
-        locks_dir = CONF.get('default').get('packages_repos_target_path')
+        locks_dir = CONF.get('common').get('packages_repos_target_path')
         self.lock_file_path = os.path.join(
             locks_dir, self.name + ".lock")
         self.force_rebuild = force_rebuild
@@ -81,10 +81,10 @@ class Package(object):
         # versions of package metadata. This keeps compatibility.
         OLD_DEPENDENCIES_DIRS = ["build_dependencies", "dependencies"]
         PACKAGES_DIRS = [""] + OLD_DEPENDENCIES_DIRS
-        versions_repo_url = CONF.get('default').get('packages_metadata_repo_url')
+        versions_repo_url = CONF.get('common').get('packages_metadata_repo_url')
         versions_repo_name = os.path.basename(os.path.splitext(versions_repo_url)[0])
         versions_repo_target_path = os.path.join(
-            CONF.get('default').get('packages_metadata_repo_target_path'),
+            CONF.get('common').get('packages_metadata_repo_target_path'),
             versions_repo_name)
         for rel_packages_dir in PACKAGES_DIRS:
             packages_dir = os.path.join(
@@ -117,7 +117,7 @@ class Package(object):
         Optionally, do the same for its dependencies, recursively.
         """
         # Download all package sources
-        repositories_path = CONF.get('default').get('packages_repos_target_path')
+        repositories_path = CONF.get('common').get('packages_repos_target_path')
         download_f = partial(package_source.download, directory=repositories_path, local_copy_subdir_name=self.name)
         self.sources = map(download_f, self.sources)
 
@@ -135,7 +135,7 @@ class Package(object):
         LOG.info("%s: Downloading source code from '%s'." %
                  (self.name, self.clone_url))
         self._setup_repository(
-            dest=CONF.get('default').get('packages_repos_target_path'))
+            dest=CONF.get('common').get('packages_repos_target_path'))
 
     def _load(self):
         """

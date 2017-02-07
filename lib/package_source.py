@@ -15,7 +15,7 @@ def _hg_download(source, directory):
     Clones a mercurial [source] to [directory] and returns a source dict.
     """
     CONF = config.get_config().CONF
-    proxy = CONF.get('default').get('http_proxy')
+    proxy = CONF.get('common').get('http_proxy')
     hg_source = source['hg']
     repo_name = os.path.basename(hg_source['src'])
     dest = os.path.join(directory, repo_name)
