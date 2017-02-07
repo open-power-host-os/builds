@@ -201,9 +201,28 @@ class SvnRepository():
         """
         LOG.info("Checking out repository from '%s' into '%s'" %
                  (remote_repo_url, repo_path))
+
+        command = 'svn checkout '
+
+        CONF = config.get_config().CONF
+        proxy = CONF.get('default').get('http_proxy')
+
+        if proxy:
+            url = urlparse.urlparse(proxy)
+            host = url.scheme + '://' + url.hostname
+            port = url.port
+            options = ("servers:global:http-proxy-host='%s'" % host,
+                       "servers:global:http-proxy-port='%s'" % port)
+
+            proxy_conf = ['--config-option ' + option for option in options]
+
+            command += ' '.join(proxy_conf) + ' '
+
+        command += '%(remote_repo_url)s %(local_target_path)s' % \
+                   {'remote_repo_url': remote_repo_url,
+                    'local_target_path': repo_path}
         try:
-            utils.run_command('svn checkout %(remote_repo_url)s %(local_target_path)s' %
-                dict(remote_repo_url=remote_repo_url, local_target_path=repo_path))
+            utils.run_command(command)
             return SvnRepository(remote_repo_url, repo_path)
         except:
             message = "Failed to clone repository"
