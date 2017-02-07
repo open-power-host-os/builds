@@ -1,5 +1,4 @@
 default:
- branch: 'powerkvm-v3.1.1'
  work_dir: 'workspace'
  result_dir: 'result'
  build_versions_repository_url: "https://github.com/open-power-host-os/versions.git"

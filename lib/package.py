@@ -135,9 +135,8 @@ class Package(object):
     def _download_source_code(self):
         LOG.info("%s: Downloading source code from '%s'." %
                  (self.name, self.clone_url))
-        self._setup_repository(
-            dest=PACKAGES_REPOS_TARGET_PATH,
-            branch=CONF.get('default').get('branch'))
+        self._setup_repository(dest=PACKAGES_REPOS_TARGET_PATH)
+
 
     def _load(self):
         """
