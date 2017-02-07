@@ -60,7 +60,7 @@ class Package(object):
         Args:
             name: package name
             force_rebuild: whether to force the rebuild of the package
-                in case its build results already exist
+                in case its build results are already up-to-date
         """
         self.name = name
         self.clone_url = None
@@ -256,3 +256,35 @@ class Package(object):
             [str]: paths to the resulting files of the last build
         """
         return list()
+
+    def needs_rebuild(self):
+        """
+        Check if the package needs to be rebuild.
+        Compare the modification time of the package source and metadata
+        files with the latest build results files and check if the build
+        dependencies were updated.
+
+        Returns:
+            bool: whether the package needs to be rebuilt
+        """
+        # Check if there are any cached build results
+        cached_build_results = self.cached_build_results
+        if not cached_build_results:
+            LOG.debug("%s: No previous build results found." % self.name)
+            return True
+
+        latest_source_time_stamp = None
+        for file_path in utils.recursive_glob(self.package_dir, "*"):
+            file_time_stamp = os.stat(file_path).st_mtime
+            latest_source_time_stamp = max(
+                latest_source_time_stamp, file_time_stamp)
+
+        # Check if sources are older than build results
+        for file_path in cached_build_results:
+            file_time_stamp = os.stat(file_path).st_mtime
+            if file_time_stamp < latest_source_time_stamp:
+                LOG.debug("%s: Build results are outdated." % self.name)
+                return True
+
+        LOG.debug("%s: Up-to-date build results found." % self.name)
+        return False

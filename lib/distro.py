@@ -60,13 +60,11 @@ class LinuxDistribution(object):
             if package.force_rebuild:
                 LOG.info("%s: Forcing rebuild." % package.name)
                 build_package = True
-            elif package.build_results():
-                LOG.info("%s: Build results found, skipping rebuild."
-                         % package.name)
-                build_package = False
-            else:
-                LOG.info("%s: No previous build results found." % package.name)
+            elif package.needs_rebuild():
                 build_package = True
+            else:
+                LOG.info("%s: Skipping rebuild." % package.name)
+                build_package = False
 
             if build_package:
                 package.lock()
