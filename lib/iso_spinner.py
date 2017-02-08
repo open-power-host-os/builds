@@ -28,17 +28,22 @@ LOG = logging.getLogger(__name__)
 class MockPungiSpinner(object):
 
     def __init__(self, config):
+        self.common_config = config.get('common')
         self.config = config.get("build_iso")
         self.distro = self.config.get("iso_name")
         self.version = datetime.date.today().strftime("%y%m%d")
         (_, _, self.arch) = distro_utils.detect_distribution()
-        self.mock_binary = config.get('common').get('mock_binary')
+        self.mock_binary = self.common_config.get('mock_binary')
         self.mock_args = self.config.get('mock_args') or ""
 
     def _run_mock_command(self, cmd):
+        distro = distro_utils.get_distro(
+            self.common_config.get('distro_name'),
+            self.common_config.get('distro_version'),
+            self.common_config.get('arch_and_endianness'))
         try:
             utils.run_command("%s -r %s %s %s" % (
-                self.mock_binary, self.config.get('mock_config'),
+                self.mock_binary, distro.config_file,
                 self.mock_args, cmd))
         except exception.SubprocessError:
             LOG.error("Failed to spin ISO")

@@ -35,7 +35,9 @@ build_release_notes:
 build_iso:
     iso_name: "OpenPOWER-Host_OS"
     log_file: "/var/log/host-os/iso.log"
-    mock_config: "./mock_configs/CentOS/7/spin-iso-CentOS-7-ppc64le.cfg"
+    mock_config:
+     CentOS:
+      '7': "./mock_configs/CentOS/7/spin-iso-CentOS-7-ppc64le.cfg"
     mock_args:
     packages_dir: "./result"
     kickstart_file: "host-os.ks"
