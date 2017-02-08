@@ -168,13 +168,16 @@ def run(CONF):
     release_notes_repo_url = CONF.get('default').get('release_notes_repo_url')
     release_notes_repo_branch = CONF.get('default').get(
         'release_notes_repo_branch')
+    commit_updates = CONF.get('default').get('commit_updates')
+    push_updates = CONF.get('default').get('push_updates')
     push_repo_url = CONF.get('default').get('push_repo_url')
     push_repo_branch = CONF.get('default').get('push_repo_branch')
     updater_name = CONF.get('default').get('updater_name')
     updater_email = CONF.get('default').get('updater_email')
 
-    REQUIRED_PARAMETERS = ["push_repo_url", "push_repo_branch",
-                           "updater_name", "updater_email"]
+    REQUIRED_PARAMETERS = ["updater_name", "updater_email"]
+    if push_updates:
+        REQUIRED_PARAMETERS += ["push_repo_url", "push_repo_branch"]
     for parameter in REQUIRED_PARAMETERS:
         if CONF.get('default').get(parameter) is None:
             raise exception.RequiredParameterMissing(parameter=parameter)
@@ -193,6 +196,9 @@ def run(CONF):
         release_notes_repo_url, os.getcwd())
     website_repo.checkout(release_notes_repo_branch)
 
-    commit_release_notes(website_repo, release_date, release_file_name,
-                         updater_name, updater_email)
-    push_website_head_commit(website_repo, push_repo_url, push_repo_branch)
+    if commit_updates:
+        commit_release_notes(website_repo, release_date, release_file_name,
+                             updater_name, updater_email)
+        if push_updates:
+            push_website_head_commit(
+                website_repo, push_repo_url, push_repo_branch)
