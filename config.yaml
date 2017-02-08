@@ -21,7 +21,7 @@ common:
  commit_updates: True
  push_updates: True
  force_rebuild: False
-release_notes:
+build_release_notes:
  release_notes_repo_url: "https://github.com/open-power-host-os/open-power-host-os.github.io.git"
  release_notes_repo_branch: "master"
 build_iso:

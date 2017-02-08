@@ -99,9 +99,9 @@ ISO_ARGS = {
              default='./result'),
 }
 SUBCOMMANDS = [
-    ('build-package', 'Build packages.',
+    ('build-packages', 'Build packages.',
         [PACKAGE_ARGS, MOCK_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
-    ('release-notes', 'Create release notes',
+    ('build-release-notes', 'Create release notes',
         [RELEASE_NOTES_ARGS, PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
     ('upgrade-versions', 'Upgrade packages versions',
         [PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
@@ -206,7 +206,7 @@ class ConfigParser(object):
         # at the same level of the 'common' node
         COMMAND_TO_CONFIG_NODE = {
             "build-iso": "build_iso",
-            "release-notes": "release_notes"
+            "build-release-notes": "build_release_notes"
         }
         if command_line_args.subcommand in COMMAND_TO_CONFIG_NODE:
             # Override the default configurations with the ones specific
