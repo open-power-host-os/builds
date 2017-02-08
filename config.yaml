@@ -8,6 +8,16 @@ common:
  distro_version: '7'
  arch_and_endianness: 'ppc64le'
  mock_binary: "/usr/bin/mock"
+ commit_updates: True
+ push_updates: True
+ updater_name:
+ updater_email:
+build_packages:
+ packages:
+ packages_repos_target_path: "/var/lib/host-os/repositories"
+ keep_build_dir: False
+ result_dir:  "./result"
+ force_rebuild: False
  mock_config:
   CentOS:
    '7': "./mock_configs/CentOS/7/CentOS-7-ppc64le.cfg"
@@ -17,21 +27,16 @@ common:
    --plugin-option=tmpfs:keep_mounted=True
    --plugin-option=tmpfs:max_fs_size=32g
    --plugin-option=tmpfs:required_ram_mb=39800"
- commit_updates: True
- push_updates: True
-build_packages:
- packages:
- packages_repos_target_path: "/var/lib/host-os/repositories"
- keep_build_dir: False
- result_dir:  "./result"
- force_rebuild: False
 build_release_notes:
  release_notes_repo_url: "https://github.com/open-power-host-os/open-power-host-os.github.io.git"
  release_notes_repo_branch: "master"
+ push_repo_url:
+ push_repo_branch: "master"
 build_iso:
     iso_name: "OpenPOWER-Host_OS"
     log_file: "/var/log/host-os/iso.log"
     mock_config: "./mock_configs/CentOS/7/spin-iso-CentOS-7-ppc64le.cfg"
+    mock_args:
     packages_dir: "./result"
     kickstart_file: "host-os.ks"
     hostos_packages_groups:
@@ -80,3 +85,6 @@ build_iso:
         base: "http://mirror.centos.org/altarch/7/os/ppc64le/"
         updates: "http://mirror.centos.org/altarch/7/updates/ppc64le/"
         epel: "http://download.fedoraproject.org/pub/epel/7/ppc64le/"
+upgrade_versions:
+ push_repo_url:
+ push_repo_branch: "master"

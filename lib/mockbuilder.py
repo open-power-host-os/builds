@@ -35,7 +35,7 @@ class Mock(build_system.PackageBuilder):
     def __init__(self, config_file):
         super(Mock, self).__init__()
         binary_file = CONF.get('common').get('mock_binary')
-        extra_args = CONF.get('common').get('mock_args')
+        extra_args = CONF.get('build_packages').get('mock_args') or ""
         self.build_dir = None
         self.build_results_dir = CONF.get('build_packages').get('result_dir')
         self.archive = None
