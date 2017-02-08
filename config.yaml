@@ -40,7 +40,7 @@ build_iso:
       '7': "./mock_configs/CentOS/7/spin-iso-CentOS-7-ppc64le.cfg"
     mock_args:
     packages_dir: "./result"
-    kickstart_file: "host-os.ks"
+    automated_install_file: "host-os.ks"
     hostos_packages_groups:
         virtualization-hypervisor:
             - "SLOF"
@@ -80,10 +80,10 @@ build_iso:
         - "@remote-system-management"
         - "@virtualization-platform"
         - "grub2"
-    mock_spin_repo:
+    mock_iso_repo:
         name: "hostos"
         dir: "/host-os-repo"
-    distro_repo_url:
+    distro_repos_urls:
         base: "http://mirror.centos.org/altarch/7/os/ppc64le/"
         updates: "http://mirror.centos.org/altarch/7/updates/ppc64le/"
         epel: "http://download.fedoraproject.org/pub/epel/7/ppc64le/"
