@@ -100,6 +100,25 @@ ISO_ARGS = {
     ('--packages-dir', '-d'):
         dict(help='Directory of packages used in the ISO image.',
              default='./result'),
+    ('--iso-name',):
+        dict(help='ISO name.',
+             default='OpenPOWER-Host_OS'),
+    ('--log-file',):
+        dict(help='ISO name.',
+             default='/var/log/host-os/iso.log'),
+    ('--automated-install-file',):
+        dict(help='Path of a kickstart file, used to automate the installation of a RPM-based Linux distribution',
+             default='host-os.ks'),
+    ('--hostos-packages-groups',):
+        dict(help='Packages groups in yum repository'),
+    ('--automated-install-packages-groups',):
+        dict(help='Packages and packages groups which are installed using automated installation', nargs='*'),
+    ('--mock-iso-repo-name',):
+        dict(help='Name of the yum repository which will be created with OpenPOWER Host OS packages'),
+    ('--mock-iso-repo-dir',):
+        dict(help='Directory path of the yum repository which will be created with OpenPOWER Host OS packages'),
+    ('--distro-repos-urls',):
+        dict(help='Base Linux distribution yum repositories URLs'),
 }
 SUBCOMMANDS = [
     ('build-packages', 'Build packages.',
