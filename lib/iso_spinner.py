@@ -78,14 +78,14 @@ class MockPungiSpinner(object):
         LOG.info("Creating spin repository inside chroot")
 
         LOG.debug("Creating spin repo directory")
-        mock_spin_repo_dir = self.config.get('mock_spin_repo').get('dir')
-        self._run_mock_command("--shell 'mkdir -p %s'" % mock_spin_repo_dir)
+        mock_iso_repo_dir = self.config.get('mock_iso_repo').get('dir')
+        self._run_mock_command("--shell 'mkdir -p %s'" % mock_iso_repo_dir)
 
         LOG.debug("Copying rpm to spin repo directory")
         packages_dir = self.config.get('packages_dir')
         rpm_files = utils.recursive_glob(packages_dir, "*.rpm")
         self._run_mock_command("--copyin %s %s" %
-                               (" ".join(rpm_files), mock_spin_repo_dir))
+                               (" ".join(rpm_files), mock_iso_repo_dir))
 
         LOG.debug("Creating comps.xml")
         comps_xml_str = packages_groups_xml_creator.create_comps_xml(
@@ -105,19 +105,19 @@ class MockPungiSpinner(object):
 
         LOG.debug("Creating spin repo")
         createrepo_cmd = "createrepo -v -g %s %s" % (comps_xml_chroot_path,
-                                                     mock_spin_repo_dir)
+                                                     mock_iso_repo_dir)
         self._run_mock_command("--shell '%s'" % createrepo_cmd)
 
     def _create_spin_kickstart(self):
-        kickstart_file = self.config.get('kickstart_file')
+        kickstart_file = self.config.get('automated_install_file')
         kickstart_path = os.path.join(self.work_dir, kickstart_file)
         LOG.info("Creating spin kickstart file %s" % kickstart_path)
 
         with open(kickstart_path, "wt") as f:
-            repo_urls = self.config.get('distro_repo_url')
-            mock_spin_repo_name = self.config.get('mock_spin_repo').get('name')
-            mock_spin_repo_dir = self.config.get('mock_spin_repo').get('dir')
-            repo_urls[mock_spin_repo_name] = "file://%s/" % mock_spin_repo_dir
+            repo_urls = self.config.get('distro_repos_urls')
+            mock_iso_repo_name = self.config.get('mock_iso_repo').get('name')
+            mock_iso_repo_dir = self.config.get('mock_iso_repo').get('dir')
+            repo_urls[mock_iso_repo_name] = "file://%s/" % mock_iso_repo_dir
             for name, url in repo_urls.items():
                 repo = ("repo --name=%s --baseurl=%s\n" % (name, url))
                 f.write(repo)
@@ -138,7 +138,7 @@ class MockPungiSpinner(object):
     def _spin(self):
         LOG.info("Spinning ISO")
         spin_cmd = ("pungi -c %s --nosource --nodebuginfo --name %s --ver %s" %
-                    (self.config.get('kickstart_file'),
+                    (self.config.get('automated_install_file'),
                      self.distro, self.version))
         self._run_mock_command("--shell '%s'" % spin_cmd)
 
