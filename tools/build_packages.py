@@ -25,7 +25,7 @@ LOG = logging.getLogger(__name__)
 
 def run(CONF):
     setup_versions_repository(CONF)
-    packages_to_build = (CONF.get('common').get('packages') or
+    packages_to_build = (CONF.get('build_packages').get('packages') or
                          packages_manager.discover_packages())
     distro = distro_utils.get_distro(
         CONF.get('common').get('distro_name'),

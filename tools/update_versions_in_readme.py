@@ -75,8 +75,7 @@ def push_changes_to_head(repo, repo_url, repo_branch):
 
 def run(CONF):
     versions_repo = setup_versions_repository(CONF)
-    packages = (CONF.get('common').get('packages') or
-                discover_packages())
+    packages = discover_packages()
 
     arch_and_endianness = CONF.get('common').get('arch_and_endianness')
     distro = distro_utils.get_distro(CONF.get('common').get('distro_name'),

@@ -225,7 +225,7 @@ def push_packages_head_commit(
 
 def run(CONF):
     versions_repo = setup_versions_repository(CONF)
-    packages_to_update = CONF.get('common').get('packages') or PACKAGES
+    packages_to_update = CONF.get('upgrade_versions').get('packages') or PACKAGES
     distro = distro_utils.get_distro(
         CONF.get('common').get('distro_name'),
         CONF.get('common').get('distro_version'),

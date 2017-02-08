@@ -19,6 +19,9 @@ common:
    --plugin-option=tmpfs:required_ram_mb=39800"
  commit_updates: True
  push_updates: True
+build_packages:
+ packages:
+ keep_build_dir: False
  force_rebuild: False
 build_release_notes:
  release_notes_repo_url: "https://github.com/open-power-host-os/open-power-host-os.github.io.git"
@@ -75,3 +78,5 @@ build_iso:
         updates: "http://mirror.centos.org/altarch/7/updates/ppc64le/"
         extras: "http://mirror.centos.org/altarch/7/extras/ppc64le/"
         epel: "http://download.fedoraproject.org/pub/epel/7/ppc64le/"
+upgrade_versions:
+    packages:

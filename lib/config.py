@@ -35,7 +35,9 @@ PACKAGE_ARGS = {
     ('--packages', '-p'):
         dict(help='Packages to be built',
              nargs='*'),
-    ('--keep-builddir',):
+}
+PACKAGE_BUILD_ARGS = {
+    ('--keep-build-dir',):
         dict(help='Keep build directory and its logs and artifacts.',
              action='store_true'),
     ('--force-rebuild',):
@@ -92,11 +94,11 @@ BUILD_ARGS = {
 }
 SUBCOMMANDS = [
     ('build-packages', 'Build packages.',
-        [PACKAGE_ARGS, MOCK_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS, BUILD_ARGS]),
+        [PACKAGE_ARGS, PACKAGE_BUILD_ARGS, MOCK_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS, BUILD_ARGS]),
     ('build-release-notes', 'Create release notes',
         [RELEASE_NOTES_ARGS, PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
     ('upgrade-versions', 'Upgrade packages versions',
-        [PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
+        [PACKAGE_ARGS, PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
     ('update-versions-readme', 'Update the supported software versions table',
         [PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
     ('build-iso', 'Build ISO image',
@@ -196,6 +198,7 @@ class ConfigParser(object):
         # Each subcommand may have a node for specific configurations
         # at the same level of the 'common' node
         COMMAND_TO_CONFIG_NODE = {
+            "build-packages": "build_packages",
             "build-iso": "build_iso",
             "build-release-notes": "build_release_notes"
         }
