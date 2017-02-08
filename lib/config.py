@@ -91,11 +91,6 @@ PUSH_REPO_ARGS = {
         dict(help='Email used when updating RPM specification files change logs '
              'and creating git commits'),
 }
-SETUP_ENVIRONMENT_ARGS = {
-    ('--user', '-u'):
-        dict(help='User login that will run Host OS commands',
-             required=True),
-}
 ISO_ARGS = {
     ('--packages-dir', '-d'):
         dict(help='Directory of packages used in the ISO image.',
@@ -110,8 +105,6 @@ SUBCOMMANDS = [
         [PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
     ('update-versions-readme', 'Update the supported software versions table',
         [PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
-    ('set-env', 'Setup user and directory for build scripts',
-        [SETUP_ENVIRONMENT_ARGS]),
     ('build-iso', 'Build ISO image',
         [ISO_ARGS, MOCK_ARGS]),
 ]

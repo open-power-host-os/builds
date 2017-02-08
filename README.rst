@@ -48,21 +48,11 @@ Settings
 $ git clone https://github.com/open-power-host-os/builds.git
 $ cd builds
 
-* Setup environment and user
+* Add user to mock group
 
 ::
 
-$ sudo ./host_os.py set-env --user LOGIN
-
-Naturally, you need to replace ``LOGIN`` by the user name you'll use
-to run ``host_os.py``, which should not run using root user,
-even if that user doesn't exist yet.
-
-Please see ``--help`` for more options.
-
-::
-
-$ ./host_os.py set-env --help
+$ sudo usermod -a -G mock $(whoami)
 
 
 Running

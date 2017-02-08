@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+import grp
 import logging
 import os
 import sys
@@ -23,7 +24,6 @@ from lib.utils import is_package_installed
 from tools import build_iso
 from tools import build_package
 from tools import create_release_notes
-from tools import setup_environment
 from tools import update_versions_in_readme
 from tools import upgrade_versions
 
@@ -37,9 +37,12 @@ SUBCOMMANDS = {
     'release-notes': create_release_notes,
     'upgrade-versions': upgrade_versions,
     'update-versions-readme': update_versions_in_readme,
-    'set-env': setup_environment,
     'build-iso': build_iso,
 }
+MOCK_REQUIRED_SUBCOMANDS = [
+    'build-package',
+    'build-iso',
+]
 
 
 if __name__ == '__main__':
@@ -56,15 +59,17 @@ if __name__ == '__main__':
               "script: %s" % ", ".join(missing_packages))
         sys.exit(MISSING_PACKAGES_ERROR)
 
-    if os.getuid() is 0 and subcommand != 'set-env':
-        print("Please, do not run this command as root, run "
-              "host_os.py set-env --user <YOUR_USER_LOGIN> command in order to "
-              "properly setup user and directory for build scripts")
+    if os.getuid() is 0:
+        print("Please, do not run this command as root.")
         sys.exit(TOO_MUCH_PRIVILEGE_ERROR)
 
-    if os.getuid() is not 0 and subcommand == 'set-env':
-        print("The set-env command should be run with root privileges")
-        sys.exit(INSUFFICIENT_PRIVILEGE_ERROR)
+    if subcommand in MOCK_REQUIRED_SUBCOMANDS:
+        mock_users = grp.getgrnam('mock').gr_mem
+        user = os.environ['USER']
+        if user not in mock_users:
+            print("User must be in mock group, please run "
+                  "'sudo usermod -a -G mock $(whoami)'")
+            sys.exit(INSUFFICIENT_PRIVILEGE_ERROR)
 
     return_code = 0
     try:
