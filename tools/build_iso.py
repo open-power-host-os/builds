@@ -13,9 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from lib import iso_spinner
+from lib import iso_builder
 
 
 def run(CONF):
-    spinner = iso_spinner.MockPungiSpinner(CONF)
-    spinner.build()
+    builder = iso_builder.MockPungiIsoBuilder(CONF)
+    builder.build()

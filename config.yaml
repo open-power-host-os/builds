@@ -37,7 +37,7 @@ build_iso:
     log_file: "/var/log/host-os/iso.log"
     mock_config:
      CentOS:
-      '7': "./mock_configs/CentOS/7/spin-iso-CentOS-7-ppc64le.cfg"
+      '7': "./mock_configs/CentOS/7/build-iso-CentOS-7-ppc64le.cfg"
     mock_args:
     packages_dir: "./result"
     automated_install_file: "host-os.ks"
