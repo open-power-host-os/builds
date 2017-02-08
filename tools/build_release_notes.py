@@ -144,8 +144,7 @@ def push_website_head_commit(
 def run(CONF):
     versions_repo = setup_versions_repository(CONF)
 
-    packages_names = (CONF.get('common').get('packages')
-                      or packages_manager.discover_packages())
+    packages_names = packages_manager.discover_packages()
     distro = distro_utils.get_distro(
         CONF.get('common').get('distro_name'),
         CONF.get('common').get('distro_version'),

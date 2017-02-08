@@ -37,7 +37,7 @@ class Mock(build_system.PackageBuilder):
         binary_file = CONF.get('common').get('mock_binary')
         extra_args = CONF.get('common').get('mock_args')
         self.build_dir = None
-        self.build_results_dir = CONF.get('common').get('result_dir')
+        self.build_results_dir = CONF.get('build_packages').get('result_dir')
         self.archive = None
         self.timestamp = datetime.datetime.now().isoformat()
         self.common_mock_args = (
@@ -80,7 +80,7 @@ class Mock(build_system.PackageBuilder):
         msg = "%s: Success! RPMs built!" % (package.name)
         self._copy_rpms(self.build_dir, package.build_cache_dir)
         LOG.info(msg)
-        if not CONF.get('common').get('keep_builddir'):
+        if not CONF.get('build_packages').get('keep_build_dir'):
             self._destroy_build_directory()
 
     def _build_srpm(self, package):

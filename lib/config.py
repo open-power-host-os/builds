@@ -43,7 +43,7 @@ PACKAGE_ARGS = {
     ('--packages-repos-target-path', '-R'):
         dict(help='Directory where to clone code repositories',
              default='/var/lib/host-os/repositories'),
-    ('--keep-builddir',):
+    ('--keep-build-dir',):
         dict(help='Keep build directory and its logs and artifacts.',
              action='store_true'),
     ('--force-rebuild',):
@@ -205,6 +205,7 @@ class ConfigParser(object):
         # Each subcommand may have a node for specific configurations
         # at the same level of the 'common' node
         COMMAND_TO_CONFIG_NODE = {
+            "build-packages": "build_packages",
             "build-iso": "build_iso",
             "build-release-notes": "build_release_notes"
         }

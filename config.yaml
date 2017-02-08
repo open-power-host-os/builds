@@ -1,6 +1,5 @@
 common:
  log_file: "/var/log/host-os/builds.log"
- packages_repos_target_path: "/var/lib/host-os/repositories"
  packages_metadata_repo_url: "https://github.com/open-power-host-os/versions.git"
  packages_metadata_repo_branch: 'master'
  packages_metadata_repo_target_path: '.'
@@ -20,6 +19,11 @@ common:
    --plugin-option=tmpfs:required_ram_mb=39800"
  commit_updates: True
  push_updates: True
+build_packages:
+ packages:
+ packages_repos_target_path: "/var/lib/host-os/repositories"
+ keep_build_dir: False
+ result_dir:  "./result"
  force_rebuild: False
 build_release_notes:
  release_notes_repo_url: "https://github.com/open-power-host-os/open-power-host-os.github.io.git"
