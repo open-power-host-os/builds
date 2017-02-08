@@ -23,8 +23,8 @@ from lib import exception
 from lib.utils import create_directory
 from lib.utils import is_package_installed
 from tools import build_iso
-from tools import build_package
-from tools import create_release_notes
+from tools import build_packages
+from tools import build_release_notes
 from tools import update_versions_in_readme
 from tools import upgrade_versions
 
@@ -34,8 +34,8 @@ MISSING_PACKAGES_ERROR = 5
 REQUIRED_PACKAGES_FILE_PATH = "rpm_requirements.txt"
 LOG = logging.getLogger(__name__)
 SUBCOMMANDS = {
-    'build-package': build_package,
-    'release-notes': create_release_notes,
+    'build-packages': build_packages,
+    'build-release-notes': build_release_notes,
     'upgrade-versions': upgrade_versions,
     'update-versions-readme': update_versions_in_readme,
     'build-iso': build_iso,
