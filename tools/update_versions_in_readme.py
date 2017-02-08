@@ -84,16 +84,17 @@ def run(CONF):
 
     commit_updates = CONF.get('common').get('commit_updates')
     push_updates = CONF.get('common').get('push_updates')
-    push_repo_url = CONF.get('common').get('push_repo_url')
-    push_repo_branch = CONF.get('common').get('push_repo_branch')
+    push_repo_url = CONF.get('update_versions_readme').get('push_repo_url')
+    push_repo_branch = CONF.get('update_versions_readme').get('push_repo_branch')
     updater_name = CONF.get('common').get('updater_name')
     updater_email = CONF.get('common').get('updater_email')
 
-    REQUIRED_PARAMETERS = ["updater_name", "updater_email"]
+    REQUIRED_PARAMETERS = [("common", "updater_name"), ("common", "updater_email")]
     if push_updates:
-        REQUIRED_PARAMETERS += ["push_repo_url", "push_repo_branch"]
-    for parameter in REQUIRED_PARAMETERS:
-        if CONF.get('common').get(parameter) is None:
+        REQUIRED_PARAMETERS += [("update_versions_readme", "push_repo_url"),
+                                ("update_versions_readme", "push_repo_branch")]
+    for section, parameter in REQUIRED_PARAMETERS:
+        if CONF.get(section).get(parameter) is None:
             raise exception.RequiredParameterMissing(parameter=parameter)
 
     update_versions_in_readme(versions_repo, distro, packages)

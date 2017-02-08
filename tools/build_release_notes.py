@@ -157,16 +157,17 @@ def run(CONF):
     release_notes_repo_branch = CONF.get('release_notes').get('release_notes_repo_branch')
     commit_updates = CONF.get('common').get('commit_updates')
     push_updates = CONF.get('common').get('push_updates')
-    push_repo_url = CONF.get('common').get('push_repo_url')
-    push_repo_branch = CONF.get('common').get('push_repo_branch')
+    push_repo_url = CONF.get('build_release_notes').get('push_repo_url')
+    push_repo_branch = CONF.get('build_release_notes').get('push_repo_branch')
     updater_name = CONF.get('common').get('updater_name')
     updater_email = CONF.get('common').get('updater_email')
 
-    REQUIRED_PARAMETERS = ["updater_name", "updater_email"]
+    REQUIRED_PARAMETERS = [("common", "updater_name"), ("common", "updater_email")]
     if push_updates:
-        REQUIRED_PARAMETERS += ["push_repo_url", "push_repo_branch"]
-    for parameter in REQUIRED_PARAMETERS:
-        if CONF.get('common').get(parameter) is None:
+        REQUIRED_PARAMETERS += [("build_release_notes", "push_repo_url"),
+                                ("build_release_notes", "push_repo_branch")]
+    for section, parameter in REQUIRED_PARAMETERS:
+        if CONF.get(section).get(parameter) is None:
             raise exception.RequiredParameterMissing(parameter=parameter)
 
     LOG.info("Creating release notes with packages: {}".format(

@@ -53,9 +53,12 @@ DISTRO_ARGS = {
         dict(help='Base Linux distribution version')
 }
 MOCK_ARGS = {
+    ('--mock-binary',):
+        dict(help='Mock binary path', default='/usr/bin/mock'),
+    ('--mock-config',):
+        dict(help='Mock config file'),
     ('--mock-args',):
-        dict(help='Arguments passed to mock command',
-             default=''),
+        dict(help='Arguments passed to mock command', default=''),
 }
 RELEASE_NOTES_ARGS = {
     ('--release-notes-repo-url',):
@@ -200,7 +203,9 @@ class ConfigParser(object):
         COMMAND_TO_CONFIG_NODE = {
             "build-packages": "build_packages",
             "build-iso": "build_iso",
-            "build-release-notes": "build_release_notes"
+            "build-release-notes": "build_release_notes",
+            "upgrade-versions": "upgrade_versions",
+            "update-versions-readme": "update_versions_readme"
         }
         if command_line_args.subcommand in COMMAND_TO_CONFIG_NODE:
             # Override the default configurations with the ones specific
