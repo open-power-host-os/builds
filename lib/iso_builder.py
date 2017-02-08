@@ -78,7 +78,7 @@ class MockPungiIsoBuilder(object):
         LOG.info("Creating ISO yum repository inside chroot")
 
         LOG.debug("Creating ISO yum repository directory")
-        mock_iso_repo_dir = self.config.get('mock_iso_repo').get('dir')
+        mock_iso_repo_dir = self.config.get('mock_iso_repo_dir')
         self._run_mock_command("--shell 'mkdir -p %s'" % mock_iso_repo_dir)
 
         LOG.debug("Copying rpm packages to ISO yum repo directory")
@@ -115,8 +115,8 @@ class MockPungiIsoBuilder(object):
 
         with open(kickstart_path, "wt") as f:
             repo_urls = self.config.get('distro_repos_urls')
-            mock_iso_repo_name = self.config.get('mock_iso_repo').get('name')
-            mock_iso_repo_dir = self.config.get('mock_iso_repo').get('dir')
+            mock_iso_repo_name = self.config.get('mock_iso_repo_name')
+            mock_iso_repo_dir = self.config.get('mock_iso_repo_dir')
             repo_urls[mock_iso_repo_name] = "file://%s/" % mock_iso_repo_dir
             for name, url in repo_urls.items():
                 repo = ("repo --name=%s --baseurl=%s\n" % (name, url))
