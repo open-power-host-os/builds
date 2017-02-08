@@ -114,13 +114,13 @@ class MockPungiSpinner(object):
                 f.write(repo)
 
             f.write("%packages\n")
-            package_group_list = self.config.get('package_group_list')
-            for group in self.config.get('hostos_packages_groups').keys():
-                group = "@%s" % group
-                if group not in package_group_list:
-                    package_group_list.append(group)
-            for package_group in package_group_list:
-                f.write(package_group + "\n")
+            groups = self.config.get('automated_install_packages_groups')
+            for hostos_group in self.config.get('hostos_packages_groups').keys():
+                hostos_group = "@%s" % hostos_group
+                if hostos_group not in groups:
+                    groups.append(hostos_group)
+            for group in groups:
+                f.write(group + "\n")
 
             f.write("%end\n")
 

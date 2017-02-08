@@ -70,7 +70,7 @@ build_iso:
             - "sos"
             - "systemtap"
             - "wok"
-    package_group_list:
+    automated_install_packages_groups:
         - "@base"
         - "@core"
         - "@debugging"
