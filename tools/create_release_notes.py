@@ -94,24 +94,22 @@ def write_version_info(release, file_path, versions_repo, packages):
             **format_dict))
 
 
-def publish_release_notes(
-        release_date, release_file_source_path, website_pull_repo_url,
-        website_pull_repo_branch, website_push_repo_url,
-        website_push_repo_branch, updater_name, updater_email):
+def commit_release_notes(website_repo, release_date, release_file_source_path,
+                         updater_name, updater_email):
     """
-    Publish release notes page to the Host OS website, using the
-    system's configured git committer and SSH credentials.
+    Commit release notes page to the Host OS website repository.
+
+    Args:
+        website_repo (GitRepository): Host OS website git repository
+        release_date (str): release date
+        release_file_name (str): name of the created release file
+        updater_name (str): updater name
+        updater_email (str): updater email
     """
-    LOG.info("Publishing release notes file {file_path} with date {date}"
+    LOG.info("Committing release notes file {file_path} with date {date}"
              .format(file_path=release_file_source_path, date=release_date))
 
-    WEBSITE_REPO_PUSH_REMOTE = "push-remote"
     WEBSITE_POSTS_DIR = "_posts"
-
-    # Name is last path part without the file extension (".git")
-    website_repo = repository.get_git_repository(
-        website_pull_repo_url, os.getcwd())
-    website_repo.checkout(website_pull_repo_branch)
 
     LOG.info("Copying file to repository directory")
     website_posts_dir_abs_path = os.path.join(
@@ -129,6 +127,23 @@ def publish_release_notes(
     commit_message = "Host OS release of {date}".format(date=release_date)
     actor = git.Actor(updater_name, updater_email)
     website_repo.index.commit(commit_message, author=actor, committer=actor)
+
+
+def push_website_head_commit(
+        website_repo, website_push_repo_url, website_push_repo_branch):
+    """
+    Push Host OS website changes in local Git repository to the remote
+    Git repository, using the system's configured SSH credentials.
+
+    Args:
+        website_repo (GitRepository): Host OS website git repository
+        versions_repo_push_url (str): remote git repository URL
+        versions_repo_push_branch (str): remote git repository branch
+
+    Raises:
+        repository.PushError: if push fails
+    """
+    WEBSITE_REPO_PUSH_REMOTE = "push-remote"
 
     LOG.info("Pushing changes to remote repository")
     remote = website_repo.create_remote(
@@ -174,7 +189,10 @@ def run(CONF):
     release_file_name = RELEASE_FILE_NAME_TEMPLATE.format(date=release_date)
     write_version_info(release_date, release_file_name, versions_repo,
                        package_manager.packages)
-    publish_release_notes(
-        release_date, release_file_name, release_notes_repo_url,
-        release_notes_repo_branch, push_repo_url, push_repo_branch,
-        updater_name, updater_email)
+    website_repo = repository.get_git_repository(
+        release_notes_repo_url, os.getcwd())
+    website_repo.checkout(release_notes_repo_branch)
+
+    commit_release_notes(website_repo, release_date, release_file_name,
+                         updater_name, updater_email)
+    push_website_head_commit(website_repo, push_repo_url, push_repo_branch)
