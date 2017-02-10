@@ -78,7 +78,6 @@ class Mock(build_system.PackageBuilder):
 
         msg = "%s: Success! RPMs built!" % (package.name)
         self._copy_rpms(self.build_dir, package.build_cache_dir)
-        self._copy_rpms(self.build_dir, package.build_results_dir)
         LOG.info(msg)
         if not CONF.get('default').get('keep_builddir'):
             self._destroy_build_directory()
@@ -177,3 +176,12 @@ class Mock(build_system.PackageBuilder):
                 source_file_path = os.path.join(source_dir, source_file_name)
                 target_file_path = os.path.join(target_dir, source_file_name)
                 shutil.copy(source_file_path, target_file_path)
+
+    def copy_results(self, package):
+        """
+        Copy cached build results to the results directory.
+
+        Args:
+            package(Package): package whose result files will be copied
+        """
+        self._copy_rpms(package.build_cache_dir, package.build_results_dir)

@@ -62,6 +62,7 @@ class LinuxDistribution(object):
             self.package_builder.prepare_sources(package)
             package.unlock()
             self.package_builder.build(package)
+            self.package_builder.copy_results(package)
 
         self.clean(packages)
 
