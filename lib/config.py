@@ -200,6 +200,10 @@ class ConfigParser(object):
         self.parser.add_argument('--log-size',
                                  help='Size in bytes above which the log file '
                                  'should rotate', type=int, default=2<<20)
+        self.parser.add_argument('--work-dir', '-w',
+                                 help='Directory used to store all temporary '
+                                 'files created during the process.',
+                                 default='workspace')
         self._add_subparser()
 
     def _add_subparser(self):

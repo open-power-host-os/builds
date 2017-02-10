@@ -20,6 +20,7 @@ import sys
 
 from lib import config
 from lib import exception
+from lib.utils import create_directory
 from lib.utils import is_package_installed
 from tools import build_iso
 from tools import build_package
@@ -70,6 +71,8 @@ if __name__ == '__main__':
             print("User must be in mock group, please run "
                   "'sudo usermod -a -G mock $(whoami)'")
             sys.exit(INSUFFICIENT_PRIVILEGE_ERROR)
+
+    create_directory(CONF.get('default').get('work_dir'))
 
     return_code = 0
     try:
