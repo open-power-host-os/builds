@@ -77,7 +77,7 @@ class Mock(build_system.PackageBuilder):
             raise
 
         msg = "%s: Success! RPMs built!" % (package.name)
-        self._save_rpm(package)
+        self._copy_rpms(self.build_dir, package.build_results_dir)
         LOG.info(msg)
         if not CONF.get('default').get('keep_builddir'):
             self._destroy_build_directory()
@@ -145,18 +145,24 @@ class Mock(build_system.PackageBuilder):
     def _destroy_build_directory(self):
         shutil.rmtree(self.build_dir)
 
-    def _save_rpm(self, package):
-        if not os.path.exists(package.build_results_dir):
-            LOG.info("Creating directory to store RPMs at %s " %
-                     package.build_results_dir)
-            os.makedirs(package.build_results_dir)
+    def _copy_rpms(self, source_dir, target_dir):
+        """
+        Copy the RPMs created by building a package to a target directory.
 
-        LOG.info("%s: Saving RPMs at %s"
-                 % (package.name, package.build_results_dir))
-        for f in os.listdir(self.build_dir):
-            if f.endswith(".rpm") and not f.endswith(".src.rpm"):
-                LOG.info("Saving %s at result directory %s" % (
-                    f, package.build_results_dir))
-                orig = os.path.join(self.build_dir, f)
-                dest = os.path.join(package.build_results_dir, f)
-                shutil.copy(orig, dest)
+        Args:
+            source_dir(str): path to the source directory containing the
+                RPMs
+            target_dir(str): path to the target directory
+        """
+        if not os.path.exists(target_dir):
+            LOG.debug("Creating directory to store RPMs at %s " % target_dir)
+            os.makedirs(target_dir)
+
+        LOG.info("Copying RPMs from %s to %s" % (source_dir, target_dir))
+        for source_file_name in os.listdir(source_dir):
+            if (source_file_name.endswith(".rpm")
+                    and not source_file_name.endswith(".src.rpm")):
+                LOG.info("Copying RPM file: %s" % source_file_name)
+                source_file_path = os.path.join(source_dir, source_file_name)
+                target_file_path = os.path.join(target_dir, source_file_name)
+                shutil.copy(source_file_path, target_file_path)
