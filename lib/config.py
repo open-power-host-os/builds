@@ -38,9 +38,6 @@ PACKAGE_ARGS = {
     ('--packages', '-p'):
         dict(help='Packages to be built',
              nargs='*'),
-    ('--result-dir', '-r'):
-        dict(help='Directory to save the RPMs.',
-             default='./result'),
     ('--keep-builddir',):
         dict(help='Keep build directory and its logs and artifacts.',
              action='store_true'),
@@ -91,9 +88,14 @@ ISO_ARGS = {
         dict(help='Directory of packages used in the ISO image.',
              default='./result'),
 }
+BUILD_ARGS = {
+    ('--result-dir', '-r'):
+        dict(help='Directory to save the RPMs.',
+             default='result'),
+}
 SUBCOMMANDS = [
     ('build-package', 'Build packages.',
-        [PACKAGE_ARGS, MOCK_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
+        [PACKAGE_ARGS, MOCK_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS, BUILD_ARGS]),
     ('release-notes', 'Create release notes',
         [RELEASE_NOTES_ARGS, PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
     ('upgrade-versions', 'Upgrade packages versions',
@@ -101,7 +103,7 @@ SUBCOMMANDS = [
     ('update-versions-readme', 'Update the supported software versions table',
         [PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
     ('build-iso', 'Build ISO image',
-        [ISO_ARGS, MOCK_ARGS]),
+        [ISO_ARGS, MOCK_ARGS, BUILD_ARGS]),
 ]
 
 

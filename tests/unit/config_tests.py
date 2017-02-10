@@ -43,7 +43,7 @@ class TestConfigParser(unittest.TestCase):
         (['build-package'], 'keep_builddir', False),
         (['build-package'], 'work_dir', 'workspace'),
         (['build-package'], 'packages', None),
-        (['build-package'], 'result_dir', './result'),
+        (['build-package'], 'result_dir', 'result'),
         (['build-package'], 'build_versions_repository_url', None),
         (['build-package'], 'build_version', None),
         (['build-package'], 'mock_args', ''),

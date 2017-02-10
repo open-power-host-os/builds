@@ -29,6 +29,7 @@ class MockPungiSpinner(object):
 
     def __init__(self, config):
         self.work_dir = config.get('default').get('work_dir')
+        self.result_dir = config.get('default').get('result_dir')
         self.config = config.get("iso")
         self.distro = self.config.get("iso_name")
         self.version = datetime.date.today().strftime("%y%m%d")
@@ -132,6 +133,8 @@ class MockPungiSpinner(object):
         self._run_mock_command("--shell '%s'" % spin_cmd)
 
     def _save(self):
+        utils.create_directory(self.result_dir)
+
         iso_file = "%s-DVD-%s-%s.iso" % (self.distro, self.arch, self.version)
         checksum_file = ("%s-%s-%s-CHECKSUM" %
                          (self.distro, self.version, self.arch))
@@ -140,8 +143,10 @@ class MockPungiSpinner(object):
         checksum_path = os.path.join(iso_dir, checksum_file)
         chroot_files = "%s %s" % (iso_path, checksum_path)
 
-        LOG.info("Saving ISO %s" % iso_file)
-        self._run_mock_command("--copyout %s ." % (chroot_files))
+        LOG.info("Saving ISO %s and checksum %s at %s" %
+                 (iso_file, checksum_file, self.result_dir))
+        self._run_mock_command("--copyout %s %s" %
+                               (chroot_files, self.result_dir))
 
     def clean(self):
         self._run_mock_command("--clean")
