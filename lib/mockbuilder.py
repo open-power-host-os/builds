@@ -79,7 +79,6 @@ class Mock(build_system.PackageBuilder):
         msg = "%s: Success! RPMs built!" % (package.name)
         self._save_rpm(package)
         LOG.info(msg)
-        LOG.info(msg)
         if not CONF.get('default').get('keep_builddir'):
             self._destroy_build_directory()
 
