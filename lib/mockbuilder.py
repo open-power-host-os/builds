@@ -151,7 +151,6 @@ class Mock(build_system.PackageBuilder):
             LOG.info("Creating directory to store RPMs at %s " %
                      package.build_results_dir)
             os.makedirs(package.build_results_dir)
-            os.chmod(package.build_results_dir, 0777)
 
         LOG.info("%s: Saving RPMs at %s"
                  % (package.name, package.build_results_dir))
