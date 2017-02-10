@@ -257,6 +257,21 @@ class Package(object):
         """
         return list()
 
+    @property
+    def _latest_build_results_time_stamp(self):
+        """
+        Get time stamp of the latest build result file.
+
+        Returns:
+            int: time stamp of the latest build result file.
+        """
+        latest_build_results_time_stamp = None
+        for file_path in self.cached_build_results:
+            file_time_stamp = os.stat(file_path).st_mtime
+            latest_build_results_time_stamp = max(
+                latest_build_results_time_stamp, file_time_stamp)
+        return latest_build_results_time_stamp
+
     def needs_rebuild(self):
         """
         Check if the package needs to be rebuild.
@@ -268,8 +283,7 @@ class Package(object):
             bool: whether the package needs to be rebuilt
         """
         # Check if there are any cached build results
-        cached_build_results = self.cached_build_results
-        if not cached_build_results:
+        if not self.cached_build_results:
             LOG.debug("%s: No previous build results found." % self.name)
             return True
 
@@ -278,12 +292,19 @@ class Package(object):
             file_time_stamp = os.stat(file_path).st_mtime
             latest_source_time_stamp = max(
                 latest_source_time_stamp, file_time_stamp)
+        latest_build_results_time_stamp = self._latest_build_results_time_stamp
 
         # Check if sources are older than build results
-        for file_path in cached_build_results:
-            file_time_stamp = os.stat(file_path).st_mtime
-            if file_time_stamp < latest_source_time_stamp:
-                LOG.debug("%s: Build results are outdated." % self.name)
+        if latest_build_results_time_stamp < latest_source_time_stamp:
+            LOG.debug("%s: Build results are outdated." % self.name)
+            return True
+
+        # Check if build dependencies were rebuilt since last build
+        for dependency in self.build_dependencies:
+            if (latest_build_results_time_stamp
+                    < dependency._latest_build_results_time_stamp):
+                LOG.debug("%s: Build dependency %s has been rebuilt."
+                          % (self.name, dependency.name))
                 return True
 
         LOG.debug("%s: Up-to-date build results found." % self.name)
