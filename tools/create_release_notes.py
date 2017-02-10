@@ -97,7 +97,7 @@ def write_version_info(release, file_path, versions_repo, packages):
 def publish_release_notes(
         release_date, release_file_source_path, website_pull_repo_url,
         website_pull_repo_branch, website_push_repo_url,
-        website_push_repo_branch, committer_name, committer_email):
+        website_push_repo_branch, updater_name, updater_email):
     """
     Publish release notes page to the Host OS website, using the
     system's configured git committer and SSH credentials.
@@ -127,7 +127,7 @@ def publish_release_notes(
 
     LOG.info("Committing changes to local repository")
     commit_message = "Host OS release of {date}".format(date=release_date)
-    actor = git.Actor(committer_name, committer_email)
+    actor = git.Actor(updater_name, updater_email)
     website_repo.index.commit(commit_message, author=actor, committer=actor)
 
     LOG.info("Pushing changes to remote repository")
@@ -154,11 +154,11 @@ def run(CONF):
         'release_notes_repo_branch')
     push_repo_url = CONF.get('default').get('push_repo_url')
     push_repo_branch = CONF.get('default').get('push_repo_branch')
-    committer_name = CONF.get('default').get('committer_name')
-    committer_email = CONF.get('default').get('committer_email')
+    updater_name = CONF.get('default').get('updater_name')
+    updater_email = CONF.get('default').get('updater_email')
 
     REQUIRED_PARAMETERS = ["push_repo_url", "push_repo_branch",
-                           "committer_name", "committer_email"]
+                           "updater_name", "updater_email"]
     for parameter in REQUIRED_PARAMETERS:
         if CONF.get('default').get(parameter) is None:
             LOG.error("Parameter '%s' is required", parameter)
@@ -177,4 +177,4 @@ def run(CONF):
     publish_release_notes(
         release_date, release_file_name, release_notes_repo_url,
         release_notes_repo_branch, push_repo_url, push_repo_branch,
-        committer_name, committer_email)
+        updater_name, updater_email)

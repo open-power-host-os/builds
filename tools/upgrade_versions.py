@@ -173,22 +173,22 @@ class Version(object):
 
 
 def commit_weekly_build_packages_updates(
-    versions_repo, release_date, committer_name, committer_email):
+    versions_repo, release_date, updater_name, updater_email):
     """
     Commit packages metadata updates in versions Git repository done by a weekly build
 
     Args:
         versions_repo (GitRepository): packages metadata git repository
         release_date (str): release date
-        committer_name (str): committer name
-        committer_email (str): committer email
+        updater_name (str): updater name
+        updater_email (str): updater email
     """
     LOG.info("Adding files to repository index")
     versions_repo.index.add(["*"])
 
     LOG.info("Committing changes to local repository")
     commit_message = "Weekly build {date}".format(date=release_date)
-    actor = git.Actor(committer_name, committer_email)
+    actor = git.Actor(updater_name, updater_email)
     versions_repo.index.commit(commit_message, author=actor, committer=actor)
 
 
