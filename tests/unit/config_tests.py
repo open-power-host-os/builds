@@ -23,11 +23,13 @@ class TestConfigParser(unittest.TestCase):
         (['build-package', '--mock-args=foo'], 'mock_args', 'foo'),
         (['release-notes', '--push-repo-url=foo'], 'push_repo_url', 'foo'),
         (['release-notes', '--push-repo-branch=foo'], 'push_repo_branch', 'foo'),
-        (['release-notes', '--committer-name=foo'], 'committer_name', 'foo'),
-        (['release-notes', '--committer-email=foo'], 'committer_email', 'foo'),
+        (['release-notes', '--updater-name=foo'], 'updater_name', 'foo'),
+        (['release-notes', '--updater-email=foo'], 'updater_email', 'foo'),
         (['set-env', '--user=foo'], 'user', 'foo'),
         (['build-iso', '--packages-dir=foo'], 'packages_dir', 'foo'),
         (['build-iso', '--mock-args=foo'], 'mock_args', 'foo'),
+        (['upgrade-versions', '--no-commit-updates'], 'commit_updates', False),
+        (['upgrade-versions', '--no-push-updates'], 'push_updates', False),
     ])
     def test_parse_arguments_list_WithLongArgument_ShouldParseArgumentValue(self, arguments, key, expected):
         cfg = ConfigParser()
@@ -50,10 +52,12 @@ class TestConfigParser(unittest.TestCase):
         (['build-package'], 'mock_args', ''),
         (['release-notes'], 'push_repo_url', None),
         (['release-notes'], 'push_repo_branch', 'master'),
-        (['release-notes'], 'committer_name', None),
-        (['release-notes'], 'committer_email', None),
+        (['release-notes'], 'updater_name', None),
+        (['release-notes'], 'updater_email', None),
         (['build-iso'], 'packages_dir', './result'),
         (['build-iso'], 'mock_args', ''),
+        (['upgrade-versions'], 'commit_updates', True),
+        (['upgrade-versions'], 'push_updates', True),
     ])
     def test_parse_arguments_list_WithoutArgument_ShouldUseDefaultValue(self, arguments, key, expected):
         cfg = ConfigParser()
