@@ -16,7 +16,6 @@
 from datetime import datetime
 import logging
 import os
-import shutil
 
 import git
 
@@ -95,34 +94,19 @@ def write_version_info(release, file_path, versions_repo, packages):
             **format_dict))
 
 
-def commit_release_notes(website_repo, release_date, release_file_source_path,
-                         updater_name, updater_email):
+def commit_release_notes(
+        website_repo, release_date, updater_name, updater_email):
     """
     Commit release notes page to the Host OS website repository.
 
     Args:
         website_repo (GitRepository): Host OS website git repository
         release_date (str): release date
-        release_file_name (str): name of the created release file
         updater_name (str): updater name
         updater_email (str): updater email
     """
-    LOG.info("Committing release notes file {file_path} with date {date}"
-             .format(file_path=release_file_source_path, date=release_date))
-
-    WEBSITE_POSTS_DIR = "_posts"
-
-    LOG.info("Copying file to repository directory")
-    website_posts_dir_abs_path = os.path.join(
-        website_repo.working_tree_dir, WEBSITE_POSTS_DIR)
-    release_file_path_in_repo = os.path.join(
-        website_posts_dir_abs_path, os.path.basename(release_file_source_path))
-    if not os.path.isdir(website_posts_dir_abs_path):
-        os.mkdir(website_posts_dir_abs_path, 0755)
-    shutil.copy(release_file_source_path, release_file_path_in_repo)
-
-    LOG.info("Adding file to repository index")
-    website_repo.index.add([release_file_path_in_repo])
+    LOG.info("Adding files to repository index")
+    website_repo.index.add(["*"])
 
     LOG.info("Committing changes to local repository")
     commit_message = "Host OS release of {date}".format(date=release_date)
@@ -188,17 +172,21 @@ def run(CONF):
     package_manager.prepare_packages(packages_class=rpm_package.RPM_Package,
                                      download_source_code=False, distro=distro)
 
-    release_date = datetime.today().date().isoformat()
-    release_file_name = RELEASE_FILE_NAME_TEMPLATE.format(date=release_date)
-    write_version_info(release_date, release_file_name, versions_repo,
-                       package_manager.packages)
     website_repo = repository.get_git_repository(
         release_notes_repo_url, os.getcwd())
     website_repo.checkout(release_notes_repo_branch)
 
+    WEBSITE_POSTS_DIR = "_posts"
+    release_date = datetime.today().date().isoformat()
+    release_file_name = RELEASE_FILE_NAME_TEMPLATE.format(date=release_date)
+    release_file_path = os.path.join(
+        website_repo.name, WEBSITE_POSTS_DIR, release_file_name)
+    write_version_info(release_date, release_file_path, versions_repo,
+                       package_manager.packages)
+
     if commit_updates:
-        commit_release_notes(website_repo, release_date, release_file_name,
-                             updater_name, updater_email)
+        commit_release_notes(
+            website_repo, release_date, updater_name, updater_email)
         if push_updates:
             push_website_head_commit(
                 website_repo, push_repo_url, push_repo_branch)
