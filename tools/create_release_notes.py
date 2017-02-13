@@ -22,6 +22,7 @@ import git
 
 from lib import config
 from lib import distro_utils
+from lib import exception
 from lib import packages_manager
 from lib import repository
 from lib import rpm_package
@@ -176,8 +177,7 @@ def run(CONF):
                            "updater_name", "updater_email"]
     for parameter in REQUIRED_PARAMETERS:
         if CONF.get('default').get(parameter) is None:
-            LOG.error("Parameter '%s' is required", parameter)
-            return 1
+            raise exception.RequiredParameterMissing(parameter=parameter)
 
     LOG.info("Creating release notes with packages: {}".format(
         ", ".join(packages_names)))
