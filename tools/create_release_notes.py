@@ -75,8 +75,7 @@ def write_version_info(release, file_path, versions_repo, packages):
     Write release information to a file.
     It contains packages names, branches and commit IDs.
     """
-    LOG.info("Writing release {release} information to file: {file_path}".format(
-        **locals()))
+    LOG.info("Creating release {release} information".format(**locals()))
     format_dict = {"release": release}
 
     format_dict["builds_commit"] = (
@@ -89,6 +88,8 @@ def write_version_info(release, file_path, versions_repo, packages):
         packages_info += str(PackageReleaseInfo(package))
     format_dict["packages_info"] = packages_info
 
+    LOG.info("Writing release {release} information to file: {file_path}".format(
+        **locals()))
     with open(file_path, "w") as version_info_file:
         version_info_file.write(RELEASE_FILE_CONTENT_TEMPLATE.format(
             **format_dict))
