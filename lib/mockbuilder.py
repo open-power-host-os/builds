@@ -159,4 +159,4 @@ class Mock(build_system.PackageBuilder):
                     f, package.build_results_dir))
                 orig = os.path.join(self.build_dir, f)
                 dest = os.path.join(package.build_results_dir, f)
-                shutil.move(orig, dest)
+                shutil.copy(orig, dest)
