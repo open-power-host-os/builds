@@ -26,6 +26,7 @@ from lib import packages_manager
 from lib import repository
 from lib import rpm_package
 from lib.versions_repository import setup_versions_repository
+from lib.versions_repository import read_version_and_milestone
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
@@ -34,6 +35,7 @@ RELEASE_FILE_NAME_TEMPLATE = "{date}-release.markdown"
 RELEASE_FILE_CONTENT_TEMPLATE = """\
 ---
 title: OpenPOWER Host OS release
+release_tag: {release_tag}
 layout: release
 builds_commit: {builds_commit}
 versions_commit: {versions_commit}
@@ -60,7 +62,7 @@ class PackageReleaseInfo(object):
             ("name", self.package.name),
             ("clone_url", main_git_source["src"] if main_git_source else ""),
             ("version", self.package.version),
-            ("release",  self.package.release),
+            ("release", self.package.release),
             ("branch", main_git_source["branch"] if main_git_source else ""),
             ("commit_id",
              main_git_source["commit_id"] if main_git_source else ""),
@@ -70,14 +72,14 @@ class PackageReleaseInfo(object):
         return string
 
 
-def write_version_info(release, file_path, versions_repo, packages):
+def write_version_info(release_tag, file_path, versions_repo, packages):
     """
     Write release information to a file.
     It contains packages names, branches and commit IDs.
     """
-    LOG.info("Creating release {release} information".format(**locals()))
-    format_dict = {"release": release}
+    LOG.info("Creating release {release_tag} information".format(**locals()))
 
+    format_dict = {"release_tag": release_tag}
     format_dict["builds_commit"] = (
         repository.GitRepository(".").head.commit.hexsha)
     format_dict["versions_commit"] = versions_repo.head.commit.hexsha
@@ -88,7 +90,7 @@ def write_version_info(release, file_path, versions_repo, packages):
         packages_info += str(PackageReleaseInfo(package))
     format_dict["packages_info"] = packages_info
 
-    LOG.info("Writing release {release} information to file: {file_path}".format(
+    LOG.info("Writing release {release_tag} information to file: {file_path}".format(
         **locals()))
     with open(file_path, "w") as version_info_file:
         version_info_file.write(RELEASE_FILE_CONTENT_TEMPLATE.format(
@@ -144,6 +146,8 @@ def push_website_head_commit(
 def run(CONF):
     versions_repo = setup_versions_repository(CONF)
 
+    version_milestone = read_version_and_milestone(versions_repo)
+    
     packages_names = (CONF.get('default').get('packages')
                       or config.discover_packages())
     distro = distro_utils.get_distro(
@@ -179,10 +183,12 @@ def run(CONF):
 
     WEBSITE_POSTS_DIR = "_posts"
     release_date = datetime.today().date().isoformat()
+    release_tag = "{version}-{date}".format(
+        version=version_milestone, date=release_date)
     release_file_name = RELEASE_FILE_NAME_TEMPLATE.format(date=release_date)
     release_file_path = os.path.join(
         website_repo.name, WEBSITE_POSTS_DIR, release_file_name)
-    write_version_info(release_date, release_file_path, versions_repo,
+    write_version_info(release_tag, release_file_path, versions_repo,
                        package_manager.packages)
 
     if commit_updates:

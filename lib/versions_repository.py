@@ -111,3 +111,23 @@ def update_versions_in_readme(versions_repo, distro, packages_names):
     output_readme_path = os.path.join(versions_repo.working_tree_dir,
                                       'README.md')
     replace_html_table(output_readme_path, html_table)
+
+
+def read_version_and_milestone(versions_repo):
+    """
+    Read current version and milestone (alpha or beta) from VERSION file
+
+    Args:
+        versions_repo (GitRepository): packages metadata git repository
+    Returns:
+        version_milestone (str): version and milestone. Format:
+            <version>-<milestone>, valid milestone values: alpha, beta
+    """
+    version_file_path = os.path.join(versions_repo.working_tree_dir, 'VERSION')
+    version_milestone = ""
+    with open(version_file_path, 'r') as version_file:
+        #ignore first line with file format information
+        version_file.readline()
+        version_milestone = version_file.readline().strip('\n')
+
+    return version_milestone
