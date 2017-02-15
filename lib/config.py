@@ -150,16 +150,23 @@ class ConfigParser(object):
         # create the top-level parser
         self.parser = argparse.ArgumentParser()
         self._CONF = None
-        self._setup_config_parser_options()
+        self._setup_config_parser_options(SUBCOMMANDS)
 
     @property
     def CONF(self):
         return self._CONF
 
-    def _setup_config_parser_options(self):
+    def _setup_config_parser_options(self, subcommands):
         """
         Configures the argument parser object to match the expected
             configuration.
+
+        Args:
+            subcommands ([(str, str, [dict])]): subcommands. Each subcommand is
+                a tuple with subcommand name, subcommand help message, subcommand arguments.
+                Each subcommand argument is a dict from a tuple with argument possible names
+                to a dict with argument attributes. See ArgParse documentation for possible
+                values in this dict.
         """
         self.parser.add_argument('--config-file', '-c',
                                  help='Path of the configuration file for build '
@@ -176,18 +183,24 @@ class ConfigParser(object):
                                  help='Directory used to store all temporary '
                                  'files created during the process.',
                                  default='workspace')
-        self._add_subparsers()
+        self._add_subparsers(subcommands)
 
-    def _add_subparsers(self):
+    def _add_subparsers(self, subcommands):
+        """
+        Add subcommands to the command line parser
+
+        Args:
+            subcommands ([(str, str, [dict])]): see _setup_config_parser_options()
+        """
         subparsers = self.parser.add_subparsers(
             dest="subcommand",
             help="Available subcommands")
 
-        for command, help_msg, arg_groups in SUBCOMMANDS:
-            parser_command = subparsers.add_parser(command, help=help_msg)
+        for command, help_msg, arg_groups in subcommands:
+            command_parser = subparsers.add_parser(command, help=help_msg)
             for arg_group in arg_groups:
                 for arg, options in arg_group.items():
-                    parser_command.add_argument(*arg, **options)
+                    command_parser.add_argument(*arg, **options)
 
     def parse_arguments_list(self, args):
         """
