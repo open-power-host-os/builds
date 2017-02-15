@@ -28,6 +28,7 @@ LOG = logging.getLogger(__name__)
 class MockPungiSpinner(object):
 
     def __init__(self, config):
+        self.work_dir = config.get('default').get('work_dir')
         self.config = config.get("iso")
         self.distro = self.config.get("iso_name")
         self.version = datetime.date.today().strftime("%y%m%d")
@@ -79,16 +80,17 @@ class MockPungiSpinner(object):
         comps_xml_str = packages_groups_xml_creator.create_comps_xml(
             self.config.get('hostos_packages_groups'))
         comps_xml_file = "host-os-comps.xml"
+        comps_xml_path = os.path.join(self.work_dir, comps_xml_file)
         try:
-            with open(comps_xml_file, 'wt') as f:
+            with open(comps_xml_path, 'wt') as f:
                 f.write(comps_xml_str)
         except IOError:
-            LOG.error("Failed to write XML to %s file." % comps_xml_file)
+            LOG.error("Failed to write XML to %s file." % comps_xml_path)
             raise
 
         comps_xml_chroot_path = os.path.join("/", comps_xml_file)
         self._run_mock_command("--copyin %s %s" %
-                               (comps_xml_file, comps_xml_chroot_path))
+                               (comps_xml_path, comps_xml_chroot_path))
 
         LOG.debug("Creating spin repo")
         createrepo_cmd = "createrepo -v -g %s %s" % (comps_xml_chroot_path,
@@ -97,9 +99,10 @@ class MockPungiSpinner(object):
 
     def _create_spin_kickstart(self):
         kickstart_file = self.config.get('kickstart_file')
-        LOG.info("Creating spin kickstart file %s" % kickstart_file)
+        kickstart_path = os.path.join(self.work_dir, kickstart_file)
+        LOG.info("Creating spin kickstart file %s" % kickstart_path)
 
-        with open(kickstart_file, "wt") as f:
+        with open(kickstart_path, "wt") as f:
             repo_urls = self.config.get('distro_repo_url')
             mock_spin_repo_name = self.config.get('mock_spin_repo').get('name')
             mock_spin_repo_dir = self.config.get('mock_spin_repo').get('dir')
@@ -119,7 +122,7 @@ class MockPungiSpinner(object):
 
             f.write("%end\n")
 
-        self._run_mock_command("--copyin %s /" % kickstart_file)
+        self._run_mock_command("--copyin %s /" % kickstart_path)
 
     def _spin(self):
         LOG.info("Spinning ISO")
