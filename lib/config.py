@@ -24,6 +24,7 @@ from lib import log_helper
 from lib import utils
 
 LOG = logging.getLogger(__name__)
+LOG_FILE_NAME = 'builds.log'
 BUILD_REPO_ARGS = {
     ('--build-versions-repository-url',):
         dict(help='Packages metadata git repository URL'),
@@ -191,9 +192,6 @@ class ConfigParser(object):
                                       'scripts',
                                  # NOTE(maurosr): move this to /etc in the future
                                  default='./config.yaml')
-        self.parser.add_argument('--log-file', '-l',
-                                 help='Log file',
-                                 default='/var/log/host-os/builds.log')
         self.parser.add_argument('--verbose', '-v',
                                  help='Set the scripts to be verbose',
                                  action='store_true')
@@ -288,7 +286,9 @@ def setup_default_config():
         print("Failed to parse settings")
         sys.exit(2)
 
-    log_helper.LogHelper(log_file_path=CONF.get('default').get('log_file'),
+    log_file_path = os.path.join(CONF.get('default').get('work_dir'),
+                                 LOG_FILE_NAME)
+    log_helper.LogHelper(log_file_path=log_file_path,
                          verbose=CONF.get('default').get('verbose'),
                          rotate_size=CONF.get('default').get('log_size'))
 

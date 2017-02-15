@@ -35,7 +35,7 @@ class LogHelper(object):
         logger.addHandler(sh)
 
         if log_file_path:
-            log_dir, _ = os.path.split(log_file_path)
+            log_dir = os.path.dirname(log_file_path)
             utils.create_directory(log_dir)
 
             logger.info("Logs available at %s" % log_file_path)

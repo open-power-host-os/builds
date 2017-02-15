@@ -12,7 +12,6 @@ class TestConfigParser(unittest.TestCase):
 
     @parameterized.expand([
         (['--config-file=foo', 'build-package'], 'config_file', 'foo'),
-        (['--log-file=foo', 'build-package'], 'log_file', 'foo'),
         (['--verbose', 'build-package'], 'verbose', True),
         (['--work-dir=foo', 'build-package'], 'work_dir', 'foo'),
         (['build-package', '--packages=foo'], 'packages', ['foo']),
@@ -41,7 +40,6 @@ class TestConfigParser(unittest.TestCase):
 
     @parameterized.expand([
         (['build-package'], 'config_file', './config.yaml'),
-        (['build-package'], 'log_file', '/var/log/host-os/builds.log'),
         (['build-package'], 'verbose', False),
         (['build-package'], 'keep_builddir', False),
         (['build-package'], 'work_dir', 'workspace'),

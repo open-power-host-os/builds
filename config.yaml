@@ -1,7 +1,6 @@
 default:
  branch: 'powerkvm-v3.1.1'
  work_dir: 'workspace'
- log_file: "/var/log/host-os/builds.log"
  repositories_path: "/var/lib/host-os/repositories"
  build_versions_repository_url: "https://github.com/open-power-host-os/versions.git"
  build_version: 'master'
@@ -25,7 +24,6 @@ default:
  force_rebuild: False
 iso:
     iso_name: "OpenPOWER-Host_OS"
-    log_file: "/var/log/host-os/iso.log"
     mock_config: "./mock_configs/CentOS/7/spin-iso-CentOS-7-ppc64le.cfg"
     packages_dir: "./result"
     kickstart_file: "host-os.ks"
