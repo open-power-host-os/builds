@@ -125,7 +125,7 @@ SUBCOMMANDS = [
         [PACKAGE_ARGS, MOCK_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
     ('build-release-notes', 'Create release notes',
         [RELEASE_NOTES_ARGS, PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
-    ('upgrade-versions', 'Upgrade packages versions',
+    ('update-versions', 'Update packages versions',
         [PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
     ('update-versions-readme', 'Update the supported software versions table',
         [PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),

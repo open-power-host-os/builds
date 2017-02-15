@@ -24,8 +24,8 @@ from tools import build_iso
 from tools import build_packages
 from tools import build_release_notes
 from tools import setup_environment
+from tools import update_versions
 from tools import update_versions_in_readme
-from tools import upgrade_versions
 
 INSUFFICIENT_PRIVILEGE_ERROR = 3
 TOO_MUCH_PRIVILEGE_ERROR = 4
@@ -35,7 +35,7 @@ LOG = logging.getLogger(__name__)
 SUBCOMMANDS = {
     'build-packages': build_packages,
     'build-release-notes': build_release_notes,
-    'upgrade-versions': upgrade_versions,
+    'update-versions': update_versions,
     'update-versions-readme': update_versions_in_readme,
     'set-env': setup_environment,
     'build-iso': build_iso,
