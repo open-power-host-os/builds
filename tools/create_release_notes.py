@@ -16,12 +16,12 @@
 from datetime import datetime
 import logging
 import os
-import shutil
 
 import git
 
 from lib import config
 from lib import distro_utils
+from lib import exception
 from lib import packages_manager
 from lib import repository
 from lib import rpm_package
@@ -75,8 +75,7 @@ def write_version_info(release, file_path, versions_repo, packages):
     Write release information to a file.
     It contains packages names, branches and commit IDs.
     """
-    LOG.info("Writing release {release} information to file: {file_path}".format(
-        **locals()))
+    LOG.info("Creating release {release} information".format(**locals()))
     format_dict = {"release": release}
 
     format_dict["builds_commit"] = (
@@ -89,46 +88,48 @@ def write_version_info(release, file_path, versions_repo, packages):
         packages_info += str(PackageReleaseInfo(package))
     format_dict["packages_info"] = packages_info
 
+    LOG.info("Writing release {release} information to file: {file_path}".format(
+        **locals()))
     with open(file_path, "w") as version_info_file:
         version_info_file.write(RELEASE_FILE_CONTENT_TEMPLATE.format(
             **format_dict))
 
 
-def publish_release_notes(
-        release_date, release_file_source_path, website_pull_repo_url,
-        website_pull_repo_branch, website_push_repo_url,
-        website_push_repo_branch, updater_name, updater_email):
+def commit_release_notes(
+        website_repo, release_date, updater_name, updater_email):
     """
-    Publish release notes page to the Host OS website, using the
-    system's configured git committer and SSH credentials.
+    Commit release notes page to the Host OS website repository.
+
+    Args:
+        website_repo (GitRepository): Host OS website git repository
+        release_date (str): release date
+        updater_name (str): updater name
+        updater_email (str): updater email
     """
-    LOG.info("Publishing release notes file {file_path} with date {date}"
-             .format(file_path=release_file_source_path, date=release_date))
-
-    WEBSITE_REPO_PUSH_REMOTE = "push-remote"
-    WEBSITE_POSTS_DIR = "_posts"
-
-    # Name is last path part without the file extension (".git")
-    website_repo = repository.get_git_repository(
-        website_pull_repo_url, os.getcwd())
-    website_repo.checkout(website_pull_repo_branch)
-
-    LOG.info("Copying file to repository directory")
-    website_posts_dir_abs_path = os.path.join(
-        website_repo.working_tree_dir, WEBSITE_POSTS_DIR)
-    release_file_path_in_repo = os.path.join(
-        website_posts_dir_abs_path, os.path.basename(release_file_source_path))
-    if not os.path.isdir(website_posts_dir_abs_path):
-        os.mkdir(website_posts_dir_abs_path, 0755)
-    shutil.copy(release_file_source_path, release_file_path_in_repo)
-
-    LOG.info("Adding file to repository index")
-    website_repo.index.add([release_file_path_in_repo])
+    LOG.info("Adding files to repository index")
+    website_repo.index.add(["*"])
 
     LOG.info("Committing changes to local repository")
     commit_message = "Host OS release of {date}".format(date=release_date)
     actor = git.Actor(updater_name, updater_email)
     website_repo.index.commit(commit_message, author=actor, committer=actor)
+
+
+def push_website_head_commit(
+        website_repo, website_push_repo_url, website_push_repo_branch):
+    """
+    Push Host OS website changes in local Git repository to the remote
+    Git repository, using the system's configured SSH credentials.
+
+    Args:
+        website_repo (GitRepository): Host OS website git repository
+        versions_repo_push_url (str): remote git repository URL
+        versions_repo_push_branch (str): remote git repository branch
+
+    Raises:
+        repository.PushError: if push fails
+    """
+    WEBSITE_REPO_PUSH_REMOTE = "push-remote"
 
     LOG.info("Pushing changes to remote repository")
     remote = website_repo.create_remote(
@@ -152,17 +153,19 @@ def run(CONF):
     release_notes_repo_url = CONF.get('default').get('release_notes_repo_url')
     release_notes_repo_branch = CONF.get('default').get(
         'release_notes_repo_branch')
+    commit_updates = CONF.get('default').get('commit_updates')
+    push_updates = CONF.get('default').get('push_updates')
     push_repo_url = CONF.get('default').get('push_repo_url')
     push_repo_branch = CONF.get('default').get('push_repo_branch')
     updater_name = CONF.get('default').get('updater_name')
     updater_email = CONF.get('default').get('updater_email')
 
-    REQUIRED_PARAMETERS = ["push_repo_url", "push_repo_branch",
-                           "updater_name", "updater_email"]
+    REQUIRED_PARAMETERS = ["updater_name", "updater_email"]
+    if push_updates:
+        REQUIRED_PARAMETERS += ["push_repo_url", "push_repo_branch"]
     for parameter in REQUIRED_PARAMETERS:
         if CONF.get('default').get(parameter) is None:
-            LOG.error("Parameter '%s' is required", parameter)
-            return 1
+            raise exception.RequiredParameterMissing(parameter=parameter)
 
     LOG.info("Creating release notes with packages: {}".format(
         ", ".join(packages_names)))
@@ -170,11 +173,21 @@ def run(CONF):
     package_manager.prepare_packages(packages_class=rpm_package.RPM_Package,
                                      download_source_code=False, distro=distro)
 
+    website_repo = repository.get_git_repository(
+        release_notes_repo_url, os.getcwd())
+    website_repo.checkout(release_notes_repo_branch)
+
+    WEBSITE_POSTS_DIR = "_posts"
     release_date = datetime.today().date().isoformat()
     release_file_name = RELEASE_FILE_NAME_TEMPLATE.format(date=release_date)
-    write_version_info(release_date, release_file_name, versions_repo,
+    release_file_path = os.path.join(
+        website_repo.name, WEBSITE_POSTS_DIR, release_file_name)
+    write_version_info(release_date, release_file_path, versions_repo,
                        package_manager.packages)
-    publish_release_notes(
-        release_date, release_file_name, release_notes_repo_url,
-        release_notes_repo_branch, push_repo_url, push_repo_branch,
-        updater_name, updater_email)
+
+    if commit_updates:
+        commit_release_notes(
+            website_repo, release_date, updater_name, updater_email)
+        if push_updates:
+            push_website_head_commit(
+                website_repo, push_repo_url, push_repo_branch)
