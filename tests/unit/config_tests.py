@@ -32,7 +32,7 @@ class TestConfigParser(unittest.TestCase):
     def test_parse_arguments_list_WithLongArgument_ShouldParseArgumentValue(self, arguments, key, expected):
         cfg = ConfigParser()
 
-        result_dict = cfg.parse_arguments_list(arguments)
+        result_dict = cfg.parse_command_line_arguments(arguments)
         value = result_dict.get(key)
 
         eq_(value, expected)
@@ -59,7 +59,7 @@ class TestConfigParser(unittest.TestCase):
     def test_parse_arguments_list_WithoutArgument_ShouldUseDefaultValue(self, arguments, key, expected):
         cfg = ConfigParser()
 
-        result_dict = cfg.parse_arguments_list(arguments)
+        result_dict = cfg.parse_command_line_arguments(arguments)
         value = result_dict.get(key)
 
         eq_(value, expected)
