@@ -31,8 +31,7 @@ from lib.constants import REPOSITORIES_DIR
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 
-# TODO: make this configurable by a base dir parameter
-BUILD_CACHE_DIR = "cache"
+BUILD_CACHE_DIR = os.path.join(CONF.get('default').get('work_dir'), "cache")
 PACKAGES_REPOS_TARGET_PATH = os.path.join(CONF.get('default').get('work_dir'),
                                           REPOSITORIES_DIR)
 

@@ -149,7 +149,8 @@ class Mock(build_system.PackageBuilder):
 
     def _create_build_directory(self, package):
         self.build_dir = os.path.join(
-            os.getcwd(), 'build', self.timestamp, package.name)
+            os.path.abspath(CONF.get('default').get('work_dir')), 'mock_build',
+            self.timestamp, package.name)
         os.makedirs(self.build_dir)
         os.chmod(self.build_dir, 0777)
 
