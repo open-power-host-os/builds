@@ -36,7 +36,6 @@ class Mock(build_system.PackageBuilder):
         super(Mock, self).__init__()
         binary_file = CONF.get('default').get('mock_binary')
         extra_args = CONF.get('default').get('mock_args')
-        self.result_dir = CONF.get('default').get('result_dir')
         self.build_dir = None
         self.archive = None
         self.timestamp = datetime.datetime.now().isoformat()
@@ -56,6 +55,7 @@ class Mock(build_system.PackageBuilder):
         utils.run_command(cmd)
 
     def build(self, package):
+        self.clean_cache_dir(package)
         LOG.info("%s: Starting build process" % package.name)
         self._build_srpm(package)
         self._install_external_dependencies(package)
@@ -77,8 +77,7 @@ class Mock(build_system.PackageBuilder):
             raise
 
         msg = "%s: Success! RPMs built!" % (package.name)
-        self._save_rpm(package)
-        LOG.info(msg)
+        self._copy_rpms(self.build_dir, package.build_cache_dir)
         LOG.info(msg)
         if not CONF.get('default').get('keep_builddir'):
             self._destroy_build_directory()
@@ -124,12 +123,24 @@ class Mock(build_system.PackageBuilder):
     def clean(self):
         utils.run_command(self.common_mock_args + " --clean")
 
+    def clean_cache_dir(self, package):
+        """
+        Delete the package's cached results directory.
+
+        Args:
+            package: package whose cached results will be removed
+        """
+        if os.path.isdir(package.build_cache_dir):
+            LOG.debug("%s: Cleaning previously cached build results."
+                      % package.name)
+            shutil.rmtree(package.build_cache_dir)
+
     def _install_external_dependencies(self, package):
         if package.build_dependencies:
             cmd = self.common_mock_args
             install = " --install"
             for dep in package.build_dependencies:
-                install = " ".join([install, " ".join(dep.result_packages)])
+                install = " ".join([install, " ".join(dep.cached_build_results)])
 
             cmd = cmd + install
             LOG.info("%s: Installing dependencies on chroot" % package.name)
@@ -144,19 +155,33 @@ class Mock(build_system.PackageBuilder):
     def _destroy_build_directory(self):
         shutil.rmtree(self.build_dir)
 
-    def _save_rpm(self, package):
-        if not os.path.exists(self.result_dir):
-            LOG.info("Creating directory to store RPM at %s " %
-                     self.result_dir)
-            os.makedirs(self.result_dir)
-            os.chmod(self.result_dir, 0777)
+    def _copy_rpms(self, source_dir, target_dir):
+        """
+        Copy the RPMs created by building a package to a target directory.
 
-        LOG.info("%s: Saving RPMs at %s" % (package.name, self.result_dir))
-        for f in os.listdir(self.build_dir):
-            if f.endswith(".rpm") and not f.endswith(".src.rpm"):
-                LOG.info("Saving %s at result directory %s" % (f,
-                         self.result_dir))
-                orig = os.path.join(self.build_dir, f)
-                dest = os.path.join(self.result_dir, f)
-                shutil.move(orig, dest)
-                package.result_packages.append(dest)
+        Args:
+            source_dir(str): path to the source directory containing the
+                RPMs
+            target_dir(str): path to the target directory
+        """
+        if not os.path.exists(target_dir):
+            LOG.debug("Creating directory to store RPMs at %s " % target_dir)
+            os.makedirs(target_dir)
+
+        LOG.info("Copying RPMs from %s to %s" % (source_dir, target_dir))
+        for source_file_name in os.listdir(source_dir):
+            if (source_file_name.endswith(".rpm")
+                    and not source_file_name.endswith(".src.rpm")):
+                LOG.info("Copying RPM file: %s" % source_file_name)
+                source_file_path = os.path.join(source_dir, source_file_name)
+                target_file_path = os.path.join(target_dir, source_file_name)
+                shutil.copy(source_file_path, target_file_path)
+
+    def copy_results(self, package):
+        """
+        Copy cached build results to the results directory.
+
+        Args:
+            package(Package): package whose result files will be copied
+        """
+        self._copy_rpms(package.build_cache_dir, package.build_results_dir)

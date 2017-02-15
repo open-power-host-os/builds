@@ -49,6 +49,11 @@ PACKAGE_ARGS = {
     ('--keep-builddir',):
         dict(help='Keep build directory and its logs and artifacts.',
              action='store_true'),
+    ('--force-rebuild',):
+        dict(help='Force the rebuild of packages. The default is to only '
+             'build packages when they have updated files since the last '
+             'build results.',
+             action='store_true'),
 }
 MOCK_ARGS = {
     ('--mock-args',):

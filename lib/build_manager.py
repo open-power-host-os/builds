@@ -15,12 +15,13 @@
 
 import logging
 
-import lib.centos
+from lib import config
 from lib import exception
-import lib.scheduler
 from lib.packages_manager import PackagesManager
 from lib.rpm_package import RPM_Package
+from lib.scheduler import Scheduler
 
+CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 
 
@@ -31,10 +32,11 @@ class BuildManager(object):
         self.repositories = None
 
     def __call__(self):
+        force_rebuild = CONF.get('default').get('force_rebuild')
         try:
             self.packages_manager.prepare_packages(
                 packages_class=RPM_Package, distro=self.distro,
-                download_source_code=False)
+                download_source_code=False, force_rebuild=force_rebuild)
         # distro related issues
         except (exception.DistributionNotSupportedError,
                 exception.DistributionVersionNotSupportedError,
@@ -46,5 +48,5 @@ class BuildManager(object):
         self.build()
 
     def build(self):
-        scheduler = lib.scheduler.Scheduler()
+        scheduler = Scheduler()
         self.distro.build_packages(scheduler(self.packages_manager.packages))

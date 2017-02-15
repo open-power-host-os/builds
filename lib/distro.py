@@ -57,11 +57,22 @@ class LinuxDistribution(object):
         """
         self.package_builder.initialize()
         for package in packages:
-            package.lock()
-            package.download_files(recurse=False)
-            self.package_builder.prepare_sources(package)
-            package.unlock()
-            self.package_builder.build(package)
+            if package.force_rebuild:
+                LOG.info("%s: Forcing rebuild." % package.name)
+                build_package = True
+            elif package.needs_rebuild():
+                build_package = True
+            else:
+                LOG.info("%s: Skipping rebuild." % package.name)
+                build_package = False
+
+            if build_package:
+                package.lock()
+                package.download_files(recurse=False)
+                self.package_builder.prepare_sources(package)
+                package.unlock()
+                self.package_builder.build(package)
+            self.package_builder.copy_results(package)
 
         self.clean(packages)
 

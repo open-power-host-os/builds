@@ -30,6 +30,9 @@ from lib import utils
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 
+# TODO: make this configurable by a base dir parameter
+BUILD_CACHE_DIR = "cache"
+
 
 @total_ordering
 class Package(object):
@@ -50,13 +53,23 @@ class Package(object):
             cls.__created_packages[package_name] = package
         return package
 
-    def __init__(self, name):
+    def __init__(self, name, force_rebuild=True):
+        """
+        Create a new package instance.
+
+        Args:
+            name: package name
+            force_rebuild: whether to force the rebuild of the package
+                in case its build results are already up-to-date
+        """
         self.name = name
         self.clone_url = None
         self.download_source = None
         self.install_dependencies = []
         self.build_dependencies = []
-        self.result_packages = []
+        self.build_cache_dir = os.path.join(BUILD_CACHE_DIR, self.name)
+        self.build_results_dir = os.path.join(
+            CONF.get('default').get('result_dir'), self.name)
         self.sources = []
         self.repository = None
         self.build_files = None
@@ -64,6 +77,7 @@ class Package(object):
         locks_dir = CONF.get('default').get('repositories_path')
         self.lock_file_path = os.path.join(
             locks_dir, self.name + ".lock")
+        self.force_rebuild = force_rebuild
 
         # Dependencies packages may be present in those directories in older
         # versions of package metadata. This keeps compatibility.
@@ -232,3 +246,66 @@ class Package(object):
         LOG.debug("Unlocking file {}".format(self.lock_file_path))
         fcntl.lockf(self.lock_file, fcntl.LOCK_UN)
         self.lock_file.close()
+
+    @property
+    def cached_build_results(self):
+        """
+        Get the files cached from the last build of this package.
+
+        Returns:
+            [str]: paths to the resulting files of the last build
+        """
+        return list()
+
+    @property
+    def _latest_build_results_time_stamp(self):
+        """
+        Get time stamp of the latest build result file.
+
+        Returns:
+            int: time stamp of the latest build result file.
+        """
+        latest_build_results_time_stamp = None
+        for file_path in self.cached_build_results:
+            file_time_stamp = os.stat(file_path).st_mtime
+            latest_build_results_time_stamp = max(
+                latest_build_results_time_stamp, file_time_stamp)
+        return latest_build_results_time_stamp
+
+    def needs_rebuild(self):
+        """
+        Check if the package needs to be rebuild.
+        Compare the modification time of the package source and metadata
+        files with the latest build results files and check if the build
+        dependencies were updated.
+
+        Returns:
+            bool: whether the package needs to be rebuilt
+        """
+        # Check if there are any cached build results
+        if not self.cached_build_results:
+            LOG.debug("%s: No previous build results found." % self.name)
+            return True
+
+        latest_source_time_stamp = None
+        for file_path in utils.recursive_glob(self.package_dir, "*"):
+            file_time_stamp = os.stat(file_path).st_mtime
+            latest_source_time_stamp = max(
+                latest_source_time_stamp, file_time_stamp)
+        latest_build_results_time_stamp = self._latest_build_results_time_stamp
+
+        # Check if sources are older than build results
+        if latest_build_results_time_stamp < latest_source_time_stamp:
+            LOG.debug("%s: Build results are outdated." % self.name)
+            return True
+
+        # Check if build dependencies were rebuilt since last build
+        for dependency in self.build_dependencies:
+            if (latest_build_results_time_stamp
+                    < dependency._latest_build_results_time_stamp):
+                LOG.debug("%s: Build dependency %s has been rebuilt."
+                          % (self.name, dependency.name))
+                return True
+
+        LOG.debug("%s: Up-to-date build results found." % self.name)
+        return False

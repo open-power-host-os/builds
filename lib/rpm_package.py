@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import glob
 import os
 import logging
 import re
@@ -188,17 +189,20 @@ class RPM_Package(Package):
 
             # list of dependencies
             for dep_name in files.get('install_dependencies', []):
-                dep = RPM_Package.get_instance(dep_name, self.distro)
+                dep = RPM_Package.get_instance(
+                    dep_name, self.distro, force_rebuild=self.force_rebuild)
                 self.install_dependencies.append(dep)
 
             # keeps backward compatibility with old yaml files which have 'dependencies'
             # instead of 'install_dependencies'
             for dep_name in files.get('dependencies', []):
-                dep = RPM_Package.get_instance(dep_name, self.distro)
+                dep = RPM_Package.get_instance(
+                    dep_name, self.distro, force_rebuild=self.force_rebuild)
                 self.install_dependencies.append(dep)
 
             for dep_name in files.get('build_dependencies', []):
-                dep = RPM_Package.get_instance(dep_name, self.distro)
+                dep = RPM_Package.get_instance(
+                    dep_name, self.distro, force_rebuild=self.force_rebuild)
                 self.build_dependencies.append(dep)
 
             default_rpm_macros_file_rel_path = os.path.join(
@@ -226,6 +230,17 @@ class RPM_Package(Package):
                     distro_version=self.distro.version)
         except TypeError:
             raise exception.PackageDescriptorError(package=self.name)
+
+    @property
+    def cached_build_results(self):
+        """
+        Get the files cached from the last build of this package.
+
+        Returns:
+            [str]: paths to the resulting files of the last build
+        """
+        result_files_glob = os.path.join(self.build_cache_dir, "*.rpm")
+        return glob.glob(result_files_glob)
 
     @property
     def version(self):
