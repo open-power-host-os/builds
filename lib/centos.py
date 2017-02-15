@@ -13,11 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from lib import config
 from lib import distro
-from lib import mockbuilder
 
-CONF = config.get_config().CONF
 # The old versions contains directories erroneously named "7.2" instead
 # of just "7". To keep backwards compatibility, we have to list "7.2" as
 # a supported version in addition to "7". To build those versions,
@@ -32,6 +29,3 @@ class CentOS(distro.LinuxDistribution):
     def __init__(self, name, version, arch_and_endianness):
         super(CentOS, self).__init__(name=name, version=version,
                                      arch_and_endianness=arch_and_endianness)
-        config_file = CONF.get('build_packages').get('mock_config').get(name).get(
-            version)
-        self.package_builder = mockbuilder.Mock(config_file)

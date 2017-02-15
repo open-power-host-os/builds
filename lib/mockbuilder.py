@@ -21,8 +21,8 @@ import os
 import shutil
 
 from lib import config
-from lib import build_system
 from lib import exception
+from lib import package_builder
 from lib import package_source
 from lib import utils
 from lib.constants import LATEST_DIR
@@ -32,7 +32,7 @@ LOG = logging.getLogger(__name__)
 MOCK_CHROOT_BUILD_DIR = "/builddir/build/SOURCES"
 
 
-class Mock(build_system.PackageBuilder):
+class Mock(package_builder.PackageBuilder):
     def __init__(self, config_file):
         super(Mock, self).__init__()
         binary_file = CONF.get('common').get('mock_binary')
