@@ -26,8 +26,8 @@ class TestConfigParser(unittest.TestCase):
         (['build-release-notes', '--updater-email=foo'], 'updater_email', 'foo'),
         (['build-iso', '--packages-dir=foo'], 'packages_dir', 'foo'),
         (['build-iso', '--mock-args=foo'], 'mock_args', 'foo'),
-        (['upgrade-versions', '--no-commit-updates'], 'commit_updates', False),
-        (['upgrade-versions', '--no-push-updates'], 'push_updates', False),
+        (['update-versions', '--no-commit-updates'], 'commit_updates', False),
+        (['update-versions', '--no-push-updates'], 'push_updates', False),
     ])
     def test_parse_arguments_list_WithLongArgument_ShouldParseArgumentValue(self, arguments, key, expected):
         cfg = ConfigParser()
@@ -53,8 +53,8 @@ class TestConfigParser(unittest.TestCase):
         (['build-release-notes'], 'updater_email', None),
         (['build-iso'], 'packages_dir', 'result/packages/latest'),
         (['build-iso'], 'mock_args', ''),
-        (['upgrade-versions'], 'commit_updates', True),
-        (['upgrade-versions'], 'push_updates', True),
+        (['update-versions'], 'commit_updates', True),
+        (['update-versions'], 'push_updates', True),
     ])
     def test_parse_arguments_list_WithoutArgument_ShouldUseDefaultValue(self, arguments, key, expected):
         cfg = ConfigParser()

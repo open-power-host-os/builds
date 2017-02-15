@@ -119,7 +119,7 @@ SUBCOMMANDS = [
         [PACKAGE_ARGS, PACKAGE_BUILD_ARGS, MOCK_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS, BUILD_ARGS]),
     ('build-release-notes', 'Create release notes',
         [RELEASE_NOTES_ARGS, PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
-    ('upgrade-versions', 'Upgrade packages versions',
+    ('update-versions', 'Update packages versions',
         [PACKAGE_ARGS, PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
     ('update-versions-readme', 'Update the supported software versions table',
         [PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
@@ -262,7 +262,7 @@ class ConfigParser(object):
             "build-packages": "build_packages",
             "build-iso": "build_iso",
             "build-release-notes": "build_release_notes",
-            "upgrade-versions": "upgrade_versions",
+            "update-versions": "update_versions",
             "update-versions-readme": "update_versions_readme"
         }
         if command_line_args.subcommand in COMMAND_TO_CONFIG_NODE:
