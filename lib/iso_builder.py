@@ -41,9 +41,11 @@ class MockPungiIsoBuilder(object):
             self.common_config.get('distro_name'),
             self.common_config.get('distro_version'),
             self.common_config.get('arch_and_endianness'))
+        mock_config_file = self.config.get('mock_config').get(distro.lsb_name).get(
+            distro.version)
         try:
             utils.run_command("%s -r %s %s %s" % (
-                self.mock_binary, distro.config_file,
+                self.mock_binary, mock_config_file,
                 self.mock_args, cmd))
         except exception.SubprocessError:
             LOG.error("Failed to build ISO")
