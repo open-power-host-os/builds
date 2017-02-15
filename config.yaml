@@ -1,7 +1,6 @@
 default:
  branch: 'powerkvm-v3.1.1'
  work_dir: 'workspace'
- repositories_path: "/var/lib/host-os/repositories"
  build_versions_repository_url: "https://github.com/open-power-host-os/versions.git"
  build_version: 'master'
  distro_name: 'CentOS'

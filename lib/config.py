@@ -44,9 +44,6 @@ PACKAGE_ARGS = {
     ('--result-dir', '-r'):
         dict(help='Directory to save the RPMs.',
              default='./result'),
-    ('--repositories-path', '-R'):
-        dict(help='Directory where to clone code repositories',
-             default='/var/lib/host-os/repositories'),
     ('--keep-builddir',):
         dict(help='Keep build directory and its logs and artifacts.',
              action='store_true'),
