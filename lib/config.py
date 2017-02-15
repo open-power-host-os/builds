@@ -158,13 +158,14 @@ class ConfigParser(object):
         # create the top-level parser
         self.parser = argparse.ArgumentParser()
         self._CONF = None
-        self._setup_config_parser_options(SUBCOMMANDS)
+        self._setup_command_line_parser(SUBCOMMANDS)
 
     @property
     def CONF(self):
         return self._CONF
 
-    def _setup_config_parser_options(self, subcommands):
+
+    def _setup_command_line_parser(self, subcommands):
         """
         Configures the argument parser object to match the expected
             configuration.
@@ -190,47 +191,72 @@ class ConfigParser(object):
         self.parser.add_argument('--log-size',
                                  help='Size in bytes above which the log file '
                                  'should rotate', type=int, default=2<<20)
-        self._add_subparsers(subcommands)
 
-    def _add_subparsers(self, subcommands):
-        """
-        Add subcommands to the command line parser
-
-        Args:
-            subcommands ([(str, str, [dict])]): see _setup_config_parser_options()
-        """
         subparsers = self.parser.add_subparsers(
             dest="subcommand",
             help="Available subcommands")
-
         for command, help_msg, arg_groups in subcommands:
             command_parser = subparsers.add_parser(command, help=help_msg)
             for arg_group in arg_groups:
                 for arg, options in arg_group.items():
                     command_parser.add_argument(*arg, **options)
 
-    def parse_arguments_list(self, args):
+    def parse_command_line_arguments(self, args):
         """
-        Parses the arguments provided in the argument list and returns
-            the result object.
+        Parse configuration from command line arguments
+        Used only for unit testing
+
+        Args:
+            args ([str]): command line arguments
+
+        Returns:
+            dict: Command line options provided by user. Key is option name,
+                value is option value
         """
         result = self.parser.parse_args(args)
         return vars(result)
 
+    def parse_command_line(self):
+        """
+        Parse configuration from the command line
+
+        Returns:
+            dict: Command line options provided by user. Key is option name,
+                value is option value.
+        """
+        args = sys.argv[1:]
+        result = self.parser.parse_args(args)
+        return vars(result)
+
+
     def parse_config_file(self, config_file_path):
         """
-        Parse the configuration file and return a dictionary containing the
-            parsed values.
+        Parse configuration from a YAML configuration file
+
+        Args:
+            config_file_path(str): YAML configuration file path
+
+        Returns:
+            dict: Configuration options set in configuration file.
+                Key is option name, value is option value.
         """
         conf = {}
         with open(config_file_path) as stream:
             conf = yaml.safe_load(stream)
         return conf
 
+
     def parse(self):
+        """
+        Parse configuration from a YAML configuration file and command line arguments
+
+        Returns:
+            dict: Configuration options. Key is option name, value is option value.
+        """
+
         # parse the 'config-file' argument early so that we can use
         # the defaults defined in the config file to override the ones
-        # in the 'add_argument' calls below.
+        # in the later 'add_argument' ArgParse calls
         command_line_args = self.parser.parse_known_args()[0]
         config_file = command_line_args.config_file
 
@@ -254,7 +280,7 @@ class ConfigParser(object):
             node_name = COMMAND_TO_CONFIG_NODE[command_line_args.subcommand]
             self.parser.set_defaults(**config[node_name])
 
-        args = self.parse_arguments_list(sys.argv[1:])
+        args = self.parse_command_line()
 
         # drop None values
         for key, value in args.items():
