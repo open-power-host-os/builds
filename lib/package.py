@@ -87,7 +87,7 @@ class Package(object):
         versions_repo_url = CONF.get('default').get('build_versions_repository_url')
         versions_repo_name = os.path.basename(os.path.splitext(versions_repo_url)[0])
         build_versions_repo_dir = os.path.join(
-            CONF.get('default').get('build_versions_repo_dir'),
+            PACKAGES_REPOS_TARGET_PATH,
             versions_repo_name)
         for rel_packages_dir in PACKAGES_DIRS:
             packages_dir = os.path.join(

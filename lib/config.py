@@ -22,6 +22,7 @@ import yaml
 
 from lib import log_helper
 from lib import utils
+from lib.constants import REPOSITORIES_DIR
 
 LOG = logging.getLogger(__name__)
 LOG_FILE_NAME = 'builds.log'
@@ -30,10 +31,6 @@ BUILD_REPO_ARGS = {
         dict(help='Packages metadata git repository URL'),
     ('--build-version',):
         dict(help='Packages metadata git repository branch'),
-    ('--build-versions-repo-dir',):
-        dict(help='Directory to clone the packages metadata git repository. '
-             'A subdirectory with the name of the git repository will be created here',
-             default='.'),
     ('--http-proxy',):
         dict(help='HTTP proxy URL'),
 }
@@ -145,7 +142,8 @@ def discover_packages():
     versions_repo_url = config.get('build_versions_repository_url')
     versions_repo_name = os.path.basename(os.path.splitext(versions_repo_url)[0])
     build_versions_repo_dir = os.path.join(
-        config.get('build_versions_repo_dir'),
+        config.get('work_dir'),
+        REPOSITORIES_DIR,
         versions_repo_name)
     package_list = []
     try:

@@ -7,6 +7,7 @@ from lib import exception
 from lib import packages_manager
 from lib import repository
 from lib import rpm_package
+from lib.constants import REPOSITORIES_DIR
 
 
 LOG = logging.getLogger(__name__)
@@ -17,8 +18,8 @@ def setup_versions_repository(config):
     Clone and checkout the packages metadata git repository and halt execution if
     anything fails.
     """
-    path, _ = os.path.split(
-        config.get('default').get('build_versions_repo_dir'))
+    path = os.path.join(config.get('default').get('work_dir'),
+                        REPOSITORIES_DIR)
     url = config.get('default').get('build_versions_repository_url')
     branch = config.get('default').get('build_version')
     try:
