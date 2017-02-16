@@ -52,7 +52,7 @@ $ cd builds
 
 ::
 
-$ sudo python host_os.py set-env --user LOGIN
+$ sudo ./host_os.py set-env --user LOGIN
 
 Naturally, you need to replace ``LOGIN`` by the user name you'll use
 to run ``host_os.py``, which should not run using root user,
@@ -62,7 +62,7 @@ Please see ``--help`` for more options.
 
 ::
 
-$ python host_os.py set-env --help
+$ ./host_os.py set-env --help
 
 
 Running
@@ -72,13 +72,13 @@ Running
 
 ::
 
-$ python host_os.py build-package --package libvirt
+$ ./host_os.py build-package --package libvirt
 
 * Build all software
 
 ::
 
-$ python host_os.py --verbose build-package
+$ ./host_os.py --verbose build-package
 
 Note the ``--verbose`` parameter to get all the log messages in the
 console. Instead of the standard ordinary messages. Please see
@@ -86,13 +86,13 @@ console. Instead of the standard ordinary messages. Please see
 
 ::
 
-$ python host_os.py --help
+$ ./host_os.py --help
 
 or
 
 ::
 
-$ python host_os.py build-package --help
+$ ./host_os.py build-package --help
 
 
 Using the RPMs
@@ -205,10 +205,10 @@ ISO image
 
 ::
 
-$ python host_os.py --verbose build-iso
+$ ./host_os.py --verbose build-iso
 
 Please see ``--help`` for more options.
 
 ::
 
-$ python host_os.py build-iso --help
+$ ./host_os.py build-iso --help
