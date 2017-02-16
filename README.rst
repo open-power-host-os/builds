@@ -41,6 +41,13 @@ $ sudo yum install -y $(cat rpm_requirements.txt)
 Settings
 --------
 
+* Clone the repository
+
+::
+
+$ git clone https://github.com/open-power-host-os/builds.git
+$ cd builds
+
 * Setup environment and user
 
 ::
