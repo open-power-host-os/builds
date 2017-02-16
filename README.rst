@@ -30,8 +30,7 @@ RPM Based distributions
 
 ::
 
-$ sudo yum install --downloadonly --downloaddir=. epel-release
-$ sudo yum localinstall epel-release-7-5.noarch.rpm # Note the version may change.
+$ sudo yum install epel-release
 
 * Install RPM dependencies
 
