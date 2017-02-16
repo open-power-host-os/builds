@@ -29,7 +29,9 @@ class MockPungiSpinner(object):
 
     def __init__(self, config):
         self.work_dir = config.get('default').get('work_dir')
-        self.result_dir = config.get('default').get('result_dir')
+        self.result_dir = os.path.join(config.get('default').get('result_dir'),
+                                       'iso',
+                                       datetime.datetime.now().isoformat())
         self.config = config.get("iso")
         self.distro = self.config.get("iso_name")
         self.version = datetime.date.today().strftime("%y%m%d")

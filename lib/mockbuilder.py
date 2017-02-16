@@ -37,7 +37,6 @@ class Mock(build_system.PackageBuilder):
         binary_file = CONF.get('default').get('mock_binary')
         extra_args = CONF.get('default').get('mock_args')
         self.build_dir = None
-        self.build_results_dir = CONF.get('default').get('result_dir')
         self.archive = None
         self.timestamp = datetime.datetime.now().isoformat()
         self.common_mock_args = (
@@ -187,5 +186,6 @@ class Mock(build_system.PackageBuilder):
             package(Package): package whose result files will be copied
         """
         package_build_results_dir = os.path.join(
-            self.build_results_dir, package.name)
+            CONF.get('default').get('result_dir'), 'packages',
+            self.timestamp, package.name)
         self._copy_rpms(package.build_cache_dir, package_build_results_dir)
