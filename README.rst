@@ -42,12 +42,6 @@ $ sudo yum install -y $(cat rpm_requirements.txt)
 Settings
 --------
 
-* Disable SMT
-
-::
-
-$ sudo ppc64_cpu --smt=off
-
 * Setup environment and user
 
 ::
@@ -152,6 +146,13 @@ failures.
 
 Also no version is informed on the list above to make it valid even
 for future versions with minor version changes.
+
+When using virtualization packages, SMT needs to be disabled:
+
+::
+
+$ sudo ppc64_cpu --smt=off
+
 
 Validating
 ----------
