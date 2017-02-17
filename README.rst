@@ -30,8 +30,7 @@ RPM Based distributions
 
 ::
 
-$ sudo yum install --downloadonly --downloaddir=. epel-release
-$ sudo yum localinstall epel-release-7-5.noarch.rpm # Note the version may change.
+$ sudo yum install epel-release
 
 * Install RPM dependencies
 
@@ -42,17 +41,18 @@ $ sudo yum install -y $(cat rpm_requirements.txt)
 Settings
 --------
 
-* Disable SMT
+* Clone the repository
 
 ::
 
-$ sudo ppc64_cpu --smt=off
+$ git clone https://github.com/open-power-host-os/builds.git
+$ cd builds
 
 * Setup environment and user
 
 ::
 
-$ sudo python host_os.py set-env --user LOGIN
+$ sudo ./host_os.py set-env --user LOGIN
 
 Naturally, you need to replace ``LOGIN`` by the user name you'll use
 to run ``host_os.py``, which should not run using root user,
@@ -62,7 +62,7 @@ Please see ``--help`` for more options.
 
 ::
 
-$ python host_os.py set-env --help
+$ ./host_os.py set-env --help
 
 
 Running
@@ -72,13 +72,13 @@ Running
 
 ::
 
-$ python host_os.py build-package --package libvirt
+$ ./host_os.py build-package --package libvirt
 
 * Build all software
 
 ::
 
-$ python host_os.py --verbose build-package
+$ ./host_os.py --verbose build-package
 
 Note the ``--verbose`` parameter to get all the log messages in the
 console. Instead of the standard ordinary messages. Please see
@@ -86,13 +86,13 @@ console. Instead of the standard ordinary messages. Please see
 
 ::
 
-$ python host_os.py --help
+$ ./host_os.py --help
 
 or
 
 ::
 
-$ python host_os.py build-package --help
+$ ./host_os.py build-package --help
 
 
 Using the RPMs
@@ -153,6 +153,13 @@ failures.
 Also no version is informed on the list above to make it valid even
 for future versions with minor version changes.
 
+When using virtualization packages, SMT needs to be disabled:
+
+::
+
+$ sudo ppc64_cpu --smt=off
+
+
 Validating
 ----------
 
@@ -198,10 +205,10 @@ ISO image
 
 ::
 
-$ python host_os.py --verbose build-iso
+$ ./host_os.py --verbose build-iso
 
 Please see ``--help`` for more options.
 
 ::
 
-$ python host_os.py build-iso --help
+$ ./host_os.py build-iso --help
