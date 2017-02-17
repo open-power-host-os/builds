@@ -1,6 +1,8 @@
 common:
  work_dir: 'workspace'
  result_dir: 'result'
+ verbose: False
+ log_size: 2097152
  packages_metadata_repo_url: "https://github.com/open-power-host-os/versions.git"
  packages_metadata_repo_branch: 'master'
  http_proxy: ''
