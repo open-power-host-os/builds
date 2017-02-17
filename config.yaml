@@ -1,5 +1,7 @@
 common:
+ verbose: False
  log_file: "/var/log/host-os/builds.log"
+ log_size: 2097152
  packages_metadata_repo_url: "https://github.com/open-power-host-os/versions.git"
  packages_metadata_repo_branch: 'master'
  packages_metadata_repo_target_path: '.'
