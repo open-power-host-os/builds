@@ -111,9 +111,12 @@ class Mock(build_system.PackageBuilder):
                                                    package.commit_id,
                                                    self.build_dir)
             self.archive = os.path.dirname(file_path)
-        else:
+        elif package.download_source:
             file_path = package._download_source(self.build_dir)
             self.archive = os.path.dirname(file_path)
+        else:
+            LOG.warning("%s: Package has no external sources.", package.name)
+            self.archive = self.build_dir
 
     def _copy_files_to_chroot(self, package):
         for f in os.listdir(package.build_files):
