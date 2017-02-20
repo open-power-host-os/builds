@@ -46,13 +46,19 @@ class TestConfigParser(unittest.TestCase):
         (['build-packages'], 'packages_metadata_repo_url',
          'https://github.com/open-power-host-os/versions.git'),
         (['build-packages'], 'packages_metadata_repo_branch', 'master'),
-        (['build-packages'], 'mock_args', ''),
+        (['build-packages'], 'mock_args', '--enable-plugin=tmpfs '
+         '--plugin-option=tmpfs:keep_mounted=True --plugin-option='
+         'tmpfs:max_fs_size=32g --plugin-option=tmpfs:required_ram_mb=39800 '
+         '--verbose'),
         (['build-release-notes'], 'push_repo_url', None),
         (['build-release-notes'], 'push_repo_branch', 'master'),
         (['build-release-notes'], 'updater_name', None),
         (['build-release-notes'], 'updater_email', None),
         (['build-iso'], 'packages_dir', 'result/packages/latest'),
-        (['build-iso'], 'mock_args', ''),
+        (['build-iso'], 'mock_args', '--enable-plugin=tmpfs '
+         '--plugin-option=tmpfs:keep_mounted=True --plugin-option='
+         'tmpfs:max_fs_size=32g --plugin-option=tmpfs:required_ram_mb=39800 '
+         '--verbose'),
         (['update-versions'], 'commit_updates', True),
         (['update-versions'], 'push_updates', True),
     ])
