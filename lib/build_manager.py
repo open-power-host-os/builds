@@ -33,22 +33,6 @@ class BuildManager(object):
         self.distro = distro
         self.repositories = None
 
-    def __call__(self):
-        force_rebuild = CONF.get('build_packages').get('force_rebuild')
-        try:
-            self.packages_manager.prepare_packages(
-                packages_class=RPM_Package, distro=self.distro,
-                download_source_code=False, force_rebuild=force_rebuild)
-        # distro related issues
-        except (exception.DistributionNotSupportedError,
-                exception.DistributionVersionNotSupportedError,
-                exception.DistributionDetectionError):
-            LOG.error("Error during distribution detection. "
-                      "See the logs for more information")
-            raise
-
-        self.build()
-
     def _build_packages(self, distro, packages):
         """
         Build packages
@@ -91,6 +75,21 @@ class BuildManager(object):
         """
         Schedule package build order and build
         """
+
+        force_rebuild = CONF.get('build_packages').get('force_rebuild')
+        try:
+            # TODO: should not restrict building to RPM packages
+            self.packages_manager.prepare_packages(
+                packages_class=RPM_Package, distro=self.distro,
+                download_source_code=False, force_rebuild=force_rebuild)
+        # distro related issues
+        except (exception.DistributionNotSupportedError,
+                exception.DistributionVersionNotSupportedError,
+                exception.DistributionDetectionError):
+            LOG.error("Error during distribution detection. "
+                      "See the logs for more information")
+            raise
+
         scheduler = lib.scheduler.Scheduler()
-        ordered_packages = scheduler(self.packages_manager.packages)
+        ordered_packages = scheduler.schedule(self.packages_manager.packages)
         self._build_packages(self.distro, ordered_packages)
