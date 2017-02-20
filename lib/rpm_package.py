@@ -72,9 +72,12 @@ class SpecFile(object):
         Cached content not yet written to the file is not considered.
         """
         if tag not in self._cached_tags:
-            self._cached_tags[tag] = utils.run_command(
+            tag = utils.run_command(
                 "rpmspec --srpm -q --qf '%%{%s}' %s 2>/dev/null" % (
                     tag.upper(), self.path)).strip()
+            if tag == "(none)":
+                tag = None
+            self._cached_tags[tag] = tag
 
         return self._cached_tags[tag]
 
@@ -247,6 +250,10 @@ class RPM_Package(Package):
         """
         result_files_glob = os.path.join(self.build_cache_dir, "*.rpm")
         return glob.glob(result_files_glob)
+
+    @property
+    def epoch(self):
+        return self.spec_file.query_tag("epoch")
 
     @property
     def version(self):
