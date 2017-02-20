@@ -86,6 +86,9 @@ build_iso:
         updates: "http://mirror.centos.org/altarch/7/updates/ppc64le/"
         extras: "http://mirror.centos.org/altarch/7/extras/ppc64le/"
         epel: "http://download.fedoraproject.org/pub/epel/7/ppc64le/"
+update_metapackage:
+ push_repo_url:
+ push_repo_branch: "master"
 update_versions:
  packages:
  push_repo_url:

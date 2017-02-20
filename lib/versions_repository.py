@@ -71,7 +71,7 @@ def replace_file_section(
         new_contents (str): contents that will replace the old ones
         start_delimiter (str): delimiter marking start of contents to be
             replaced
-        start_delimiter (str): delimiter marking end of contents to be
+        end_delimiter (str): delimiter marking end of contents to be
             replaced, or None for end of file
     """
 
