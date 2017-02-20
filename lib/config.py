@@ -247,16 +247,20 @@ class ConfigParser(object):
         result = self.parser.parse_args(args)
         return vars(result)
 
-    def parse_command_line(self):
+    def parse_command_line(self, command_line_args):
         """
         Parse configuration from the command line
+
+        Args:
+            command_line_args (tuple): command line arguments. Used only by tests
 
         Returns:
             dict: Command line options provided by user. Key is option name,
                 value is option value.
         """
-        args = sys.argv[1:]
-        result = self.parser.parse_args(args)
+        if not command_line_args:
+            command_line_args = sys.argv[1:]
+        result = self.parser.parse_args(command_line_args)
         return vars(result)
 
 
@@ -277,58 +281,42 @@ class ConfigParser(object):
         return conf
 
 
-    def parse(self):
+    def parse(self, command_line_args=None):
         """
         Parse configuration from a YAML configuration file and command line arguments
+
+        Args:
+            command_line_args (tuple): command line arguments. Used only by tests
 
         Returns:
             dict: Configuration options. Key is option name, value is option value.
         """
 
-        # parse the 'config-file' argument early so that we can use
-        # the defaults defined in the config file to override the ones
-        # in the later 'add_argument' ArgParse calls
-        command_line_args = self.parser.parse_known_args()[0]
-        config_file = command_line_args.config_file
-
+        # Parse command line and config file
+        # Parse command line first so we can get config file path
+        command_line_args = self.parse_command_line_arguments(command_line_args)
+        config_file = command_line_args.pop("config_file")
         config = self.parse_config_file(config_file)
-        self.parser.set_defaults(**config['common'])
+        subcommand = command_line_args.pop("subcommand")
 
-        # Each subcommand may have a node for specific configurations
-        # at the same level of the 'common' node
-        COMMAND_TO_CONFIG_NODE = {
-            "build-packages": "build_packages",
-            "build-iso": "build_iso",
-            "build-release-notes": "build_release_notes",
-            "update-versions": "update_versions",
-            "update-versions-readme": "update_versions_readme"
-        }
-        if command_line_args.subcommand in COMMAND_TO_CONFIG_NODE:
-            # Override the default configurations with the ones specific
-            # to the subcommand. This makes sure the specific
-            # configurations are used instead of the generic ones, which
-            # are already set above, avoiding conflicts on
-            # configurations with the same name.
-            node_name = COMMAND_TO_CONFIG_NODE[command_line_args.subcommand]
-            self.parser.set_defaults(**config[node_name])
+        # Add options not present in the config file to the config dict
+        config["common"]["config_file"] = config_file
+        config["common"]["subcommand"] = subcommand
 
-        args = self.parse_command_line()
-
-        # drop None values
-        for key, value in args.items():
+        # Update config node with command line arguments applicable to
+        # the subcommand
+        subcommand_node_name = subcommand.replace("-", "_")
+        for key, value in command_line_args.items():
             if value is None:
-                args.pop(key)
-
-        # update node in config with subcommand args and then drop them from args
-        if command_line_args.subcommand in COMMAND_TO_CONFIG_NODE:
-            node_name = COMMAND_TO_CONFIG_NODE[command_line_args.subcommand]
-            for key, value in args.items():
+                continue
+            for node_name in ["common", subcommand_node_name]:
                 if key in config[node_name]:
                     config[node_name][key] = value
-                    args.pop(key)
+                    break
+            else:
+                raise Exception("Option {} not applicable to subcommand {}"
+                                .format(key, subcommand))
 
-        config['common'].update(args)
-        config['common']['subcommand'] = command_line_args.subcommand
         self._CONF = config
         return config
 
