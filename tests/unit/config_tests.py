@@ -38,28 +38,32 @@ class TestConfigParser(unittest.TestCase):
         eq_(value, expected)
 
     @parameterized.expand([
-        (['build-packages'], 'config_file', './config.yaml'),
-        (['build-packages'], 'verbose', False),
-        (['build-packages'], 'work_dir', 'workspace'),
-        (['build-packages'], 'keep_build_dir', False),
-        (['build-packages'], 'packages', None),
-        (['build-packages'], 'result_dir', 'result'),
-        (['build-packages'], 'packages_metadata_repo_url', None),
-        (['build-packages'], 'packages_metadata_repo_branch', None),
-        (['build-packages'], 'mock_args', ''),
-        (['build-release-notes'], 'push_repo_url', None),
-        (['build-release-notes'], 'push_repo_branch', 'master'),
-        (['build-release-notes'], 'updater_name', None),
-        (['build-release-notes'], 'updater_email', None),
-        (['build-iso'], 'packages_dir', 'result/packages/latest'),
-        (['build-iso'], 'mock_args', ''),
-        (['update-versions'], 'commit_updates', True),
-        (['update-versions'], 'push_updates', True),
+        (['build-packages'], False, 'config_file', './config.yaml'),
+        (['build-packages'], False, 'verbose', False),
+        (['build-packages'], False, 'work_dir', 'workspace'),
+        (['build-packages'], True, 'keep_build_dir', False),
+        (['build-packages'], True, 'packages', None),
+        (['build-packages'], True, 'result_dir', './result'),
+        (['build-packages'], True, 'packages_metadata_repo_url', None),
+        (['build-packages'], True, 'packages_metadata_repo_branch', None),
+        (['build-packages'], True, 'mock_args', '--enable-plugin=tmpfs --plugin-option=tmpfs:keep_mounted=True --plugin-option=tmpfs:max_fs_size=32g --plugin-option=tmpfs:required_ram_mb=39800'),
+        (['build-release-notes'], True, 'push_repo_url', None),
+        (['build-release-notes'], True, 'push_repo_branch', 'master'),
+        (['build-release-notes'], False, 'updater_name', None),
+        (['build-release-notes'], False, 'updater_email', None),
+        (['build-iso'], True, 'packages_dir', './result'),
+        (['build-iso'], True, 'mock_args', None),
+        (['update-versions'], False, 'commit_updates', True),
+        (['update-versions'], False, 'push_updates', True),
     ])
-    def test_parse_arguments_list_WithoutArgument_ShouldUseDefaultValue(self, arguments, key, expected):
+    def test_parse_arguments_list_WithoutArgument_ShouldUseDefaultValue(self, arguments, dest_node_eq_subcommand, key, expected):
         cfg = ConfigParser()
 
-        result_dict = cfg.parse_command_line_arguments(arguments)
-        value = result_dict.get(key)
+        result_dict = cfg.parse(arguments)
+        if dest_node_eq_subcommand:
+            node_name = arguments[0].replace("-", "_")
+        else:
+            node_name = "common"
+        value = result_dict[node_name].get(key)
 
         eq_(value, expected)
