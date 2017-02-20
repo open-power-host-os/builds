@@ -101,7 +101,49 @@ class Package(object):
             raise exception.PackageDescriptorError(
                 "Failed to find %s's YAML descriptor" % self.name)
 
+        # load package metadata YAML file
         self._load()
+
+        # get global config information which may override package YAML
+        # Package option fields are separated by `#` character and the expected
+        # format can be one of the following:
+        #
+        #   package_name#repo_url#branch_name#revision_id
+        #   package_name#repo_url#reference
+        #   package_name##reference
+        #   package_name
+        packages_options = CONF.get('build_packages').get('packages') or []
+        for package_option in packages_options:
+            package_parts = package_option.split("#")
+            if package_parts[0] == name:
+                # cancel if there are no sources
+                if not self.sources:
+                    break
+                # assume that the first source is the main one and that a source
+                # override targets it
+                source_type = self.sources[0].keys()[0]
+                main_source = self.sources[0][source_type]
+                if len(package_parts) == 1:
+                    pass
+                elif len(package_parts) == 2:
+                    if package_parts[1]:
+                        main_source["src"] = package_parts[1]
+                elif len(package_parts) == 3:
+                    if package_parts[1]:
+                        main_source["src"] = package_parts[1]
+                    if package_parts[2]:
+                       main_source["commit_id"] = package_parts[2]
+                elif len(package_parts) == 4:
+                    if package_parts[1]:
+                        main_source["src"] = package_parts[1]
+                    if package_parts[2]:
+                       main_source["branch"] = package_parts[2]
+                    if package_parts[3]:
+                       main_source["commit_id"] = package_parts[3]
+                else:
+                    raise "Too many parts (%s) in package option %s" % (
+                        len(package_parts), package_option)
+                break
 
     def __eq__(self, other):
         return self.name == other.name

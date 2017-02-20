@@ -32,6 +32,11 @@ def run(CONF):
         CONF.get('common').get('distro_version'),
         CONF.get('common').get('arch_and_endianness'))
 
-    LOG.info("Building packages: %s", ", ".join(packages_to_build))
-    bm = build_manager.BuildManager(packages_to_build, distro)
+    # get packages names
+    packages_to_build_names = []
+    for package in packages_to_build:
+        packages_to_build_names.append(package.split("#")[0])
+
+    LOG.info("Building packages: %s", ", ".join(packages_to_build_names))
+    bm = build_manager.BuildManager(packages_to_build_names, distro)
     bm.build()

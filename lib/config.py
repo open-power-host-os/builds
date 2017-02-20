@@ -23,6 +23,7 @@ from lib import log_helper
 from lib import utils
 
 LOG_FILE_NAME = 'builds.log'
+RAW_TEXT_ID = "R|"
 BUILD_REPO_ARGS = {
     ('--packages-metadata-repo-url',):
         dict(help='Packages metadata git repository URL'),
@@ -33,7 +34,15 @@ BUILD_REPO_ARGS = {
 }
 PACKAGE_ARGS = {
     ('--packages', '-p'):
-        dict(help='Packages to be built',
+        dict(help=RAW_TEXT_ID + "Packages to be built. Each package option may have several\n"
+           "fields, separated by `#` character, and the expected format can\n"
+           "be one of the following:\n\n"
+           "package_name#repo_url#branch_name#revision_id (SVN source only)\n"
+           "package_name#repo_url#reference (Git/Mercurial source only)\n"
+           "package_name##reference (Git/Mercurial source only)\n"
+           "package_name\n\n"
+        "The fields after package name override the corresponding data in the\n"
+        "first source of the package YAML.",
              nargs='*'),
 }
 PACKAGE_BUILD_ARGS = {
@@ -141,6 +150,14 @@ def get_config():
     return config_parser
 
 
+class CustomHelpFormatter(argparse.HelpFormatter):
+    def _split_lines(self, text, width):
+        if text.startswith(RAW_TEXT_ID):
+            return text[len(RAW_TEXT_ID):].splitlines()
+        # this is the RawTextHelpFormatter._split_lines
+        return argparse.HelpFormatter._split_lines(self, text, width)
+
+
 class ConfigParser(object):
     """
     Parses configuration options sources.
@@ -150,7 +167,7 @@ class ConfigParser(object):
     """
     def __init__(self):
         # create the top-level parser
-        self.parser = argparse.ArgumentParser()
+        self.parser = argparse.ArgumentParser(formatter_class=CustomHelpFormatter)
         self._CONF = None
         self._setup_command_line_parser(SUBCOMMANDS)
 
@@ -191,7 +208,8 @@ class ConfigParser(object):
             dest="subcommand",
             help="Available subcommands")
         for command, help_msg, arg_groups in subcommands:
-            command_parser = subparsers.add_parser(command, help=help_msg)
+            command_parser = subparsers.add_parser(command, help=help_msg,
+                                                   formatter_class=CustomHelpFormatter)
             for arg_group in arg_groups:
                 for arg, options in arg_group.items():
                     command_parser.add_argument(*arg, **options)
