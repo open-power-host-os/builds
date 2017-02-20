@@ -43,6 +43,9 @@ PACKAGE_ARGS = {
     ('--packages-repos-target-path', '-R'):
         dict(help='Directory where to clone code repositories',
              default='/var/lib/host-os/repositories'),
+    ('--no-update-packages-repos-before-build',):
+        dict(help='Update code repositories before building',
+             action='store_false', dest='update_packages_repos_before_build'),
     ('--keep-build-dir',):
         dict(help='Keep build directory and its logs and artifacts.',
              action='store_true'),

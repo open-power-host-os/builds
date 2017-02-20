@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from functools import partial
 from functools import total_ordering
 import fcntl
 import logging
@@ -116,10 +115,12 @@ class Package(object):
         Download package source code and build files.
         Optionally, do the same for its dependencies, recursively.
         """
-        # Download all package sources
         repositories_path = CONF.get('build_packages').get('packages_repos_target_path')
-        download_f = partial(package_source.download, directory=repositories_path, local_copy_subdir_name=self.name)
-        self.sources = map(download_f, self.sources)
+        update_packages_repos = CONF.get('build_packages').get('update_packages_repos_before_build')
+        for source in self.sources:
+            if ['url'] not in source.keys() and update_packages_repos:
+                package_source.download(source, directory=repositories_path,
+                                        local_copy_subdir_name=self.name)
 
         # This is kept for backwards compatibility with older
         # 'versions' repositories.
