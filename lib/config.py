@@ -66,11 +66,11 @@ DISTRO_ARGS = {
 }
 MOCK_ARGS = {
     ('--mock-binary',):
-        dict(help='Mock binary path', default='/usr/bin/mock'),
+        dict(help='Mock binary path'),
     ('--mock-config',):
         dict(help='Mock config file'),
     ('--mock-args',):
-        dict(help='Arguments passed to mock command', default=''),
+        dict(help='Arguments passed to mock command'),
 }
 RELEASE_NOTES_ARGS = {
     ('--release-notes-repo-url',):
@@ -88,8 +88,7 @@ PUSH_REPO_ARGS = {
     ('--push-repo-url',):
         dict(help='URL of the repository used for pushing'),
     ('--push-repo-branch',):
-        dict(help='Branch of the repository used for pushing',
-             default='master'),
+        dict(help='Branch of the repository used for pushing'),
     ('--updater-name',):
         dict(help='Name used when updating RPM specification files change logs '
              'and creating git commits'),
@@ -99,22 +98,17 @@ PUSH_REPO_ARGS = {
 }
 BUILD_ARGS = {
     ('--result-dir', '-r'):
-        dict(help='Directory to save the results.',
-             default='result'),
+        dict(help='Directory to save the results.'),
 }
 ISO_ARGS = {
     ('--packages-dir', '-d'):
-        dict(help='Directory of packages used in the ISO image.',
-             default='result/packages/latest'),
+        dict(help='Directory of packages used in the ISO image.'),
     ('--iso-name',):
-        dict(help='ISO name.',
-             default='OpenPOWER-Host_OS'),
+        dict(help='ISO name.'),
     ('--log-file',):
-        dict(help='ISO creation log file path.',
-             default='/var/log/host-os/iso.log'),
+        dict(help='ISO creation log file path.'),
     ('--automated-install-file',):
-        dict(help='Path of a kickstart file, used to automate the installation of a RPM-based Linux distribution',
-             default='host-os.ks'),
+        dict(help='Path of a kickstart file, used to automate the installation of a RPM-based Linux distribution'),
     ('--installable-environments',):
         dict(help='Those environments will be available at the "Sofware '
              'selection" screen, along with the ones that come from the base '
@@ -213,11 +207,10 @@ class ConfigParser(object):
                                  action='store_true')
         self.parser.add_argument('--log-size',
                                  help='Size in bytes above which the log file '
-                                 'should rotate', type=int, default=2<<20)
+                                 'should rotate', type=int)
         self.parser.add_argument('--work-dir', '-w',
                                  help='Directory used to store all temporary '
-                                 'files created during the process.',
-                                 default='workspace')
+                                 'files created during the process.')
 
         subparsers = self.parser.add_subparsers(
             dest="subcommand",
