@@ -24,6 +24,7 @@ from tools import build_iso
 from tools import build_package
 from tools import create_release_notes
 from tools import setup_environment
+from tools import update_versions_readme
 from tools import upgrade_versions
 
 INSUFFICIENT_PRIVILEGE_ERROR = 3
@@ -35,6 +36,7 @@ SUBCOMMANDS = {
     'build-package': build_package,
     'release-notes': create_release_notes,
     'upgrade-versions': upgrade_versions,
+    'update-versions-readme': update_versions_readme,
     'set-env': setup_environment,
     'build-iso': build_iso,
 }
