@@ -68,8 +68,6 @@ class Package(object):
         self.install_dependencies = []
         self.build_dependencies = []
         self.build_cache_dir = os.path.join(BUILD_CACHE_DIR, self.name)
-        self.build_results_dir = os.path.join(
-            CONF.get('default').get('result_dir'), self.name)
         self.sources = []
         self.repository = None
         self.build_files = None
