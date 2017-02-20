@@ -118,8 +118,7 @@ class SpecFile(object):
         self._content = None
 
     def update_prerelease_tag(self, new_prerelease):
-        self._replace_macro_definition('prerelease', new_prerelease)
-        self.write_content()
+        self.replace_macro_definition('prerelease', new_prerelease)
         LOG.info("Updated '%s' prerelease tag to: %s"
                  % (self.path, new_prerelease))
 
@@ -151,10 +150,26 @@ class SpecFile(object):
 
     def _replace_macro_definition(self, macro_name, replacement):
         """
-        Updates the file content cache, replacing the macro value.
+        Update the file content cache, replacing the macro value.
+
+        Args:
+            macro_name (str): macro name
+            replacement (str): macro's new definition
         """
+        LOG.debug("Defining macro '%s' with: %s" % (macro_name, replacement))
         self.content = re.sub(r'(%%define\s+%s\s+)\S+' % macro_name,
                               r'\g<1>' + replacement, self.content)
+
+    def replace_macro_definition(self, macro_name, replacement):
+        """
+        Update the spec file, replacing the macro value.
+
+        Args:
+            macro_name (str): macro name
+            replacement (str): macro's new definition
+        """
+        self._replace_macro_definition(macro_name, replacement)
+        self.write_content()
 
 
 class RPM_Package(Package):
