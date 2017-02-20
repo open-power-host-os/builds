@@ -37,6 +37,9 @@ PACKAGE_ARGS = {
              nargs='*'),
 }
 PACKAGE_BUILD_ARGS = {
+    ('--no-update-packages-repos-before-build',):
+        dict(help='Do not update code repositories before building',
+             action='store_false', dest='update_packages_repos_before_build'),
     ('--keep-build-dir',):
         dict(help='Keep build directory and its logs and artifacts.',
              action='store_true'),
