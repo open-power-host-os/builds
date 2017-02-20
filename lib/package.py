@@ -98,7 +98,30 @@ class Package(object):
             raise exception.PackageDescriptorError(
                 "Failed to find %s's YAML descriptor" % self.name)
 
+        # load package metadata YAML file
         self._load()
+
+        # get global config information which may override YAML
+        packages = CONF.get('build_packages').get('packages') or []
+        for package in packages:
+            if package.startswith(name):
+                if package == name:
+                    break
+                else:
+                    package_parts = package.split("#")
+                    # assume that first source is the main one and it is always
+                    # desired to override it
+                    source_type = self.sources[0].keys()[0]
+                    if package_parts[1]:
+                        self.sources[0][source_type]["src"] = package_parts[1]
+                    if len(package_parts) == 4:
+                        if package_parts[2]:
+                           self.sources[0][source_type]["branch"] = package_parts[2]
+                        if package_parts[3]:
+                           self.sources[0][source_type]["commit_id"] = package_parts[3]
+                    elif len(package_parts) == 3:
+                        if package_parts[2]:
+                           self.sources[0][source_type]["commit_id"] = package_parts[2]
 
     def __eq__(self, other):
         return self.name == other.name
