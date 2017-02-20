@@ -31,7 +31,14 @@ class Scheduler(object):
 
     def _dfs(self, packages, visited):
         """
-        Return a list containing unique package names.
+        Perform a depth-first search to order packages by dependencies
+
+        Args:
+            packages ([Package]): all packages
+            visited ([Package]): visited packages
+
+        Returns:
+            [Package]: ordered list of packages
         """
         order = []
         try:
@@ -53,6 +60,16 @@ class Scheduler(object):
         return list(OrderedDict.fromkeys(order))
 
     def schedule(self, packages):
+        """
+        Order packages by dependencies
+
+        Args:
+            packages ([Package]): packages
+
+        Returns:
+            (Package): ordered tuple of packages
+        """
+
         self.packages = packages
         LOG.info("Scheduling packages and their dependecies: %s" % packages)
         ordered_packages = self._dfs(packages, [])
