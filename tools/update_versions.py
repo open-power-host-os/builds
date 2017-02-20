@@ -174,26 +174,6 @@ class Version(object):
             raise exception.PackageError(msg)
 
 
-def commit_weekly_build_packages_updates(
-    versions_repo, release_date, updater_name, updater_email):
-    """
-    Commit packages metadata updates in versions Git repository done by a weekly build
-
-    Args:
-        versions_repo (GitRepository): packages metadata git repository
-        release_date (str): release date
-        updater_name (str): updater name
-        updater_email (str): updater email
-    """
-    LOG.info("Adding files to repository index")
-    versions_repo.index.add(["*"])
-
-    LOG.info("Committing changes to local repository")
-    commit_message = "Weekly build {date}".format(date=release_date)
-    actor = git.Actor(updater_name, updater_email)
-    versions_repo.index.commit(commit_message, author=actor, committer=actor)
-
-
 def push_packages_head_commit(
     versions_repo, versions_repo_push_url, versions_repo_push_branch):
     """
@@ -262,7 +242,8 @@ def run(CONF):
 
     release_date = datetime.today().date().isoformat()
     if commit_updates:
-        commit_weekly_build_packages_updates(
-            versions_repo, release_date, updater_name, updater_email)
+        commit_message = "Weekly build {date}".format(date=release_date)
+        versions_repo.commit_changes(
+            commit_message, updater_name, updater_email)
         if push_updates:
             push_packages_head_commit(versions_repo, push_repo_url, push_repo_branch)

@@ -27,24 +27,6 @@ from lib.versions_repository import update_versions_in_readme
 LOG = logging.getLogger(__name__)
 
 
-def commit_changes(repo, committer_name, committer_email):
-    """
-    Commit changes done to the repository.
-
-    Args:
-        repo (GitRepository): packages metadata git repository
-        committer_name (str): committer name
-        committer_email (str): committer email
-    """
-    LOG.info("Adding files to repository index")
-    repo.index.add(["*"])
-
-    LOG.info("Committing changes to local repository")
-    commit_message = "Update README versions table"
-    actor = git.Actor(committer_name, committer_email)
-    repo.index.commit(commit_message, author=actor, committer=actor)
-
-
 def push_changes_to_head(repo, repo_url, repo_branch):
     """
     Push changes in local Git repository to the remote Git repository, using
@@ -100,7 +82,9 @@ def run(CONF):
     update_versions_in_readme(versions_repo, distro, packages)
 
     if commit_updates:
-        commit_changes(versions_repo, updater_name, updater_email)
+        commit_message = "Update README versions table"
+        versions_repo.commit_changes(
+            commit_message, updater_name, updater_email)
         if push_updates:
             push_changes_to_head(versions_repo, push_repo_url,
                                  push_repo_branch)

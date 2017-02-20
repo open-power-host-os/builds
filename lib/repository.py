@@ -203,6 +203,22 @@ class GitRepository(git.Repo):
         utils.run_command(cmd)
         return archive_file + ".gz"
 
+    def commit_changes(self, commit_message, committer_name, committer_email):
+        """
+        Commit all changes made to the repository.
+
+        Args:
+            commit_message (str): message describing the commit
+            committer_name (str): committer name
+            committer_email (str): committer email
+        """
+        LOG.info("Adding files to repository index")
+        self.index.add(["*"])
+
+        LOG.info("Committing changes to local repository")
+        actor = git.Actor(committer_name, committer_email)
+        self.index.commit(commit_message, author=actor, committer=actor)
+
 
 class SvnRepository():
 
