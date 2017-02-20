@@ -15,44 +15,13 @@
 
 import logging
 
-import git
-
 from lib import distro_utils
 from lib import exception
-from lib import repository
 from lib.packages_manager import discover_packages
 from lib.versions_repository import setup_versions_repository
 from lib.versions_repository import update_versions_in_readme
 
 LOG = logging.getLogger(__name__)
-
-
-def push_changes_to_head(repo, repo_url, repo_branch):
-    """
-    Push changes in local Git repository to the remote Git repository, using
-    the system's configured SSH credentials.
-
-    Args:
-        repo (GitRepository): git repository
-        repo_url (str): remote git repository URL
-        repo_branch (str): remote git repository branch
-
-    Raises:
-        repository.PushError if push fails
-    """
-    LOG.info("Pushing updated versions README")
-
-    LOG.info("Creating remote for URL {}".format(repo_url))
-    REPO_REMOTE = "push-remote"
-    repo.create_remote(REPO_REMOTE, repo_url)
-
-    LOG.info("Pushing changes to remote repository")
-    remote = repo.remote(REPO_REMOTE)
-    refspec = "HEAD:refs/heads/{}".format(repo_branch)
-    push_info = remote.push(refspec=refspec)[0]
-    LOG.debug("Push result: {}".format(push_info.summary))
-    if git.PushInfo.ERROR & push_info.flags:
-        raise repository.PushError(push_info)
 
 
 def run(CONF):
@@ -86,5 +55,5 @@ def run(CONF):
         versions_repo.commit_changes(
             commit_message, updater_name, updater_email)
         if push_updates:
-            push_changes_to_head(versions_repo, push_repo_url,
-                                 push_repo_branch)
+            LOG.info("Pushing updated versions README")
+            versions_repo.push_head_commits(push_repo_url, push_repo_branch)

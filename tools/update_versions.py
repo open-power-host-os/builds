@@ -19,12 +19,9 @@ import logging
 import os
 import re
 
-import git
-
 from lib import distro_utils
 from lib import exception
 from lib import packages_manager
-from lib import repository
 from lib import rpm_package
 from lib.utils import replace_str_in_file
 from lib.packages_manager import discover_packages
@@ -174,35 +171,6 @@ class Version(object):
             raise exception.PackageError(msg)
 
 
-def push_packages_head_commit(
-    versions_repo, versions_repo_push_url, versions_repo_push_branch):
-    """
-    Push packages metadata changes in versions local Git repository to the remote
-    Git repository, using the system's configured SSH credentials.
-
-    Args:
-        versions_repo (GitRepository): git repository
-        versions_repo_push_url (str): remote git repository URL
-        versions_repo_push_branch (str): remote git repository branch
-
-    Raises:
-        repository.PushError if push fails
-    """
-    LOG.info("Pushing packages versions updates")
-
-    LOG.info("Creating remote for URL {}".format(versions_repo_push_url))
-    VERSIONS_REPO_REMOTE = "push-remote"
-    versions_repo.create_remote(VERSIONS_REPO_REMOTE, versions_repo_push_url)
-
-    LOG.info("Pushing changes to remote repository")
-    remote = versions_repo.remote(VERSIONS_REPO_REMOTE)
-    refspec = "HEAD:refs/heads/{}".format(versions_repo_push_branch)
-    push_info = remote.push(refspec=refspec)[0]
-    LOG.debug("Push result: {}".format(push_info.summary))
-    if git.PushInfo.ERROR & push_info.flags:
-        raise repository.PushError(push_info)
-
-
 def run(CONF):
     versions_repo = setup_versions_repository(CONF)
     packages_to_update = CONF.get('update_versions').get('packages') or PACKAGES
@@ -246,4 +214,5 @@ def run(CONF):
         versions_repo.commit_changes(
             commit_message, updater_name, updater_email)
         if push_updates:
-            push_packages_head_commit(versions_repo, push_repo_url, push_repo_branch)
+            LOG.info("Pushing packages versions updates")
+            versions_repo.push_head_commits(push_repo_url, push_repo_branch)

@@ -219,6 +219,32 @@ class GitRepository(git.Repo):
         actor = git.Actor(committer_name, committer_email)
         self.index.commit(commit_message, author=actor, committer=actor)
 
+    def push_head_commits(self, remote_repo_url, remote_repo_branch):
+        """
+        Push commits from local Git repository head to the remote Git
+        repository, using the system's configured SSH credentials.
+
+        Args:
+            remote_repo_url (str): remote git repository URL
+            remote_repo_branch (str): remote git repository branch
+
+        Raises:
+            repository.PushError: if push fails
+        """
+        REPO_REMOTE_NAME = "push-remote"
+        LOG.info("Creating remote named '{name}' for URL '{url}'"
+                 .format(name=REPO_REMOTE_NAME, url=remote_repo_url))
+        self.create_remote(REPO_REMOTE_NAME, remote_repo_url)
+
+        LOG.info("Pushing changes to remote repository branch '{}'"
+                 .format(remote_repo_branch))
+        remote = self.remote(REPO_REMOTE_NAME)
+        refspec = "HEAD:refs/heads/{}".format(remote_repo_branch)
+        push_info = remote.push(refspec=refspec)[0]
+        LOG.debug("Push result: {}".format(push_info.summary))
+        if git.PushInfo.ERROR & push_info.flags:
+            raise PushError(push_info)
+
 
 class SvnRepository():
 
