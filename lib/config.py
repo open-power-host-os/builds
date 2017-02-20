@@ -28,8 +28,7 @@ BUILD_REPO_ARGS = {
         dict(help='Packages metadata git repository branch'),
     ('--packages-metadata-repo-target-path',):
         dict(help='Directory to clone the packages metadata git repository. '
-             'A subdirectory with the name of the git repository will be created here',
-             default='.'),
+             'A subdirectory with the name of the git repository will be created here'),
     ('--http-proxy',):
         dict(help='HTTP proxy URL'),
 }
@@ -38,11 +37,9 @@ PACKAGE_ARGS = {
         dict(help='Packages to be built',
              nargs='*'),
     ('--result-dir', '-r'):
-        dict(help='Directory to save the RPMs.',
-             default='./result'),
+        dict(help='Directory to save the RPMs.'),
     ('--packages-repos-target-path', '-R'):
-        dict(help='Directory where to clone code repositories',
-             default='/var/lib/host-os/repositories'),
+        dict(help='Directory where to clone code repositories'),
     ('--no-update-packages-repos-before-build',):
         dict(help='Update code repositories before building',
              action='store_false', dest='update_packages_repos_before_build'),
@@ -63,11 +60,11 @@ DISTRO_ARGS = {
 }
 MOCK_ARGS = {
     ('--mock-binary',):
-        dict(help='Mock binary path', default='/usr/bin/mock'),
+        dict(help='Mock binary path'),
     ('--mock-config',):
         dict(help='Mock config file'),
     ('--mock-args',):
-        dict(help='Arguments passed to mock command', default=''),
+        dict(help='Arguments passed to mock command'),
 }
 RELEASE_NOTES_ARGS = {
     ('--release-notes-repo-url',):
@@ -85,8 +82,7 @@ PUSH_REPO_ARGS = {
     ('--push-repo-url',):
         dict(help='URL of the repository used for pushing'),
     ('--push-repo-branch',):
-        dict(help='Branch of the repository used for pushing',
-             default='master'),
+        dict(help='Branch of the repository used for pushing'),
     ('--updater-name',):
         dict(help='Name used when updating RPM specification files change logs '
              'and creating git commits'),
@@ -101,17 +97,13 @@ SETUP_ENVIRONMENT_ARGS = {
 }
 ISO_ARGS = {
     ('--packages-dir', '-d'):
-        dict(help='Directory of packages used in the ISO image.',
-             default='./result'),
+        dict(help='Directory of packages used in the ISO image.'),
     ('--iso-name',):
-        dict(help='ISO name.',
-             default='OpenPOWER-Host_OS'),
+        dict(help='ISO name.'),
     ('--log-file',):
-        dict(help='ISO name.',
-             default='/var/log/host-os/iso.log'),
+        dict(help='ISO name.'),
     ('--automated-install-file',):
-        dict(help='Path of a kickstart file, used to automate the installation of a RPM-based Linux distribution',
-             default='host-os.ks'),
+        dict(help='Path of a kickstart file, used to automate the installation of a RPM-based Linux distribution'),
     ('--hostos-packages-groups',):
         dict(help='Packages groups in yum repository'),
     ('--automated-install-packages-groups',):
@@ -186,14 +178,13 @@ class ConfigParser(object):
                                  # NOTE(maurosr): move this to /etc in the future
                                  default='./config.yaml')
         self.parser.add_argument('--log-file', '-l',
-                                 help='Log file',
-                                 default='/var/log/host-os/builds.log')
+                                 help='Log file')
         self.parser.add_argument('--verbose', '-v',
                                  help='Set the scripts to be verbose',
                                  action='store_true')
         self.parser.add_argument('--log-size',
                                  help='Size in bytes above which the log file '
-                                 'should rotate', type=int, default=2<<20)
+                                 'should rotate', type=int)
 
         subparsers = self.parser.add_subparsers(
             dest="subcommand",
