@@ -1,0 +1,219 @@
+common:
+ help:
+ distro_name:
+  help: 'Base Linux distribution name'
+  default: 'CentOS'
+ distro_version:
+  help: 'Base Linux distribution version'
+  default: '7'
+ architecture:
+  help: 'Target architecture'
+  default: 'ppc64le'
+ work_dir:
+  help: 'Directory used to store temporary files'
+  default: 'workspace'
+ verbose:
+  help: 'Set the scripts to be verbose'
+  default: False
+ log_size:
+  help: 'Size in bytes above which the log file should rotate'
+  default: 2097152
+ http_proxy:
+  help: 'HTTP proxy URL'
+  default: ''
+ result_dir:
+  help: 'Directory used to store results'
+  default: 'result'
+  target_subcommands: ['build-packages', 'build-iso']
+ packages_metadata_repo_url:
+  help: 'Packages metadata git repository URL'
+  default: 'https://github.com/open-power-host-os/versions.git'
+  target_subcommands: ['build-packages', 'build-iso', 'build-release-notes', 'update-versions-readme', 'update-versions', 'update-metapackage']
+ packages_metadata_repo_branch:
+  help: 'Packages metadata git repository branch'
+  default: 'master'
+  target_subcommands: ['build-packages', 'build-iso', 'build-release-notes', 'update-versions-readme', 'update-versions', 'update-metapackage']
+ mock_binary:
+  help: 'Mock binary path'
+  default: '/usr/bin/mock'
+  target_subcommands: ['build-packages', 'build-iso']
+ commit_updates:
+  help: 'Commit file updates to local repository'
+  default: True
+  target_subcommands: ['build-release-notes', 'update-versions', 'update-metapackage', 'update-versions-readme']
+ push_updates:
+  help: 'Push file updates to remote repository'
+  default: True
+  target_subcommands: ['build-release-notes', 'update-versions', 'update-metapackage', 'update-versions-readme']
+ updater_name:
+  help: 'Name used when updating RPM specification files change logs and creating
+        git commits'
+  default: ''
+  target_subcommands: ['build-release-notes', 'update-versions', 'update-metapackage', 'update-versions-readme']
+ updater_email:
+  help: 'Email used when updating RPM specification files change logs and creating
+        git commits'
+  default: ''
+  target_subcommands: ['build-release-notes', 'update-versions', 'update-metapackage', 'update-versions-readme']
+build_packages:
+ help: 'Build packages'
+ packages:
+  help: 'R|Packages to be built. Each package option may have several\n
+         fields, separated by `#` character, and the expected format can\n
+         be one of the following:\n\n
+         package_name#repo_url#branch_name#revision_id (SVN source only)\n
+         package_name#repo_url#reference (Git/Mercurial source only)\n
+         package_name##reference (Git/Mercurial source only)\n
+         package_name\n\n
+         The fields after package name override the corresponding data in the\n
+        first source of the package YAML.'
+  default: []
+ keep_build_dir:
+  help: 'Keep build directory and its logs and artifacts'
+  default: False
+ force_rebuild:
+  help: 'Force the rebuild of packages. The default is to only build packages
+        when they have updated files since the last build results.'
+  default: False
+ mock_args:
+  help: 'Arguments passed to mock command'
+  default:
+   # If the system has less RAM than required, the plugin will be disabled
+   '--enable-plugin=tmpfs
+   --plugin-option=tmpfs:keep_mounted=True
+   --plugin-option=tmpfs:max_fs_size=32g
+   --plugin-option=tmpfs:required_ram_mb=39800'
+ update_packages_repos_before_build:
+  help: 'Do not update code repositories before building'
+  default: True
+build_release_notes:
+ help: 'Build release notes'
+ release_notes_repo_url:
+  help: 'Release notes repository URL'
+  default: 'https://github.com/open-power-host-os/open-power-host-os.github.io.git'
+ release_notes_repo_branch:
+  help: 'Release notes repository branch'
+  default: 'master'
+ push_repo_url:
+  help: 'URL of the repository used for pushing'
+  default: ''
+ push_repo_branch:
+  help: 'Branch of the repository used for pushing'
+  default: 'master'
+build_iso:
+ help: 'Build ISO image'
+ iso_name:
+  help: 'ISO name'
+  default: 'OpenPOWER-Host_OS'
+ mock_args:
+  help: 'Arguments passed to mock command'
+  default: ''
+ packages_dir:
+  help: 'Directory of packages used in the ISO image'
+  default: 'result/latest/packages'
+ automated_install_file:
+  help: 'Path of a kickstart file, used to automate the installation of a RPM-based Linux distribution'
+  default: 'host-os.ks'
+ hostos_packages_groups:
+  help: 'Packages groups in yum repository. Expected format is a dictionary in JSON; key
+        is the package group name, value is the list of packages in the package group'
+  default:
+   virtualization-hypervisor:
+    - 'SLOF'
+    - 'docker'
+    - 'ginger'
+    - 'ginger-base'
+    - 'golang'
+    - 'kernel'
+    - 'kimchi'
+    - 'libvirt'
+    - 'libvirt-daemon-kvm'
+    - 'libvirt-daemon-lxc'
+    - 'libvirt-daemon-qemu'
+    - 'libvirt-devel'
+    - 'libvirt-docs'
+    - 'libvirt-lock-sanlock'
+    - 'libvirt-login-shell'
+    - 'libvirt-nss'
+    - 'libvpd'
+    - 'lsvpd'
+    - 'novnc'
+    - 'ppc64-diag'
+    - 'qemu'
+    - 'qemu-guest-agent'
+    - 'qemu-kvm-tools'
+    - 'servicelog'
+    - 'sos'
+    - 'systemtap'
+    - 'wok'
+ iso_root_fs_packages:
+  help: 'Packages which are installed in ISO root filesystem'
+  default:
+   - 'grub2'
+ iso_root_fs_packages_groups:
+  help: 'Packages groups which are installed in ISO root filesystem'
+  default:
+   - 'base'
+   - 'core'
+   - 'debugging'
+   - 'virtualization-hypervisor'
+   - 'virtualization-tools'
+   - 'network-file-system-client'
+   - 'remote-system-management'
+   - 'virtualization-platform'
+ installable_environments:
+   help: 'An environment is a group of package groups. Those installable environments will be available
+         at the "Sofware selection" screen in the ISO installer, along with the ones that come from the
+         base Linux distribution (e.g. CentOS) yum repository. They will contain a group with the same
+         name, that will in turn contain the packages listed.'
+   default:
+     OpenPOWER Host OS all:
+     - "open-power-host-os-all"
+     OpenPOWER Host OS base:
+     - "open-power-host-os-base"
+     OpenPOWER Host OS container:
+     - "open-power-host-os-container"
+     OpenPOWER Host OS virtualization:
+     - "open-power-host-os-virt"
+     OpenPOWER Host OS virtualization management:
+     - "open-power-host-os-virt-management"
+     OpenPOWER Host OS RAS:
+     - "open-power-host-os-ras"
+ base_distro_minimal_install_groups:
+  help: 'Packages groups that must be present in every base Linux distribution (e.g. CentOS)
+         installation and will be added to every environment'
+  default:
+  - "core"
+ mock_iso_repo_name:
+  help: 'Name of the yum repository, to create from OpenPOWER Host OS packages'
+  default: 'hostos'
+ mock_iso_repo_dir:
+  help: 'Directory path of the yum repository, to create from OpenPOWER Host OS packages'
+  default: '/host-os-repo'
+ distro_repos_urls:
+  help: 'Base Linux distribution yum repositories URLs'
+  default:
+   base: 'http://mirror.centos.org/altarch/7/os/ppc64le/'
+   updates: 'http://mirror.centos.org/altarch/7/updates/ppc64le/'
+   epel: 'http://download.fedoraproject.org/pub/epel/7/ppc64le/'
+update_metapackage:
+ help: 'Update the metapackage dependencies'
+update_versions:
+ help: 'Update packages versions'
+ packages:
+  help: 'Packages to update'
+  default: []
+ push_repo_url:
+  help: 'URL of the repository used for pushing'
+  default: ''
+ push_repo_branch:
+  help: 'Branch of the repository used for pushing'
+  default: 'master'
+update_versions_readme:
+ help: 'Update packages versions table in README'
+ push_repo_url:
+  help: 'URL of the repository used for pushing'
+  default: ''
+ push_repo_branch:
+  help: 'Branch of the repository used for pushing'
+  default: "master"

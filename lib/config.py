@@ -23,132 +23,10 @@ import yaml
 from lib import log_helper
 from lib import utils
 
-LOG_FILE_NAME = 'builds.log'
-RAW_TEXT_ID = "R|"
-BUILD_REPO_ARGS = {
-    ('--packages-metadata-repo-url',):
-        dict(help='Packages metadata git repository URL'),
-    ('--packages-metadata-repo-branch',):
-        dict(help='Packages metadata git repository branch'),
-    ('--http-proxy',):
-        dict(help='HTTP proxy URL'),
-}
-PACKAGE_ARGS = {
-    ('--packages', '-p'):
-        dict(help=RAW_TEXT_ID + "Packages to be built. Each package option may have several\n"
-           "fields, separated by `#` character, and the expected format can\n"
-           "be one of the following:\n\n"
-           "package_name#repo_url#branch_name#revision_id (SVN source only)\n"
-           "package_name#repo_url#reference (Git/Mercurial source only)\n"
-           "package_name##reference (Git/Mercurial source only)\n"
-           "package_name\n\n"
-        "The fields after package name override the corresponding data in the\n"
-        "first source of the package YAML.",
-             nargs='*'),
-}
-PACKAGE_BUILD_ARGS = {
-    ('--no-update-packages-repos-before-build',):
-        dict(help='Do not update code repositories before building',
-             action='store_false', dest='update_packages_repos_before_build'),
-    ('--keep-build-dir',):
-        dict(help='Keep build directory and its logs and artifacts.',
-             action='store_true'),
-    ('--force-rebuild',):
-        dict(help='Force the rebuild of packages. The default is to only '
-             'build packages when they have updated files since the last '
-             'build results.',
-             action='store_true'),
-}
-DISTRO_ARGS = {
-    ('--distro-name',):
-        dict(help='Base Linux distribution'),
-    ('--distro-version',):
-        dict(help='Base Linux distribution version')
-}
-MOCK_ARGS = {
-    ('--mock-binary',):
-        dict(help='Mock binary path'),
-    ('--mock-config',):
-        dict(help='Mock config file'),
-    ('--mock-args',):
-        dict(help='Arguments passed to mock command'),
-}
-RELEASE_NOTES_ARGS = {
-    ('--release-notes-repo-url',):
-        dict(help='Release notes repository URL'),
-    ('--release-notes-repo-branch',):
-        dict(help='Branch of the release notes repository to checkout'),
-}
-PUSH_REPO_ARGS = {
-    ('--no-commit-updates',):
-        dict(help='Commit file updates to local repository', action='store_false',
-             dest='commit_updates'),
-    ('--no-push-updates',):
-        dict(help='Push file updates to remote repository', action='store_false',
-             dest='push_updates'),
-    ('--push-repo-url',):
-        dict(help='URL of the repository used for pushing'),
-    ('--push-repo-branch',):
-        dict(help='Branch of the repository used for pushing'),
-    ('--updater-name',):
-        dict(help='Name used when updating RPM specification files change logs '
-             'and creating git commits'),
-    ('--updater-email',):
-        dict(help='Email used when updating RPM specification files change logs '
-             'and creating git commits'),
-}
-BUILD_ARGS = {
-    ('--result-dir', '-r'):
-        dict(help='Directory to save the results.'),
-}
-ISO_ARGS = {
-    ('--packages-dir', '-d'):
-        dict(help='Directory of packages used in the ISO image.'),
-    ('--iso-name',):
-        dict(help='ISO name.'),
-    ('--log-file',):
-        dict(help='ISO creation log file path.'),
-    ('--automated-install-file',):
-        dict(help='Path of a kickstart file, used to automate the installation of a RPM-based Linux distribution'),
-    ('--installable-environments',):
-        dict(help='Those environments will be available at the "Sofware '
-             'selection" screen, along with the ones that come from the base '
-             'distro (e.g. CentOS) repository. They will contain a group with '
-             'the same name, that will in turn contain the packages listed.'),
-    ('--base-distro-minimal-install-groups',):
-        dict(help='Packages groups that must be present in every base distro '
-             '(e.g. CentOS) installation and will be added to every '
-             'environment.', nargs='*'),
-    ('--iso-root-fs-packages-groups',):
-        dict(help='Packages groups that will be installed in the ISO root '
-             'file system. Groups implicitly created from the '
-             '"--installable-environments" option are automatically added to '
-             'this list.', nargs='*'),
-    ('--iso-root-fs-packages',):
-        dict(help='Packages that will be installed in the ISO root file '
-             'system, in addition to the specified groups.', nargs='*'),
-    ('--mock-iso-repo-name',):
-        dict(help='Name of the yum repository, to create from OpenPOWER Host OS packages'),
-    ('--mock-iso-repo-dir',):
-        dict(help='Directory path of the yum repository, to create from OpenPOWER Host OS packages'),
-    ('--distro-repos-urls',):
-        dict(help='Base Linux distribution yum repositories URLs'),
-}
-SUBCOMMANDS = [
-    ('build-packages', 'Build packages.',
-        [PACKAGE_ARGS, PACKAGE_BUILD_ARGS, MOCK_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS, BUILD_ARGS]),
-    ('build-release-notes', 'Create release notes',
-        [RELEASE_NOTES_ARGS, PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
-    ('update-versions', 'Update packages versions',
-        [PACKAGE_ARGS, PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
-    ('update-metapackage', 'Update the metapackage dependencies',
-        [PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
-    ('update-versions-readme', 'Update the supported software versions table',
-        [PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
-    ('build-iso', 'Build ISO image',
-        [ISO_ARGS, MOCK_ARGS, BUILD_ARGS]),
-]
 
+RAW_TEXT_ID = "R|"
+CONFIG_METADATA_FILE_PATH = "config_metadata.yaml"
+LOG_FILE_NAME = 'builds.log'
 
 config_parser = None
 
@@ -160,6 +38,10 @@ def get_config():
         config_parser.parse()
     return config_parser
 
+# disable argument abbreviation in Python's ArgumentParser class
+class ArgumentParserWithoutAbbrev(argparse.ArgumentParser):
+    def _get_option_tuples(self, option_string):
+        return []
 
 class CustomHelpFormatter(argparse.HelpFormatter):
     def _split_lines(self, text, width):
@@ -178,50 +60,81 @@ class ConfigParser(object):
     """
     def __init__(self):
         # create the top-level parser
-        self.parser = argparse.ArgumentParser(formatter_class=CustomHelpFormatter)
+        self.parser = ArgumentParserWithoutAbbrev(formatter_class=CustomHelpFormatter)
         self._CONF = None
-        self._setup_command_line_parser(SUBCOMMANDS)
+        self._setup_command_line_parser(CONFIG_METADATA_FILE_PATH)
 
     @property
     def CONF(self):
         return self._CONF
 
 
-    def _setup_command_line_parser(self, subcommands):
+    def _setup_command_line_arg_from_config_metadata(self, section, attribute, target_parser):
+
+        argument = attribute.replace("_", "-")
+        argument_default = section[attribute]["default"]
+        argument_type = type(argument_default)
+        argument_help = section[attribute]["help"]
+        action = "store"
+        argument = "--%s" % argument
+        keyword_args = {"help": argument_help}
+        if argument_type is bool:
+            if bool(argument_default):
+                argument = "--no-%s" % argument[2:]
+                action = "store_false"
+            else:
+                action= "store_true"
+        elif argument_type is list:
+            keyword_args["nargs"] = "*"
+        keyword_args["action"] = action
+        keyword_args["dest"] = attribute
+        target_parser.add_argument(argument, **keyword_args)
+
+
+    def _setup_command_line_parser(self, config_metadata_file_path):
         """
         Configures the argument parser object to match the expected
             configuration.
 
         Args:
-            subcommands ([(str, str, [dict])]): subcommands. Each subcommand is
-                a tuple with subcommand name, subcommand help message, subcommand arguments.
-                Each subcommand argument is a dict from a tuple with argument possible names
-                to a dict with argument attributes. See ArgParse documentation for possible
-                values in this dict.
+            config_metadata_file_path (str): config metadata file path
         """
         self.parser.add_argument('--config-file', '-c',
                                  help='Path of the configuration file for build '
                                       'scripts',
                                  default='./config.yaml')
-        self.parser.add_argument('--verbose', '-v',
-                                 help='Set the scripts to be verbose',
-                                 action='store_true')
-        self.parser.add_argument('--log-size',
-                                 help='Size in bytes above which the log file '
-                                 'should rotate', type=int)
-        self.parser.add_argument('--work-dir', '-w',
-                                 help='Directory used to store all temporary '
-                                 'files created during the process.')
 
         subparsers = self.parser.add_subparsers(
             dest="subcommand",
             help="Available subcommands")
-        for command, help_msg, arg_groups in subcommands:
-            command_parser = subparsers.add_parser(command, help=help_msg,
-                                                   formatter_class=CustomHelpFormatter)
-            for arg_group in arg_groups:
-                for arg, options in arg_group.items():
-                    command_parser.add_argument(*arg, **options)
+        _subparsers = {}
+
+        # setup parser from config metadata file
+        with open(config_metadata_file_path) as fh:
+            config_metadata = yaml.safe_load(fh)
+        for section in config_metadata:
+            if section == "common":
+                continue
+            command = section.replace("_", "-")
+            command_help = config_metadata[section]["help"]
+            config_metadata[section].pop("help")
+            _subparsers[command] = subparsers.add_parser(command, help=command_help,
+                                                         formatter_class=CustomHelpFormatter)
+            target_parser = _subparsers[command]
+            for attribute in config_metadata[section]:
+                if attribute == "help":
+                    continue
+                self._setup_command_line_arg_from_config_metadata(config_metadata[section], attribute, target_parser)
+        section = "common"
+        for attribute in config_metadata[section]:
+            if attribute == "help":
+                continue
+            if "target_subcommands" in config_metadata[section][attribute]:
+                for command in config_metadata[section][attribute]["target_subcommands"]:
+                    self._setup_command_line_arg_from_config_metadata(config_metadata[section], attribute, _subparsers[command])
+            else:
+                self._setup_command_line_arg_from_config_metadata(config_metadata[section], attribute, self.parser)
+
 
     def parse_command_line_arguments(self, args):
         """
@@ -272,6 +185,17 @@ class ConfigParser(object):
         return conf
 
 
+    def parse_value_from_str(self, value, _type):
+
+        if _type == str or _type == bool or _type == list:
+            return value
+        # argparse does not have a mechanism to convert a str to a dict,
+        # so we must do it manually
+        elif _type == dict:
+            return json.loads(value)
+        else:
+            raise Exception("Unexpected type %s in value %s" % (_type, value))
+
     def parse(self, command_line_args=None):
         """
         Parse configuration from a YAML configuration file and command line arguments
@@ -283,37 +207,50 @@ class ConfigParser(object):
             dict: Configuration options. Key is option name, value is option value.
         """
 
+        print("ConfigParser::parse(), cmd line args: %s" % command_line_args)
+
         # parse command line and config file
         # parse command line first so we can get config file path
         command_line_args = self.parse_command_line_arguments(command_line_args)
+        print("ConfigParser::parse(), cmd line args 2: %s" % command_line_args)
         config_file = command_line_args["config_file"]
         config = self.parse_config_file(config_file)
 
-        # update subcommand config node with command line subcommand arguments
+        # parse config metadata file
+        CONFIG_METADATA_FILE_PATH = "config_metadata.yaml"
+        with open(CONFIG_METADATA_FILE_PATH) as stream:
+            config_metadata = yaml.safe_load(stream)
+
+        # update subcommand and common config nodes with command line subcommand arguments
         if command_line_args["subcommand"]:
-            node_name = command_line_args["subcommand"].replace("-", "_")
+            command_node_name = command_line_args["subcommand"].replace("-", "_")
             for key, value in command_line_args.items():
-                if key in config[node_name]:
+                if key in config[command_node_name] or key in config["common"]:
                     if value is not None:
-                        value_type = type(config[node_name][key])
-                        if  value_type == str or value_type == bool or value_type == list:
-                            config[node_name][key] = value
-                        elif type(config[node_name][key]) == dict:
-                            config[node_name][key] = json.loads(value)
+                        if key in config["common"]:
+                            node_name = "common"
+                        else:
+                            node_name = command_node_name
+                        parsed_value = self.parse_value_from_str(value, type(config_metadata[node_name][key]["default"]))
+                        config[node_name][key] = parsed_value
                     command_line_args.pop(key)
-        # update common config node with remaining command line arguments
-        node_name = "common"
-        for key, value in command_line_args.items():
-            if key in config[node_name]:
-                if value is not None:
-                    value_type = type(config[node_name][key])
-                    if value_type == str or value_type == bool or value_type == list:
-                        config[node_name][key] = value
-                    elif type(config[node_name][key]) == dict:
-                        config[node_name][key] = json.loads(value)
-                command_line_args.pop(key)
-        # add subcommand to config
+        # add the only argument which is defined in command line, but does not
+        # exist in config file
+        key = "config_file"
+        if key in command_line_args:
+            config["common"][key] = command_line_args[key]
+            command_line_args.pop(key)
+        # remove all configs which are not common and not subcommand-specific
+        for key, value in config.items():
+            command_node = command_line_args["subcommand"].replace("-", "_")
+            if key != command_node and key != "common":
+                del config[key]
+        # add subcommand (automatically defined by argparse) to config
         config["subcommand"] = command_line_args["subcommand"]
+        command_line_args.pop("subcommand")
+
+        if command_line_args:
+            raise Exception("options %s were not parsed from command line" % command_line_args.keys())
 
         self._CONF = config
         return config
