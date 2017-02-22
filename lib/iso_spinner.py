@@ -14,7 +14,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import datetime
-import glob
 import logging
 import os
 
@@ -72,7 +71,7 @@ class MockPungiSpinner(object):
 
         LOG.debug("Copying rpm to spin repo directory")
         packages_dir = self.config.get('packages_dir')
-        rpm_files = glob.glob(os.path.join(packages_dir, "*.rpm"))
+        rpm_files = utils.recursive_glob(packages_dir, "*.rpm")
         self._run_mock_command("--copyin %s %s" %
                                (" ".join(rpm_files), mock_spin_repo_dir))
 
