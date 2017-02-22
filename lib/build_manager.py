@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import os
 
 from lib import config
 from lib import exception
@@ -44,8 +45,11 @@ class BuildManager(object):
 
         # create package builder based on distro
         if distro.name == "CentOS":
-            mock_config_file = CONF.get('build_packages').get(
-                'mock_config').get(distro.name).get(distro.version)
+            mock_config_file = os.path.join(
+                "mock_configs", distro.name, distro.version,
+                "%s-%s-%s.cfg" % (distro.name, distro.version, distro.architecture))
+            if not os.path.isfile(mock_config_file):
+                raise exception.BaseException("Mock config file not found at %s" % mock_config_file)
             package_builder = mockbuilder.Mock(mock_config_file)
         else:
             raise exception.DistributionError()
