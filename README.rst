@@ -62,7 +62,7 @@ Running
 
 ::
 
-$ ./host_os.py build-package --package libvirt
+$ ./host_os.py build-package --packages libvirt
 
 * Build all software
 
