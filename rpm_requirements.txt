@@ -1,8 +1,8 @@
-git
 GitPython
+PyYAML
+git
 lzop
 mock
 nosync
 python-lxml
-PyYAML
 subversion
