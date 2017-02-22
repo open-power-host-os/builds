@@ -179,12 +179,12 @@ class ConfigParser(object):
         self._add_subparser()
 
     def _add_subparser(self):
-        subparser = self.parser.add_subparsers(
+        subparsers = self.parser.add_subparsers(
             dest="subcommand",
             help="Available subcommands")
 
         for command, help_msg, arg_groups in SUBCOMMANDS:
-            parser_command = subparser.add_parser(command, help=help_msg)
+            parser_command = subparsers.add_parser(command, help=help_msg)
             for arg_group in arg_groups:
                 for arg, options in arg_group.items():
                     parser_command.add_argument(*arg, **options)
