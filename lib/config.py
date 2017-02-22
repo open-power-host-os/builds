@@ -16,6 +16,7 @@
 import argparse
 import sys
 
+import json
 import yaml
 
 from lib import log_helper
@@ -105,7 +106,8 @@ ISO_ARGS = {
     ('--automated-install-file',):
         dict(help='Path of a kickstart file, used to automate the installation of a RPM-based Linux distribution'),
     ('--hostos-packages-groups',):
-        dict(help='Packages groups in yum repository'),
+        dict(help='Packages groups in yum repository. Expected format is a dictionary in JSON; key '
+                  'is the package group name, value is the list of packages in the package group'),
     ('--automated-install-packages-groups',):
         dict(help='Packages and packages groups which are installed using automated installation', nargs='*'),
     ('--mock-iso-repo-name',):
@@ -267,14 +269,20 @@ class ConfigParser(object):
             for key, value in command_line_args.items():
                 if key in config[node_name]:
                     if value is not None:
-                        config[node_name][key] = value
+                        if type(config[node_name][key]) == str:
+                            config[node_name][key] = value
+                        elif type(config[node_name][key]) == dict:
+                            config[node_name][key] = json.loads(value)
                     command_line_args.pop(key)
         # update common config node with remaining command line arguments
         node_name = "common"
         for key, value in command_line_args.items():
             if key in config[node_name]:
                 if value is not None:
-                    config[node_name][key] = value
+                    if type(config[node_name][key]) == str:
+                        config[node_name][key] = value
+                    elif type(config[node_name][key]) == dict:
+                        config[node_name][key] = json.loads(value)
                 command_line_args.pop(key)
         # add subcommand to config
         config["subcommand"] = command_line_args["subcommand"]
