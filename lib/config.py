@@ -176,9 +176,9 @@ class ConfigParser(object):
                                  help='Directory used to store all temporary '
                                  'files created during the process.',
                                  default='workspace')
-        self._add_subparser()
+        self._add_subparsers()
 
-    def _add_subparser(self):
+    def _add_subparsers(self):
         subparsers = self.parser.add_subparsers(
             dest="subcommand",
             help="Available subcommands")
