@@ -49,11 +49,18 @@ class MockPungiIsoBuilder(object):
             self.config.get('distro_name'),
             self.config.get('distro_version'),
             self.config.get('architecture'))
-        mock_config_file = self.config.get('mock_config').get(distro.name).get(
-            distro.version)
+        mock_config_file_name = "build-iso-%s-%s-%s.cfg" % (
+            distro.name, distro.version, distro.architecture)
+        mock_config_file_path = os.path.join(
+            "config/mock", distro.name, distro.version,
+            mock_config_file_name)
+        if not os.path.isfile(mock_config_file_path):
+            raise exception.BaseException(
+                "Mock config file not found at %s" % mock_config_file_path)
+
         try:
             utils.run_command("%s -r %s %s %s" % (
-                self.mock_binary, mock_config_file,
+                self.mock_binary, mock_config_file_path,
                 self.mock_args, cmd))
         except exception.SubprocessError:
             LOG.error("Failed to build ISO")

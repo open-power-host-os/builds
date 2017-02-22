@@ -22,9 +22,6 @@ build_packages:
  packages: []
  keep_build_dir: False
  force_rebuild: False
- mock_config:
-  CentOS:
-   '7': "./config/mock/CentOS/7/CentOS-7-ppc64le.cfg"
  mock_args:
    # If the system has less RAM than required, the plugin will be disabled
    "--enable-plugin=tmpfs
@@ -40,9 +37,6 @@ build_release_notes:
  push_repo_branch: "master"
 build_iso:
     iso_name: "OpenPOWER-Host_OS"
-    mock_config:
-     CentOS:
-      '7': "./config/mock/CentOS/7/build-iso-CentOS-7-ppc64le.cfg"
     mock_args:
       # If the system has less RAM than required, the plugin will be disabled
       "--enable-plugin=tmpfs
