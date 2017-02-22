@@ -1,4 +1,3 @@
-bzip2
 git
 GitPython
 lzop
@@ -7,4 +6,3 @@ nosync
 python-lxml
 PyYAML
 subversion
-wget
