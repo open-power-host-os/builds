@@ -17,6 +17,7 @@ import argparse
 import os
 import sys
 
+import json
 import yaml
 
 from lib import log_helper
@@ -294,14 +295,22 @@ class ConfigParser(object):
             for key, value in command_line_args.items():
                 if key in config[node_name]:
                     if value is not None:
-                        config[node_name][key] = value
+                        value_type = type(config[node_name][key])
+                        if  value_type == str or value_type == bool or value_type == list:
+                            config[node_name][key] = value
+                        elif type(config[node_name][key]) == dict:
+                            config[node_name][key] = json.loads(value)
                     command_line_args.pop(key)
         # update common config node with remaining command line arguments
         node_name = "common"
         for key, value in command_line_args.items():
             if key in config[node_name]:
                 if value is not None:
-                    config[node_name][key] = value
+                    value_type = type(config[node_name][key])
+                    if value_type == str or value_type == bool or value_type == list:
+                        config[node_name][key] = value
+                    elif type(config[node_name][key]) == dict:
+                        config[node_name][key] = json.loads(value)
                 command_line_args.pop(key)
         # add subcommand to config
         config["subcommand"] = command_line_args["subcommand"]
