@@ -18,14 +18,14 @@ build_packages:
  packages:
  packages_repos_target_path: "/var/lib/host-os/repositories"
  keep_build_dir: False
- result_dir:  "./result"
+ result_dir: "./result"
  force_rebuild: False
  mock_args:
-   # If the system has less RAM than required, the plugin will be disabled
-   "--enable-plugin=tmpfs
-   --plugin-option=tmpfs:keep_mounted=True
-   --plugin-option=tmpfs:max_fs_size=32g
-   --plugin-option=tmpfs:required_ram_mb=39800"
+  # If the system has less RAM than required, the plugin will be disabled
+  "--enable-plugin=tmpfs
+  --plugin-option=tmpfs:keep_mounted=True
+  --plugin-option=tmpfs:max_fs_size=32g
+  --plugin-option=tmpfs:required_ram_mb=39800"
  update_packages_repos_before_build: True
 build_release_notes:
  release_notes_repo_url: "https://github.com/open-power-host-os/open-power-host-os.github.io.git"
@@ -33,56 +33,56 @@ build_release_notes:
  push_repo_url:
  push_repo_branch: "master"
 build_iso:
-    iso_name: "OpenPOWER-Host_OS"
-    log_file: "/var/log/host-os/iso.log"
-    mock_args:
-    packages_dir: "./result"
-    automated_install_file: "host-os.ks"
-    hostos_packages_groups:
-        virtualization-hypervisor:
-            - "SLOF"
-            - "docker"
-            - "ginger"
-            - "ginger-base"
-            - "golang"
-            - "kernel"
-            - "kimchi"
-            - "libvirt"
-            - "libvirt-daemon-kvm"
-            - "libvirt-daemon-lxc"
-            - "libvirt-daemon-qemu"
-            - "libvirt-devel"
-            - "libvirt-docs"
-            - "libvirt-lock-sanlock"
-            - "libvirt-login-shell"
-            - "libvirt-nss"
-            - "libvpd"
-            - "lsvpd"
-            - "novnc"
-            - "ppc64-diag"
-            - "qemu"
-            - "qemu-guest-agent"
-            - "qemu-kvm-tools"
-            - "servicelog"
-            - "sos"
-            - "systemtap"
-            - "wok"
-    automated_install_packages_groups:
-        - "@base"
-        - "@core"
-        - "@debugging"
-        - "@virtualization-hypervisor"
-        - "@virtualization-tools"
-        - "@network-file-system-client"
-        - "@remote-system-management"
-        - "@virtualization-platform"
-        - "grub2"
-    mock_iso_repo_name: "hostos"
-    mock_iso_repo_dir: "/host-os-repo"
-    distro_repos_urls:
-        base: "http://mirror.centos.org/altarch/7/os/ppc64le/"
-        updates: "http://mirror.centos.org/altarch/7/updates/ppc64le/"
-        epel: "http://download.fedoraproject.org/pub/epel/7/ppc64le/"
+ iso_name: "OpenPOWER-Host_OS"
+ log_file: "/var/log/host-os/iso.log"
+ mock_args:
+ packages_dir: "./result"
+ automated_install_file: "host-os.ks"
+ hostos_packages_groups:
+  virtualization-hypervisor:
+   - "SLOF"
+   - "docker"
+   - "ginger"
+   - "ginger-base"
+   - "golang"
+   - "kernel"
+   - "kimchi"
+   - "libvirt"
+   - "libvirt-daemon-kvm"
+   - "libvirt-daemon-lxc"
+   - "libvirt-daemon-qemu"
+   - "libvirt-devel"
+   - "libvirt-docs"
+   - "libvirt-lock-sanlock"
+   - "libvirt-login-shell"
+   - "libvirt-nss"
+   - "libvpd"
+   - "lsvpd"
+   - "novnc"
+   - "ppc64-diag"
+   - "qemu"
+   - "qemu-guest-agent"
+   - "qemu-kvm-tools"
+   - "servicelog"
+   - "sos"
+   - "systemtap"
+   - "wok"
+ automated_install_packages_groups:
+  - "@base"
+  - "@core"
+  - "@debugging"
+  - "@virtualization-hypervisor"
+  - "@virtualization-tools"
+  - "@network-file-system-client"
+  - "@remote-system-management"
+  - "@virtualization-platform"
+  - "grub2"
+ mock_iso_repo_name: "hostos"
+ mock_iso_repo_dir: "/host-os-repo"
+ distro_repos_urls:
+  base: "http://mirror.centos.org/altarch/7/os/ppc64le/"
+  updates: "http://mirror.centos.org/altarch/7/updates/ppc64le/"
+  epel: "http://download.fedoraproject.org/pub/epel/7/ppc64le/"
 update_versions:
  push_repo_url:
  push_repo_branch: "master"
