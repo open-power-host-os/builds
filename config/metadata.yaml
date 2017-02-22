@@ -1,0 +1,267 @@
+options:
+  architecture:
+    help: Target architecture
+    default: ppc64le
+  automated_install_file:
+    help: Path of a kickstart file, used to automate the installation of an
+      RPM-based Linux distribution
+    default: host-os.ks
+  commit_updates:
+    help: Commit file updates to local repository
+    default: True
+    action: store_false
+  distro_name:
+    help: Base Linux distribution name
+    default: CentOS
+  distro_repos_urls:
+    help: Base Linux distribution yum repositories URLs
+    default:
+      base: http://mirror.centos.org/altarch/7/os/ppc64le/
+      updates: http://mirror.centos.org/altarch/7/updates/ppc64le/
+      epel: http://download.fedoraproject.org/pub/epel/7/ppc64le/
+      extras: http://mirror.centos.org/altarch/7/extras/ppc64le/
+  distro_version:
+    help: Base Linux distribution version
+    default: '7'
+  force_rebuild:
+    help: Force the rebuild of packages. The default is to only build packages
+      when they have updated files since the last build results.
+    default: False
+    action: store_true
+  http_proxy:
+    help: HTTP proxy URL
+    default: ''
+  installable_environments:
+    help: An environment is a group of package groups. Those
+      installable environments will be available at the
+      "Sofware selection" screen in the ISO installer, along with the
+      ones that come from the base Linux distribution (e.g. CentOS) yum
+      repository. They will contain a group with the same name, that will
+      in turn contain the packages listed. Those groups must be available
+      in the ISO yum repository in order to show up.
+    default:
+      OpenPOWER Host OS all:
+      - open-power-host-os-all
+      OpenPOWER Host OS base:
+      - open-power-host-os-base
+      OpenPOWER Host OS container:
+      - open-power-host-os-container
+      OpenPOWER Host OS virtualization:
+      - open-power-host-os-virt
+      OpenPOWER Host OS virtualization management:
+      - open-power-host-os-virt-management
+      OpenPOWER Host OS RAS:
+      - open-power-host-os-ras
+  iso_name:
+    help: ISO name
+    default: OpenPOWER-Host_OS
+  iso_repo_packages:
+    help: Packages that will be available in the ISO yum
+      repository, in addition to the ones required by a minimal
+      installation of the base distro.
+    default: []
+  iso_repo_packages_groups:
+    help: Packages groups that will be available in the ISO yum
+      repository, in addition to the ones required by a minimal
+      installation of the base distro.
+    default:
+    - OpenPOWER Host OS all
+    - OpenPOWER Host OS base
+    - OpenPOWER Host OS container
+    - OpenPOWER Host OS virtualization
+    - OpenPOWER Host OS virtualization management
+    - OpenPOWER Host OS RAS
+  keep_build_dir:
+    help: Keep build directory and its logs and artifacts
+    default: False
+    action: store_true
+  log_size:
+    help: Size in bytes above which the log file should rotate
+    default: 2097152
+  mock_args:
+    help: Arguments passed to mock command
+    # If the system has less RAM than required, the plugin will be disabled
+    default:
+      --enable-plugin=tmpfs
+      --plugin-option=tmpfs:keep_mounted=True
+      --plugin-option=tmpfs:max_fs_size=32g
+      --plugin-option=tmpfs:required_ram_mb=39800
+      --verbose
+  mock_binary:
+    help: Mock binary path
+    default: /usr/bin/mock
+  mock_iso_repo_dir:
+    help: Directory path of the yum repository, to create from OpenPOWER
+      Host OS packages
+    default: /host-os-repo
+  mock_iso_repo_name:
+    help: Name of the yum repository, to create from OpenPOWER Host OS packages
+    default: host_os
+  packages:
+    short_option_string: -p
+    help: >
+      R|Packages to be built. Each package option may have several\n
+      fields, separated by `#` character, and the expected format can\n
+      be one of the following:\n\n
+      package_name#repo_url#branch_name#revision_id (SVN source only)\n
+      package_name#repo_url#reference (Git/Mercurial source only)\n
+      package_name##reference (Git/Mercurial source only)\n
+      package_name\n\n
+      The fields after package name override the corresponding data in the\n
+      first source of the package YAML.
+    default: []
+  packages_dir:
+    short_option_string: -d
+    help: Directory of packages used in the ISO image
+    default: result/packages/latest
+  packages_metadata_repo_branch:
+    help: Packages metadata git repository branch
+    default: master
+  packages_metadata_repo_refspecs:
+    help: Packages metadata git repository refspecs to fetch. Refer
+      to https://git-scm.com/book/id/v2/Git-Internals-The-Refspec
+    default:
+    - +refs/heads/*:refs/remotes/origin/*
+    - +refs/pull/*:refs/remotes/origin/pr/*
+  packages_metadata_repo_url:
+    help: Packages metadata git repository URL
+    default: https://github.com/open-power-host-os/versions.git
+  pungi_args:
+    help: Arguments passed to pungi command
+    default: --isfinal --nosource --nodebuginfo
+  pungi_binary:
+    help: Pungi binary path
+    default: /usr/bin/pungi
+  push_repo_branch:
+    help: Branch of the repository used for pushing
+    default: master
+  push_repo_url:
+    help: URL of the repository used for pushing
+    default: ''
+  push_updates:
+    help: Push file updates to remote repository
+    default: True
+    action: store_false
+  release_notes_repo_branch:
+    help: Release notes repository branch
+    default: master
+  release_notes_repo_url:
+    help: Release notes repository URL
+    default: https://github.com/open-power-host-os/open-power-host-os.github.io.git
+  result_dir:
+    short_option_string: -r
+    help: Directory used to store results
+    default: result
+  update_packages_repos_before_build:
+    help: Do not update code repositories before building
+    default: True
+    action: store_false
+  updater_email:
+    help: Email used when updating RPM specification files change logs and
+      creating git commits
+    default: ''
+  updater_name:
+    help: Name used when updating RPM specification files change logs and
+      creating git commits
+    default: ''
+  verbose:
+    short_option_string: -v
+    help: Set the scripts to be verbose
+    default: False
+    action: store_true
+  work_dir:
+    short_option_string: -w
+    help: Directory used to store temporary files
+    default: workspace
+
+commands:
+  host_os:
+    options:
+    - architecture
+    - distro_name
+    - distro_version
+    - http_proxy
+    - log_size
+    - verbose
+    - work_dir
+  build-packages:
+    help: Build packages
+    options:
+    - force_rebuild
+    - keep_build_dir
+    - mock_args
+    - mock_binary
+    - packages
+    - packages_metadata_repo_branch
+    - packages_metadata_repo_refspecs
+    - packages_metadata_repo_url
+    - result_dir
+    - update_packages_repos_before_build
+  build-release-notes:
+    help: Build release notes
+    options:
+    - commit_updates
+    - packages_metadata_repo_branch
+    - packages_metadata_repo_refspecs
+    - packages_metadata_repo_url
+    - push_repo_branch
+    - push_repo_url
+    - push_updates
+    - release_notes_repo_branch
+    - release_notes_repo_url
+    - updater_email
+    - updater_name
+  build-iso:
+    help: Build ISO image
+    options:
+    - automated_install_file
+    - distro_repos_urls
+    - installable_environments
+    - iso_name
+    - iso_repo_packages
+    - iso_repo_packages_groups
+    - mock_args
+    - mock_binary
+    - mock_iso_repo_dir
+    - mock_iso_repo_name
+    - packages_dir
+    - pungi_args
+    - pungi_binary
+    - result_dir
+  update-metapackage:
+    help: Update the metapackage dependencies
+    options:
+    - commit_updates
+    - packages_metadata_repo_branch
+    - packages_metadata_repo_refspecs
+    - packages_metadata_repo_url
+    - push_repo_branch
+    - push_repo_url
+    - push_updates
+    - updater_email
+    - updater_name
+  update-versions:
+    help: Update packages versions
+    options:
+    - commit_updates
+    - packages
+    - packages_metadata_repo_branch
+    - packages_metadata_repo_refspecs
+    - packages_metadata_repo_url
+    - push_repo_branch
+    - push_repo_url
+    - push_updates
+    - updater_email
+    - updater_name
+  update-versions-readme:
+    help: Update packages versions table in README
+    options:
+    - commit_updates
+    - packages_metadata_repo_branch
+    - packages_metadata_repo_refspecs
+    - packages_metadata_repo_url
+    - push_repo_branch
+    - push_repo_url
+    - push_updates
+    - updater_email
+    - updater_name
