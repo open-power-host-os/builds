@@ -41,8 +41,12 @@ class MockPungiIsoBuilder(object):
             self.common_config.get('distro_name'),
             self.common_config.get('distro_version'),
             self.common_config.get('arch_and_endianness'))
-        mock_config_file = self.config.get('mock_config').get(distro.lsb_name).get(
-            distro.version)
+        mock_config_file = os.path.join(
+            "mock_configs", distro.lsb_name, distro.version,
+            "build-iso-%s-%s-%s.cfg" % (distro.lsb_name, distro.version, distro.arch_and_endianness))
+        if not os.path.isfile(mock_config_file):
+            raise exception.BaseException("Mock config file not found at %s" % mock_config_file)
+
         try:
             utils.run_command("%s -r %s %s %s" % (
                 self.mock_binary, mock_config_file,

@@ -37,6 +37,7 @@ class LinuxDistribution(object):
         if arch_and_endianness.upper() not in SUPPORTED_ARCH_AND_ENDIANNESS:
             raise exception.DistributionVersionNotSupportedError(
                 msg="Endianness not supported: %s" % arch_and_endianness)
+        self.arch_and_endianness = arch_and_endianness
 
         # NOTE(maurosr): to support multiple builds of a same version
         for supported_version in self.supported_versions:
