@@ -58,11 +58,12 @@ $ sudo usermod -a -G mock $(whoami)
 Running
 -------
 
-* Build a single package
+* Build a single or multiple packages
 
 ::
 
-$ ./host_os.py build-package --packages libvirt
+$ ./host_os.py build-package --packages kernel libvirt
+
 
 * Build all software
 
