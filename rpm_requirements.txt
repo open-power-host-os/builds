@@ -1,10 +1,10 @@
-bzip2
-git
 GitPython
+PyYAML
+git
 lzop
 mock
 nosync
 python-lxml
-PyYAML
+rpm-build
+rpmdevtools
 subversion
-wget
