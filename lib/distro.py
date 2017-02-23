@@ -34,10 +34,10 @@ class LinuxDistribution(object):
         distro.
         """
         self.lsb_name = name
-        self.package_builder = None
         if arch_and_endianness.upper() not in SUPPORTED_ARCH_AND_ENDIANNESS:
             raise exception.DistributionVersionNotSupportedError(
                 msg="Endianness not supported: %s" % arch_and_endianness)
+        self.arch_and_endianness = arch_and_endianness
 
         # NOTE(maurosr): to support multiple builds of a same version
         for supported_version in self.supported_versions:
@@ -49,32 +49,3 @@ class LinuxDistribution(object):
                 distribution=name, version=version)
         LOG.info("Distribution detected: %(lsb_name)s %(version)s" %
                  vars(self))
-
-    def build_packages(self, packages):
-        """
-        This is were distro and builder interact and produce the packages we
-        want.
-        """
-        self.package_builder.initialize()
-        for package in packages:
-            if package.force_rebuild:
-                LOG.info("%s: Forcing rebuild." % package.name)
-                build_package = True
-            elif package.needs_rebuild():
-                build_package = True
-            else:
-                LOG.info("%s: Skipping rebuild." % package.name)
-                build_package = False
-
-            if build_package:
-                package.lock()
-                package.download_files(recurse=False)
-                self.package_builder.prepare_sources(package)
-                package.unlock()
-                self.package_builder.build(package)
-            self.package_builder.copy_results(package)
-
-        self.clean(packages)
-
-    def clean(self, packages):
-        self.package_builder.clean()

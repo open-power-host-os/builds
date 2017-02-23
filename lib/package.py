@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from functools import partial
 from functools import total_ordering
 import fcntl
 import logging
@@ -72,7 +71,7 @@ class Package(object):
         self.repository = None
         self.build_files = None
         self.download_build_files = []
-        locks_dir = CONF.get('default').get('repositories_path')
+        locks_dir = CONF.get('build_packages').get('packages_repos_target_path')
         self.lock_file_path = os.path.join(
             locks_dir, self.name + ".lock")
         self.force_rebuild = force_rebuild
@@ -81,14 +80,14 @@ class Package(object):
         # versions of package metadata. This keeps compatibility.
         OLD_DEPENDENCIES_DIRS = ["build_dependencies", "dependencies"]
         PACKAGES_DIRS = [""] + OLD_DEPENDENCIES_DIRS
-        versions_repo_url = CONF.get('default').get('build_versions_repository_url')
+        versions_repo_url = CONF.get('common').get('packages_metadata_repo_url')
         versions_repo_name = os.path.basename(os.path.splitext(versions_repo_url)[0])
-        build_versions_repo_dir = os.path.join(
-            CONF.get('default').get('build_versions_repo_dir'),
+        versions_repo_target_path = os.path.join(
+            CONF.get('common').get('packages_metadata_repo_target_path'),
             versions_repo_name)
         for rel_packages_dir in PACKAGES_DIRS:
             packages_dir = os.path.join(
-                build_versions_repo_dir, rel_packages_dir)
+                versions_repo_target_path, rel_packages_dir)
             package_dir = os.path.join(packages_dir, self.name)
             package_file = os.path.join(package_dir, self.name + ".yaml")
             if os.path.isfile(package_file):
@@ -99,7 +98,30 @@ class Package(object):
             raise exception.PackageDescriptorError(
                 "Failed to find %s's YAML descriptor" % self.name)
 
+        # load package metadata YAML file
         self._load()
+
+        # get global config information which may override YAML
+        packages = CONF.get('build_packages').get('packages') or []
+        for package in packages:
+            if package.startswith(name):
+                if package == name:
+                    break
+                else:
+                    package_parts = package.split("#")
+                    # assume that first source is the main one and it is always
+                    # desired to override it
+                    source_type = self.sources[0].keys()[0]
+                    if package_parts[1]:
+                        self.sources[0][source_type]["src"] = package_parts[1]
+                    if len(package_parts) == 4:
+                        if package_parts[2]:
+                           self.sources[0][source_type]["branch"] = package_parts[2]
+                        if package_parts[3]:
+                           self.sources[0][source_type]["commit_id"] = package_parts[3]
+                    elif len(package_parts) == 3:
+                        if package_parts[2]:
+                           self.sources[0][source_type]["commit_id"] = package_parts[2]
 
     def __eq__(self, other):
         return self.name == other.name
@@ -116,10 +138,12 @@ class Package(object):
         Download package source code and build files.
         Optionally, do the same for its dependencies, recursively.
         """
-        # Download all package sources
-        repositories_path = CONF.get('default').get('repositories_path')
-        download_f = partial(package_source.download, directory=repositories_path, local_copy_subdir_name=self.name)
-        self.sources = map(download_f, self.sources)
+        repositories_path = CONF.get('build_packages').get('packages_repos_target_path')
+        update_packages_repos = CONF.get('build_packages').get('update_packages_repos_before_build')
+        for source in self.sources:
+            if ['url'] not in source.keys() and update_packages_repos:
+                package_source.download(source, directory=repositories_path,
+                                        local_copy_subdir_name=self.name)
 
         # This is kept for backwards compatibility with older
         # 'versions' repositories.
@@ -135,8 +159,7 @@ class Package(object):
         LOG.info("%s: Downloading source code from '%s'." %
                  (self.name, self.clone_url))
         self._setup_repository(
-            dest=CONF.get('default').get('repositories_path'),
-            branch=CONF.get('default').get('branch'))
+            dest=CONF.get('build_packages').get('packages_repos_target_path'))
 
     def _load(self):
         """

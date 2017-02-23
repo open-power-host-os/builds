@@ -21,11 +21,11 @@ from lib import config
 from lib import exception
 from lib.utils import is_package_installed
 from tools import build_iso
-from tools import build_package
-from tools import create_release_notes
+from tools import build_packages
+from tools import build_release_notes
 from tools import setup_environment
+from tools import update_versions
 from tools import update_versions_in_readme
-from tools import upgrade_versions
 
 INSUFFICIENT_PRIVILEGE_ERROR = 3
 TOO_MUCH_PRIVILEGE_ERROR = 4
@@ -33,9 +33,9 @@ MISSING_PACKAGES_ERROR = 5
 REQUIRED_PACKAGES_FILE_PATH = "rpm_requirements.txt"
 LOG = logging.getLogger(__name__)
 SUBCOMMANDS = {
-    'build-package': build_package,
-    'release-notes': create_release_notes,
-    'upgrade-versions': upgrade_versions,
+    'build-packages': build_packages,
+    'build-release-notes': build_release_notes,
+    'update-versions': update_versions,
     'update-versions-readme': update_versions_in_readme,
     'set-env': setup_environment,
     'build-iso': build_iso,
@@ -44,7 +44,7 @@ SUBCOMMANDS = {
 
 if __name__ == '__main__':
     CONF = config.setup_default_config()
-    subcommand = CONF.get('default').get('subcommand')
+    subcommand = CONF.get('subcommand')
 
     # validate if all required packages are installed
     with open(REQUIRED_PACKAGES_FILE_PATH) as f:
