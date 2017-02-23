@@ -205,6 +205,12 @@ class RPM_Package(Package):
                     dep_name, self.distro, force_rebuild=self.force_rebuild)
                 self.build_dependencies.append(dep)
 
+            # keeps backward compatibility with old yaml files which have build
+            # dependencies listed as install dependencies
+            if self.distro.version == "7.2":
+                self.build_dependencies = list(set(
+                    self.build_dependencies + self.install_dependencies))
+
             default_rpm_macros_file_rel_path = os.path.join(
                 self.distro.lsb_name, self.distro.version, "rpmmacro")
             rpm_macros_file_rel_path = files.get('rpmmacro', default_rpm_macros_file_rel_path)
