@@ -74,6 +74,8 @@ class LinuxDistribution(object):
                 self.package_builder.build(package)
             self.package_builder.copy_results(package)
 
+        self.package_builder.create_latest_symlink_result_dir()
+
         self.clean(packages)
 
     def clean(self, packages):

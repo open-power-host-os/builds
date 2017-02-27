@@ -25,6 +25,7 @@ from lib import build_system
 from lib import exception
 from lib import package_source
 from lib import utils
+from lib.constants import LATEST_DIR
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
@@ -189,3 +190,13 @@ class Mock(build_system.PackageBuilder):
             CONF.get('default').get('result_dir'), 'packages',
             self.timestamp, package.name)
         self._copy_rpms(package.build_cache_dir, package_build_results_dir)
+
+    def create_latest_symlink_result_dir(self):
+        """
+        Create latest symlink pointing to the current result directory.
+        """
+        latest_package_build_results_dir = os.path.join(
+            CONF.get('default').get('result_dir'), 'packages',
+            LATEST_DIR)
+        utils.force_symlink(self.timestamp,
+                            latest_package_build_results_dir)

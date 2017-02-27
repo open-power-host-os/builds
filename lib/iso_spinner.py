@@ -21,6 +21,7 @@ from lib import exception
 from lib import utils
 from lib import distro_utils
 from lib import packages_groups_xml_creator
+from lib.constants import LATEST_DIR
 
 LOG = logging.getLogger(__name__)
 
@@ -29,9 +30,9 @@ class MockPungiSpinner(object):
 
     def __init__(self, config):
         self.work_dir = config.get('default').get('work_dir')
+        self.timestamp = datetime.datetime.now().isoformat()
         self.result_dir = os.path.join(config.get('default').get('result_dir'),
-                                       'iso',
-                                       datetime.datetime.now().isoformat())
+                                       'iso', self.timestamp)
         self.config = config.get("iso")
         self.distro = self.config.get("iso_name")
         self.version = datetime.date.today().strftime("%y%m%d")
@@ -136,6 +137,8 @@ class MockPungiSpinner(object):
 
     def _save(self):
         utils.create_directory(self.result_dir)
+        latest_dir = os.path.join(os.path.dirname(self.result_dir), LATEST_DIR)
+        utils.force_symlink(self.timestamp, latest_dir)
 
         iso_file = "%s-DVD-%s-%s.iso" % (self.distro, self.arch, self.version)
         checksum_file = ("%s-%s-%s-CHECKSUM" %

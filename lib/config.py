@@ -86,7 +86,7 @@ PUSH_REPO_ARGS = {
 ISO_ARGS = {
     ('--packages-dir', '-d'):
         dict(help='Directory of packages used in the ISO image.',
-             default='./result'),
+             default='result/packages/latest'),
 }
 BUILD_ARGS = {
     ('--result-dir', '-r'):

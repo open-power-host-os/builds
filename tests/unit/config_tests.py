@@ -51,7 +51,7 @@ class TestConfigParser(unittest.TestCase):
         (['release-notes'], 'push_repo_branch', 'master'),
         (['release-notes'], 'updater_name', None),
         (['release-notes'], 'updater_email', None),
-        (['build-iso'], 'packages_dir', './result'),
+        (['build-iso'], 'packages_dir', 'result/packages/latest'),
         (['build-iso'], 'mock_args', ''),
         (['upgrade-versions'], 'commit_updates', True),
         (['upgrade-versions'], 'push_updates', True),

@@ -25,7 +25,7 @@ default:
 iso:
     iso_name: "OpenPOWER-Host_OS"
     mock_config: "./mock_configs/CentOS/7/spin-iso-CentOS-7-ppc64le.cfg"
-    packages_dir: "./result"
+    packages_dir: "result/packages/latest"
     kickstart_file: "host-os.ks"
     hostos_packages_groups:
         virtualization-hypervisor:
