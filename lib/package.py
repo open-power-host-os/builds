@@ -26,12 +26,14 @@ from lib import exception
 from lib import package_source
 from lib import repository
 from lib import utils
+from lib.constants import REPOSITORIES_DIR
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 
-# TODO: make this configurable by a base dir parameter
-BUILD_CACHE_DIR = "cache"
+BUILD_CACHE_DIR = os.path.join(CONF.get('default').get('work_dir'), "cache")
+PACKAGES_REPOS_TARGET_PATH = os.path.join(CONF.get('default').get('work_dir'),
+                                          REPOSITORIES_DIR)
 
 
 @total_ordering
@@ -72,9 +74,9 @@ class Package(object):
         self.repository = None
         self.build_files = None
         self.download_build_files = []
-        locks_dir = CONF.get('default').get('repositories_path')
+        utils.create_directory(PACKAGES_REPOS_TARGET_PATH)
         self.lock_file_path = os.path.join(
-            locks_dir, self.name + ".lock")
+            PACKAGES_REPOS_TARGET_PATH, self.name + ".lock")
         self.force_rebuild = force_rebuild
 
         # Dependencies packages may be present in those directories in older
@@ -84,7 +86,7 @@ class Package(object):
         versions_repo_url = CONF.get('default').get('build_versions_repository_url')
         versions_repo_name = os.path.basename(os.path.splitext(versions_repo_url)[0])
         build_versions_repo_dir = os.path.join(
-            CONF.get('default').get('build_versions_repo_dir'),
+            PACKAGES_REPOS_TARGET_PATH,
             versions_repo_name)
         for rel_packages_dir in PACKAGES_DIRS:
             packages_dir = os.path.join(
@@ -117,8 +119,7 @@ class Package(object):
         Optionally, do the same for its dependencies, recursively.
         """
         # Download all package sources
-        repositories_path = CONF.get('default').get('repositories_path')
-        download_f = partial(package_source.download, directory=repositories_path, local_copy_subdir_name=self.name)
+        download_f = partial(package_source.download, directory=PACKAGES_REPOS_TARGET_PATH, local_copy_subdir_name=self.name)
         self.sources = map(download_f, self.sources)
 
         # This is kept for backwards compatibility with older
@@ -135,7 +136,7 @@ class Package(object):
         LOG.info("%s: Downloading source code from '%s'." %
                  (self.name, self.clone_url))
         self._setup_repository(
-            dest=CONF.get('default').get('repositories_path'),
+            dest=PACKAGES_REPOS_TARGET_PATH,
             branch=CONF.get('default').get('branch'))
 
     def _load(self):

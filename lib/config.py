@@ -22,17 +22,15 @@ import yaml
 
 from lib import log_helper
 from lib import utils
+from lib.constants import REPOSITORIES_DIR
 
 LOG = logging.getLogger(__name__)
+LOG_FILE_NAME = 'builds.log'
 BUILD_REPO_ARGS = {
     ('--build-versions-repository-url',):
         dict(help='Packages metadata git repository URL'),
     ('--build-version',):
         dict(help='Packages metadata git repository branch'),
-    ('--build-versions-repo-dir',):
-        dict(help='Directory to clone the packages metadata git repository. '
-             'A subdirectory with the name of the git repository will be created here',
-             default='.'),
     ('--http-proxy',):
         dict(help='HTTP proxy URL'),
 }
@@ -40,12 +38,6 @@ PACKAGE_ARGS = {
     ('--packages', '-p'):
         dict(help='Packages to be built',
              nargs='*'),
-    ('--result-dir', '-r'):
-        dict(help='Directory to save the RPMs.',
-             default='./result'),
-    ('--repositories-path', '-R'):
-        dict(help='Directory where to clone code repositories',
-             default='/var/lib/host-os/repositories'),
     ('--keep-builddir',):
         dict(help='Keep build directory and its logs and artifacts.',
              action='store_true'),
@@ -91,29 +83,27 @@ PUSH_REPO_ARGS = {
         dict(help='Email used when updating RPM specification files change logs '
              'and creating git commits'),
 }
-SETUP_ENVIRONMENT_ARGS = {
-    ('--user', '-u'):
-        dict(help='User login that will run Host OS commands',
-             required=True),
-}
 ISO_ARGS = {
     ('--packages-dir', '-d'):
         dict(help='Directory of packages used in the ISO image.',
-             default='./result'),
+             default='result/packages/latest'),
+}
+BUILD_ARGS = {
+    ('--result-dir', '-r'):
+        dict(help='Directory to save the RPMs.',
+             default='result'),
 }
 SUBCOMMANDS = [
     ('build-package', 'Build packages.',
-        [PACKAGE_ARGS, MOCK_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
+        [PACKAGE_ARGS, MOCK_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS, BUILD_ARGS]),
     ('release-notes', 'Create release notes',
         [RELEASE_NOTES_ARGS, PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
     ('upgrade-versions', 'Upgrade packages versions',
         [PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
     ('update-versions-readme', 'Update the supported software versions table',
         [PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
-    ('set-env', 'Setup user and directory for build scripts',
-        [SETUP_ENVIRONMENT_ARGS]),
     ('build-iso', 'Build ISO image',
-        [ISO_ARGS, MOCK_ARGS]),
+        [ISO_ARGS, MOCK_ARGS, BUILD_ARGS]),
 ]
 
 
@@ -154,7 +144,8 @@ def discover_packages():
     versions_repo_url = config.get('build_versions_repository_url')
     versions_repo_name = os.path.basename(os.path.splitext(versions_repo_url)[0])
     build_versions_repo_dir = os.path.join(
-        config.get('build_versions_repo_dir'),
+        config.get('work_dir'),
+        REPOSITORIES_DIR,
         versions_repo_name)
     package_list = []
     try:
@@ -198,15 +189,16 @@ class ConfigParser(object):
                                       'scripts',
                                  # NOTE(maurosr): move this to /etc in the future
                                  default='./config.yaml')
-        self.parser.add_argument('--log-file', '-l',
-                                 help='Log file',
-                                 default='/var/log/host-os/builds.log')
         self.parser.add_argument('--verbose', '-v',
                                  help='Set the scripts to be verbose',
                                  action='store_true')
         self.parser.add_argument('--log-size',
                                  help='Size in bytes above which the log file '
                                  'should rotate', type=int, default=2<<20)
+        self.parser.add_argument('--work-dir', '-w',
+                                 help='Directory used to store all temporary '
+                                 'files created during the process.',
+                                 default='workspace')
         self._add_subparser()
 
     def _add_subparser(self):
@@ -291,7 +283,9 @@ def setup_default_config():
         print("Failed to parse settings")
         sys.exit(2)
 
-    log_helper.LogHelper(log_file_path=CONF.get('default').get('log_file'),
+    log_file_path = os.path.join(CONF.get('default').get('work_dir'),
+                                 LOG_FILE_NAME)
+    log_helper.LogHelper(log_file_path=log_file_path,
                          verbose=CONF.get('default').get('verbose'),
                          rotate_size=CONF.get('default').get('log_size'))
 

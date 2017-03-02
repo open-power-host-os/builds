@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import errno
 import fnmatch
 import logging
 import os
@@ -191,3 +192,20 @@ def replace_str_in_file(file_path, search, replacement):
         for line in lines:
             line = line.replace(search, replacement)
             f.write(line)
+
+
+def force_symlink(target_path, link_path):
+    """
+    Create a symbolic link to the target path, deleting it beforehand if it
+    already exists.
+
+    Args:
+        target_path (str): original source path
+        link_path (str): linked path
+    """
+    try:
+        os.symlink(target_path, link_path)
+    except OSError, e:
+        if e.errno == errno.EEXIST:
+            os.remove(link_path)
+            os.symlink(target_path, link_path)

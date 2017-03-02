@@ -25,6 +25,7 @@ from lib import build_system
 from lib import exception
 from lib import package_source
 from lib import utils
+from lib.constants import LATEST_DIR
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
@@ -37,7 +38,6 @@ class Mock(build_system.PackageBuilder):
         binary_file = CONF.get('default').get('mock_binary')
         extra_args = CONF.get('default').get('mock_args')
         self.build_dir = None
-        self.build_results_dir = CONF.get('default').get('result_dir')
         self.archive = None
         self.timestamp = datetime.datetime.now().isoformat()
         self.common_mock_args = (
@@ -149,7 +149,8 @@ class Mock(build_system.PackageBuilder):
 
     def _create_build_directory(self, package):
         self.build_dir = os.path.join(
-            os.getcwd(), 'build', self.timestamp, package.name)
+            os.path.abspath(CONF.get('default').get('work_dir')), 'mock_build',
+            self.timestamp, package.name)
         os.makedirs(self.build_dir)
         os.chmod(self.build_dir, 0777)
 
@@ -186,5 +187,16 @@ class Mock(build_system.PackageBuilder):
             package(Package): package whose result files will be copied
         """
         package_build_results_dir = os.path.join(
-            self.build_results_dir, package.name)
+            CONF.get('default').get('result_dir'), 'packages',
+            self.timestamp, package.name)
         self._copy_rpms(package.build_cache_dir, package_build_results_dir)
+
+    def create_latest_symlink_result_dir(self):
+        """
+        Create latest symlink pointing to the current result directory.
+        """
+        latest_package_build_results_dir = os.path.join(
+            CONF.get('default').get('result_dir'), 'packages',
+            LATEST_DIR)
+        utils.force_symlink(self.timestamp,
+                            latest_package_build_results_dir)
