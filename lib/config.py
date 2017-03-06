@@ -87,7 +87,7 @@ PUSH_REPO_ARGS = {
 }
 BUILD_ARGS = {
     ('--result-dir', '-r'):
-        dict(help='Directory to save the RPMs.',
+        dict(help='Directory to save the results.',
              default='result'),
 }
 ISO_ARGS = {
