@@ -28,12 +28,6 @@ class Scheduler(object):
     This class basically returns a tuple containing the best order to build
     things.
     """
-    def __call__(self, packages):
-        self.packages = packages
-        LOG.info("Scheduling packages and their dependecies: %s" % packages)
-        ordered_packages = self._dfs(packages, [])
-        LOG.debug("Scheduled order: %s" % ordered_packages)
-        return tuple(ordered_packages)
 
     def _dfs(self, packages, visited):
         """
@@ -57,3 +51,10 @@ class Scheduler(object):
                 order.append(p)
             order.extend(self._dfs(packages[1:], visited))
         return list(OrderedDict.fromkeys(order))
+
+    def schedule(self, packages):
+        self.packages = packages
+        LOG.info("Scheduling packages and their dependecies: %s" % packages)
+        ordered_packages = self._dfs(packages, [])
+        LOG.debug("Scheduled order: %s" % ordered_packages)
+        return tuple(ordered_packages)

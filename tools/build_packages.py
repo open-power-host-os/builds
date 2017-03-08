@@ -34,4 +34,4 @@ def run(CONF):
 
     LOG.info("Building packages: %s", ", ".join(packages_to_build))
     bm = build_manager.BuildManager(packages_to_build, distro)
-    bm()
+    bm.build()
