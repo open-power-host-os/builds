@@ -61,14 +61,18 @@ def create_html_table(packages):
     return etree.tostring(table, pretty_print=True)
 
 
-def replace_html_table(file_path, html_table):
+def replace_file_section(
+        file_path, new_contents, start_delimiter, end_delimiter=None):
     """
-    Replace all HTML tables in a file with a HTML table
+    Replace contents enclosed in delimiters in file.
 
     Args:
-        file_path(str): file path
-        html_table (str): string representation of the HTML table which will
-            replace existing ones
+        file_path (str): file path
+        new_contents (str): contents that will replace the old ones
+        start_delimiter (str): delimiter marking start of contents to be
+            replaced
+        end_delimiter (str): delimiter marking end of contents to be
+            replaced, or None for end of file
     """
 
     with file(file_path, "r") as f:
@@ -76,14 +80,16 @@ def replace_html_table(file_path, html_table):
 
     # replace
     new_lines = []
-    in_table = False
+    in_delimiters = False
     for line in lines:
-        if not in_table and "<table>" in line:
-            in_table = True
-            new_lines.append(html_table)
-        elif in_table:
-            if "</table>" in line:
-                in_table = False
+        if not in_delimiters and start_delimiter in line:
+            in_delimiters = True
+            new_lines.append(new_contents)
+            if end_delimiter is None:
+                break
+        elif in_delimiters:
+            if end_delimiter in line:
+                in_delimiters = False
         else:
             new_lines.append(line)
 
@@ -111,7 +117,7 @@ def update_versions_in_readme(versions_repo, distro, packages_names):
     html_table = create_html_table(pm.packages)
     output_readme_path = os.path.join(versions_repo.working_tree_dir,
                                       'README.md')
-    replace_html_table(output_readme_path, html_table)
+    replace_file_section(output_readme_path, html_table, "<table>", "</table>")
 
 
 def read_version_and_milestone(versions_repo):

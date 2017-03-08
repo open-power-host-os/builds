@@ -1,4 +1,4 @@
-# Copyright (C) IBM Corp. 2016.
+# Copyright (C) IBM Corp. 2017.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,15 +18,16 @@ import logging
 from lib import distro_utils
 from lib import exception
 from lib.packages_manager import discover_packages
+from lib.metapackage import update_metapackage
 from lib.versions_repository import setup_versions_repository
-from lib.versions_repository import update_versions_in_readme
+
 
 LOG = logging.getLogger(__name__)
 
 
 def run(CONF):
     versions_repo = setup_versions_repository(CONF)
-    packages = discover_packages()
+    package_names = discover_packages()
 
     arch_and_endianness = CONF.get('common').get('arch_and_endianness')
     distro = distro_utils.get_distro(CONF.get('common').get('distro_name'),
@@ -35,25 +36,27 @@ def run(CONF):
 
     commit_updates = CONF.get('common').get('commit_updates')
     push_updates = CONF.get('common').get('push_updates')
-    push_repo_url = CONF.get('update_versions_readme').get('push_repo_url')
-    push_repo_branch = CONF.get('update_versions_readme').get('push_repo_branch')
+    push_repo_url = CONF.get('common').get('push_repo_url')
+    push_repo_branch = CONF.get('common').get('push_repo_branch')
     updater_name = CONF.get('common').get('updater_name')
     updater_email = CONF.get('common').get('updater_email')
 
-    REQUIRED_PARAMETERS = [("common", "updater_name"), ("common", "updater_email")]
+    REQUIRED_PARAMETERS = ["updater_name", "updater_email"]
     if push_updates:
-        REQUIRED_PARAMETERS += [("update_versions_readme", "push_repo_url"),
-                                ("update_versions_readme", "push_repo_branch")]
-    for section, parameter in REQUIRED_PARAMETERS:
-        if CONF.get(section).get(parameter) is None:
+        REQUIRED_PARAMETERS += ["push_repo_url", "push_repo_branch"]
+    for parameter in REQUIRED_PARAMETERS:
+        if CONF.get('common').get(parameter) is None:
             raise exception.RequiredParameterMissing(parameter=parameter)
 
-    update_versions_in_readme(versions_repo, distro, packages)
+    METAPACKAGE_NAME = "open-power-host-os"
+    update_metapackage(
+        versions_repo, distro, METAPACKAGE_NAME, package_names,
+        updater_name, updater_email)
 
     if commit_updates:
-        commit_message = "Update README versions table"
+        commit_message = "Update {} dependencies".format(METAPACKAGE_NAME)
         versions_repo.commit_changes(
             commit_message, updater_name, updater_email)
         if push_updates:
-            LOG.info("Pushing updated versions README")
+            LOG.info("Pushing updated {} files".format(METAPACKAGE_NAME))
             versions_repo.push_head_commits(push_repo_url, push_repo_branch)

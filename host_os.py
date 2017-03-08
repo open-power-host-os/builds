@@ -25,6 +25,7 @@ from lib.utils import is_package_installed
 from tools import build_iso
 from tools import build_packages
 from tools import build_release_notes
+from tools import update_metapackage
 from tools import update_versions
 from tools import update_versions_in_readme
 
@@ -36,6 +37,7 @@ LOG = logging.getLogger(__name__)
 SUBCOMMANDS = {
     'build-packages': build_packages,
     'build-release-notes': build_release_notes,
+    'update-metapackage': update_metapackage,
     'update-versions': update_versions,
     'update-versions-readme': update_versions_in_readme,
     'build-iso': build_iso,
