@@ -18,10 +18,10 @@ def setup_versions_repository(config):
     Clone and checkout the packages metadata git repository and halt execution if
     anything fails.
     """
-    path = os.path.join(config.get('default').get('work_dir'),
+    path = os.path.join(config.get('common').get('work_dir'),
                         REPOSITORIES_DIR)
-    url = config.get('default').get('build_versions_repository_url')
-    branch = config.get('default').get('build_version')
+    url = config.get('common').get('packages_metadata_repo_url')
+    branch = config.get('common').get('packages_metadata_repo_branch')
     try:
         versions_repo = repository.get_git_repository(url, path)
         versions_repo.checkout(branch)

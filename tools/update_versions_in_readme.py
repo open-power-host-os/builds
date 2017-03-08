@@ -17,13 +17,12 @@ import logging
 
 import git
 
-from lib import config
 from lib import distro_utils
 from lib import exception
 from lib import repository
+from lib.packages_manager import discover_packages
 from lib.versions_repository import setup_versions_repository
 from lib.versions_repository import update_versions_in_readme
-
 
 LOG = logging.getLogger(__name__)
 
@@ -76,26 +75,26 @@ def push_changes_to_head(repo, repo_url, repo_branch):
 
 def run(CONF):
     versions_repo = setup_versions_repository(CONF)
-    packages = (CONF.get('default').get('packages') or
-                config.discover_packages())
+    packages = discover_packages()
 
-    arch_and_endianness = CONF.get('default').get('arch_and_endianness')
-    distro = distro_utils.get_distro(CONF.get('default').get('distro_name'),
-                                     CONF.get('default').get('distro_version'),
+    arch_and_endianness = CONF.get('common').get('arch_and_endianness')
+    distro = distro_utils.get_distro(CONF.get('common').get('distro_name'),
+                                     CONF.get('common').get('distro_version'),
                                      arch_and_endianness)
 
-    commit_updates = CONF.get('default').get('commit_updates')
-    push_updates = CONF.get('default').get('push_updates')
-    push_repo_url = CONF.get('default').get('push_repo_url')
-    push_repo_branch = CONF.get('default').get('push_repo_branch')
-    updater_name = CONF.get('default').get('updater_name')
-    updater_email = CONF.get('default').get('updater_email')
+    commit_updates = CONF.get('common').get('commit_updates')
+    push_updates = CONF.get('common').get('push_updates')
+    push_repo_url = CONF.get('update_versions_readme').get('push_repo_url')
+    push_repo_branch = CONF.get('update_versions_readme').get('push_repo_branch')
+    updater_name = CONF.get('common').get('updater_name')
+    updater_email = CONF.get('common').get('updater_email')
 
-    REQUIRED_PARAMETERS = ["updater_name", "updater_email"]
+    REQUIRED_PARAMETERS = [("common", "updater_name"), ("common", "updater_email")]
     if push_updates:
-        REQUIRED_PARAMETERS += ["push_repo_url", "push_repo_branch"]
-    for parameter in REQUIRED_PARAMETERS:
-        if CONF.get('default').get(parameter) is None:
+        REQUIRED_PARAMETERS += [("update_versions_readme", "push_repo_url"),
+                                ("update_versions_readme", "push_repo_branch")]
+    for section, parameter in REQUIRED_PARAMETERS:
+        if CONF.get(section).get(parameter) is None:
             raise exception.RequiredParameterMissing(parameter=parameter)
 
     update_versions_in_readme(versions_repo, distro, packages)

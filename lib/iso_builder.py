@@ -26,33 +26,40 @@ from lib.constants import LATEST_DIR
 LOG = logging.getLogger(__name__)
 
 
-class MockPungiSpinner(object):
+class MockPungiIsoBuilder(object):
 
     def __init__(self, config):
-        self.work_dir = config.get('default').get('work_dir')
+        self.common_config = config.get('common')
+        self.config = config.get("build_iso")
+        self.work_dir = self.common_config.get('work_dir')
         self.timestamp = datetime.datetime.now().isoformat()
-        self.result_dir = os.path.join(config.get('default').get('result_dir'),
-                                       'iso', self.timestamp)
-        self.config = config.get("iso")
+        self.result_dir = os.path.join(self.common_config.get('result_dir'),
+            'iso', self.timestamp)
         self.distro = self.config.get("iso_name")
         self.version = datetime.date.today().strftime("%y%m%d")
         (_, _, self.arch) = distro_utils.detect_distribution()
-        self.mock_binary = config.get('default').get('mock_binary')
-        self.mock_args = config.get('default').get('mock_args')
+        self.mock_binary = self.common_config.get('mock_binary')
+        self.mock_args = self.config.get('mock_args') or ""
 
     def _run_mock_command(self, cmd):
+        distro = distro_utils.get_distro(
+            self.common_config.get('distro_name'),
+            self.common_config.get('distro_version'),
+            self.common_config.get('arch_and_endianness'))
+        mock_config_file = self.config.get('mock_config').get(distro.lsb_name).get(
+            distro.version)
         try:
             utils.run_command("%s -r %s %s %s" % (
-                self.mock_binary, self.config.get('mock_config'),
+                self.mock_binary, mock_config_file,
                 self.mock_args, cmd))
         except exception.SubprocessError:
-            LOG.error("Failed to spin ISO")
+            LOG.error("Failed to build ISO")
             raise
 
     def build(self):
-        LOG.info("Starting ISO spin process")
+        LOG.info("Starting ISO build process")
         self._setup()
-        self._spin()
+        self._build()
         self._save()
 
     def _setup(self):
@@ -63,24 +70,24 @@ class MockPungiSpinner(object):
         LOG.info("Installing %s inside the chroot" % " ".join(package_list))
         self._run_mock_command("--install %s" % " ".join(package_list))
 
-        self._create_spin_repo()
+        self._create_iso_repo()
 
-        self._create_spin_kickstart()
+        self._create_iso_kickstart()
 
-    def _create_spin_repo(self):
-        LOG.info("Creating spin repository inside chroot")
+    def _create_iso_repo(self):
+        LOG.info("Creating ISO yum repository inside chroot")
 
-        LOG.debug("Creating spin repo directory")
-        mock_spin_repo_dir = self.config.get('mock_spin_repo').get('dir')
-        self._run_mock_command("--shell 'mkdir -p %s'" % mock_spin_repo_dir)
+        LOG.debug("Creating ISO yum repository directory")
+        mock_iso_repo_dir = self.config.get('mock_iso_repo_dir')
+        self._run_mock_command("--shell 'mkdir -p %s'" % mock_iso_repo_dir)
 
-        LOG.debug("Copying rpm to spin repo directory")
+        LOG.debug("Copying rpm packages to ISO yum repo directory")
         packages_dir = self.config.get('packages_dir')
         rpm_files = utils.recursive_glob(packages_dir, "*.rpm")
         self._run_mock_command("--copyin %s %s" %
-                               (" ".join(rpm_files), mock_spin_repo_dir))
+                               (" ".join(rpm_files), mock_iso_repo_dir))
 
-        LOG.debug("Creating comps.xml")
+        LOG.debug("Creating package groups metadata file (comps.xml)")
         comps_xml_str = packages_groups_xml_creator.create_comps_xml(
             self.config.get('hostos_packages_groups'))
         comps_xml_file = "host-os-comps.xml"
@@ -96,44 +103,44 @@ class MockPungiSpinner(object):
         self._run_mock_command("--copyin %s %s" %
                                (comps_xml_path, comps_xml_chroot_path))
 
-        LOG.debug("Creating spin repo")
+        LOG.debug("Creating ISO yum repository")
         createrepo_cmd = "createrepo -v -g %s %s" % (comps_xml_chroot_path,
-                                                     mock_spin_repo_dir)
+                                                     mock_iso_repo_dir)
         self._run_mock_command("--shell '%s'" % createrepo_cmd)
 
-    def _create_spin_kickstart(self):
-        kickstart_file = self.config.get('kickstart_file')
+    def _create_iso_kickstart(self):
+        kickstart_file = self.config.get('automated_install_file')
         kickstart_path = os.path.join(self.work_dir, kickstart_file)
-        LOG.info("Creating spin kickstart file %s" % kickstart_path)
+        LOG.info("Creating ISO kickstart file %s" % kickstart_path)
 
         with open(kickstart_path, "wt") as f:
-            repo_urls = self.config.get('distro_repo_url')
-            mock_spin_repo_name = self.config.get('mock_spin_repo').get('name')
-            mock_spin_repo_dir = self.config.get('mock_spin_repo').get('dir')
-            repo_urls[mock_spin_repo_name] = "file://%s/" % mock_spin_repo_dir
+            repo_urls = self.config.get('distro_repos_urls')
+            mock_iso_repo_name = self.config.get('mock_iso_repo_name')
+            mock_iso_repo_dir = self.config.get('mock_iso_repo_dir')
+            repo_urls[mock_iso_repo_name] = "file://%s/" % mock_iso_repo_dir
             for name, url in repo_urls.items():
                 repo = ("repo --name=%s --baseurl=%s\n" % (name, url))
                 f.write(repo)
 
             f.write("%packages\n")
-            package_group_list = self.config.get('package_group_list')
-            for group in self.config.get('hostos_packages_groups').keys():
-                group = "@%s" % group
-                if group not in package_group_list:
-                    package_group_list.append(group)
-            for package_group in package_group_list:
-                f.write(package_group + "\n")
+            groups = self.config.get('automated_install_packages_groups')
+            for hostos_group in self.config.get('hostos_packages_groups').keys():
+                hostos_group = "@%s" % hostos_group
+                if hostos_group not in groups:
+                    groups.append(hostos_group)
+            for group in groups:
+                f.write(group + "\n")
 
             f.write("%end\n")
 
         self._run_mock_command("--copyin %s /" % kickstart_path)
 
-    def _spin(self):
-        LOG.info("Spinning ISO")
-        spin_cmd = ("pungi -c %s --nosource --nodebuginfo --name %s --ver %s" %
-                    (self.config.get('kickstart_file'),
+    def _build(self):
+        LOG.info("Building ISO")
+        build_cmd = ("pungi -c %s --nosource --nodebuginfo --name %s --ver %s" %
+                    (self.config.get('automated_install_file'),
                      self.distro, self.version))
-        self._run_mock_command("--shell '%s'" % spin_cmd)
+        self._run_mock_command("--shell '%s'" % build_cmd)
 
     def _save(self):
         utils.create_directory(self.result_dir)

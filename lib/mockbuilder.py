@@ -21,8 +21,8 @@ import os
 import shutil
 
 from lib import config
-from lib import build_system
 from lib import exception
+from lib import package_builder
 from lib import package_source
 from lib import utils
 from lib.constants import LATEST_DIR
@@ -32,12 +32,13 @@ LOG = logging.getLogger(__name__)
 MOCK_CHROOT_BUILD_DIR = "/builddir/build/SOURCES"
 
 
-class Mock(build_system.PackageBuilder):
+class Mock(package_builder.PackageBuilder):
     def __init__(self, config_file):
         super(Mock, self).__init__()
-        binary_file = CONF.get('default').get('mock_binary')
-        extra_args = CONF.get('default').get('mock_args')
+        binary_file = CONF.get('common').get('mock_binary')
+        extra_args = CONF.get('build_packages').get('mock_args') or ""
         self.build_dir = None
+        self.build_results_dir = CONF.get('build_packages').get('result_dir')
         self.archive = None
         self.timestamp = datetime.datetime.now().isoformat()
         self.common_mock_args = (
@@ -80,7 +81,7 @@ class Mock(build_system.PackageBuilder):
         msg = "%s: Success! RPMs built!" % (package.name)
         self._copy_rpms(self.build_dir, package.build_cache_dir)
         LOG.info(msg)
-        if not CONF.get('default').get('keep_builddir'):
+        if not CONF.get('build_packages').get('keep_build_dir'):
             self._destroy_build_directory()
 
     def _build_srpm(self, package):
@@ -152,7 +153,7 @@ class Mock(build_system.PackageBuilder):
 
     def _create_build_directory(self, package):
         self.build_dir = os.path.join(
-            os.path.abspath(CONF.get('default').get('work_dir')), 'mock_build',
+            os.path.abspath(CONF.get('common').get('work_dir')), 'mock_build',
             self.timestamp, package.name)
         os.makedirs(self.build_dir)
         os.chmod(self.build_dir, 0777)
@@ -190,7 +191,7 @@ class Mock(build_system.PackageBuilder):
             package(Package): package whose result files will be copied
         """
         package_build_results_dir = os.path.join(
-            CONF.get('default').get('result_dir'), 'packages',
+            CONF.get('common').get('result_dir'), 'packages',
             self.timestamp, package.name)
         self._copy_rpms(package.build_cache_dir, package_build_results_dir)
 
@@ -199,7 +200,7 @@ class Mock(build_system.PackageBuilder):
         Create latest symlink pointing to the current result directory.
         """
         latest_package_build_results_dir = os.path.join(
-            CONF.get('default').get('result_dir'), 'packages',
+            CONF.get('common').get('result_dir'), 'packages',
             LATEST_DIR)
         utils.force_symlink(self.timestamp,
                             latest_package_build_results_dir)

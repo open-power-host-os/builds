@@ -17,9 +17,11 @@ import logging
 
 from lib import config
 from lib import exception
+from lib import mockbuilder
 from lib.packages_manager import PackagesManager
 from lib.rpm_package import RPM_Package
-from lib.scheduler import Scheduler
+import lib.centos
+import lib.scheduler
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
@@ -32,7 +34,7 @@ class BuildManager(object):
         self.repositories = None
 
     def __call__(self):
-        force_rebuild = CONF.get('default').get('force_rebuild')
+        force_rebuild = CONF.get('build_packages').get('force_rebuild')
         try:
             self.packages_manager.prepare_packages(
                 packages_class=RPM_Package, distro=self.distro,
@@ -47,6 +49,50 @@ class BuildManager(object):
 
         self.build()
 
+    def _build_packages(self, distro, packages):
+        """
+        Build packages
+
+        Args:
+            distro (Distribution): Linux distribution
+            packages ([Package]): packages
+        """
+
+        # create package builder based on distro
+        if distro.lsb_name == "CentOS":
+            mock_config_file = CONF.get('build_packages').get('mock_config').get(
+                distro.lsb_name).get(distro.version)
+            package_builder = mockbuilder.Mock(mock_config_file)
+        else:
+            raise exception.DistributionError()
+        # create packages
+        package_builder.initialize()
+        for package in packages:
+            if package.force_rebuild:
+                LOG.info("%s: Forcing rebuild." % package.name)
+                build_package = True
+            elif package.needs_rebuild():
+                build_package = True
+            else:
+                LOG.info("%s: Skipping rebuild." % package.name)
+                build_package = False
+
+            if build_package:
+                package.lock()
+                package.download_files(recurse=False)
+                package_builder.prepare_sources(package)
+                package.unlock()
+                package_builder.build(package)
+            package_builder.copy_results(package)
+
+        package_builder.create_latest_symlink_result_dir()
+
+        package_builder.clean()
+
     def build(self):
-        scheduler = Scheduler()
-        self.distro.build_packages(scheduler(self.packages_manager.packages))
+        """
+        Schedule package build order and build
+        """
+        scheduler = lib.scheduler.Scheduler()
+        ordered_packages = scheduler(self.packages_manager.packages)
+        self._build_packages(self.distro, ordered_packages)

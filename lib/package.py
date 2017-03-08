@@ -31,8 +31,8 @@ from lib.constants import REPOSITORIES_DIR
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 
-BUILD_CACHE_DIR = os.path.join(CONF.get('default').get('work_dir'), "cache")
-PACKAGES_REPOS_TARGET_PATH = os.path.join(CONF.get('default').get('work_dir'),
+BUILD_CACHE_DIR = os.path.join(CONF.get('common').get('work_dir'), "cache")
+PACKAGES_REPOS_TARGET_PATH = os.path.join(CONF.get('common').get('work_dir'),
                                           REPOSITORIES_DIR)
 
 
@@ -83,14 +83,14 @@ class Package(object):
         # versions of package metadata. This keeps compatibility.
         OLD_DEPENDENCIES_DIRS = ["build_dependencies", "dependencies"]
         PACKAGES_DIRS = [""] + OLD_DEPENDENCIES_DIRS
-        versions_repo_url = CONF.get('default').get('build_versions_repository_url')
+        versions_repo_url = CONF.get('common').get('packages_metadata_repo_url')
         versions_repo_name = os.path.basename(os.path.splitext(versions_repo_url)[0])
-        build_versions_repo_dir = os.path.join(
+        versions_repo_target_path = os.path.join(
             PACKAGES_REPOS_TARGET_PATH,
             versions_repo_name)
         for rel_packages_dir in PACKAGES_DIRS:
             packages_dir = os.path.join(
-                build_versions_repo_dir, rel_packages_dir)
+                versions_repo_target_path, rel_packages_dir)
             package_dir = os.path.join(packages_dir, self.name)
             package_file = os.path.join(package_dir, self.name + ".yaml")
             if os.path.isfile(package_file):
@@ -135,9 +135,8 @@ class Package(object):
     def _download_source_code(self):
         LOG.info("%s: Downloading source code from '%s'." %
                  (self.name, self.clone_url))
-        self._setup_repository(
-            dest=PACKAGES_REPOS_TARGET_PATH,
-            branch=CONF.get('default').get('branch'))
+        self._setup_repository(dest=PACKAGES_REPOS_TARGET_PATH)
+
 
     def _load(self):
         """

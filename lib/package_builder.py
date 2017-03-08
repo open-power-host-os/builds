@@ -14,10 +14,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import abc
-import logging
-
-LOG = logging.getLogger(__name__)
-
 
 class PackageBuilder(object):
     __metaclass__ = abc.ABCMeta

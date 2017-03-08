@@ -15,9 +15,9 @@
 
 import logging
 
-from lib import config
 from lib import distro_utils
 from lib import build_manager
+from lib import packages_manager
 from lib.versions_repository import setup_versions_repository
 
 LOG = logging.getLogger(__name__)
@@ -25,12 +25,12 @@ LOG = logging.getLogger(__name__)
 
 def run(CONF):
     setup_versions_repository(CONF)
-    packages_to_build = (CONF.get('default').get('packages') or
-                         config.discover_packages())
+    packages_to_build = (CONF.get('build_packages').get('packages') or
+                         packages_manager.discover_packages())
     distro = distro_utils.get_distro(
-        CONF.get('default').get('distro_name'),
-        CONF.get('default').get('distro_version'),
-        CONF.get('default').get('arch_and_endianness'))
+        CONF.get('common').get('distro_name'),
+        CONF.get('common').get('distro_version'),
+        CONF.get('common').get('arch_and_endianness'))
 
     LOG.info("Building packages: %s", ", ".join(packages_to_build))
     bm = build_manager.BuildManager(packages_to_build, distro)
