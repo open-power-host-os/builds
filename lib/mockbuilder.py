@@ -194,6 +194,14 @@ class Mock(package_builder.PackageBuilder):
             self.timestamp, package.name)
         self._copy_rpms(package.build_cache_dir, package_build_results_dir)
 
+    def create_repository(self):
+        """
+        Create yum repository in build results directory.
+        """
+        build_results_dir = os.path.join(
+            CONF.get('common').get('result_dir'), 'packages', self.timestamp)
+        utils.run_command("createrepo %s" % build_results_dir)
+
     def create_latest_symlink_result_dir(self):
         """
         Create latest symlink pointing to the current result directory.
