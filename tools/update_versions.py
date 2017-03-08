@@ -188,8 +188,8 @@ def run(CONF):
 
     REQUIRED_PARAMETERS = [("common", "updater_name"), ("common", "updater_email")]
     if push_updates:
-        REQUIRED_PARAMETERS += [("upgrade_versions", "push_repo_url"),
-                                ("upgrade_versions", "push_repo_branch")]
+        REQUIRED_PARAMETERS += [("update_versions", "push_repo_url"),
+                                ("update_versions", "push_repo_branch")]
     for section, parameter in REQUIRED_PARAMETERS:
         if CONF.get(section).get(parameter) is None:
             raise exception.RequiredParameterMissing(parameter=parameter)
