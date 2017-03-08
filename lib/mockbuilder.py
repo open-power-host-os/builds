@@ -25,7 +25,7 @@ from lib import exception
 from lib import package_builder
 from lib import package_source
 from lib import utils
-from lib.constants import LATEST_DIR
+from lib.constants import LATEST_SYMLINK_NAME
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
@@ -208,6 +208,6 @@ class Mock(package_builder.PackageBuilder):
         """
         latest_package_build_results_dir = os.path.join(
             CONF.get('common').get('result_dir'), 'packages',
-            LATEST_DIR)
+            LATEST_SYMLINK_NAME)
         utils.force_symlink(self.timestamp,
                             latest_package_build_results_dir)

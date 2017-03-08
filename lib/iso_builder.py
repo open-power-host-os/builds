@@ -21,7 +21,7 @@ from lib import exception
 from lib import utils
 from lib import distro_utils
 from lib import packages_groups_xml_creator
-from lib.constants import LATEST_DIR
+from lib.constants import LATEST_SYMLINK_NAME
 
 LOG = logging.getLogger(__name__)
 
@@ -144,7 +144,8 @@ class MockPungiIsoBuilder(object):
 
     def _save(self):
         utils.create_directory(self.result_dir)
-        latest_dir = os.path.join(os.path.dirname(self.result_dir), LATEST_DIR)
+        latest_dir = os.path.join(os.path.dirname(self.result_dir),
+                                  LATEST_SYMLINK_NAME)
         utils.force_symlink(self.timestamp, latest_dir)
 
         iso_file = "%s-DVD-%s-%s.iso" % (self.distro, self.arch, self.version)
