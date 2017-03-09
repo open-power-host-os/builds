@@ -133,55 +133,26 @@ this project's root. It contains the built packages repositories under
 ``packages`` and a yum repository config under ``repository_config``, to
 simplify using those repositories.
 
-A suggested set of packages tested is the following:
+To install only virtualization related packages, for example, you can
+install the open-power-host-os-virt metapackage:
+
+```
+$ sudo yum -c result/repository_config/latest install open-power-host-os-virt
+```
+
+It will then install all required dependencies:
 
  - kernel
  - libvirt
- - libvirt-client
- - libvirt-daemon
- - libvirt-daemon-config-network
- - libvirt-daemon-config-nwfilter
- - libvirt-daemon-driver-interface
- - libvirt-daemon-driver-lxc
- - libvirt-daemon-driver-network
- - libvirt-daemon-driver-nodedev
- - libvirt-daemon-driver-nwfilter
- - libvirt-daemon-driver-qemu
- - libvirt-daemon-driver-secret
- - libvirt-daemon-driver-storage
- - libvirt-daemon-kvm
- - libvirt-daemon-lxc
- - libvirt-daemon-qemu
- - libvirt-debuginfo
- - libvirt-devel
- - libvirt-docs
- - libvirt-lock-sanlock
- - libvirt-login-shell
- - libvirt-nss
  - qemu
- - qemu-common
- - qemu-debuginfo
- - qemu-guest-agent
- - qemu-img
- - qemu-kvm
- - qemu-kvm-tools
- - qemu-system-ppc
- - qemu-system-x86
  - SLOF
 
-You can use the following command to install, for instance,
-kernel's RPM:
+You can use similar commands to install specific packages, for instance,
+kernel's debuginfo RPM:
 
 ```
-$ sudo yum -c result/repository_config/latest install kernel
+$ sudo yum -c result/repository_config/latest install kernel-debuginfo
 ```
-
-Note that some of those packages are debuginfo which are recommended
-in order to provide useful information for bugs in the case of any
-failures.
-
-Also no version is informed on the list above to make it valid even
-for future versions with minor version changes.
 
 When using virtualization packages, SMT needs to be disabled:
 
