@@ -25,6 +25,7 @@ from lib import exception
 from lib import packages_manager
 from lib import repository
 from lib import rpm_package
+from lib.constants import REPOSITORIES_DIR
 from lib.versions_repository import setup_versions_repository
 from lib.versions_repository import read_version_and_milestone
 
@@ -176,8 +177,10 @@ def run(CONF):
     package_manager.prepare_packages(packages_class=rpm_package.RPM_Package,
                                      download_source_code=False, distro=distro)
 
+    repositories_dir_path = os.path.join(
+        CONF.get('common').get('work_dir'), REPOSITORIES_DIR)
     website_repo = repository.get_git_repository(
-        release_notes_repo_url, os.getcwd())
+        release_notes_repo_url, repositories_dir_path)
     website_repo.checkout(release_notes_repo_branch)
 
     WEBSITE_POSTS_DIR = "_posts"
@@ -186,7 +189,7 @@ def run(CONF):
         version=version_milestone, date=release_date)
     release_file_name = RELEASE_FILE_NAME_TEMPLATE.format(date=release_date)
     release_file_path = os.path.join(
-        website_repo.name, WEBSITE_POSTS_DIR, release_file_name)
+        website_repo.working_tree_dir, WEBSITE_POSTS_DIR, release_file_name)
     write_version_info(release_tag, release_file_path, versions_repo,
                        package_manager.packages)
 
