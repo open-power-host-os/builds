@@ -20,18 +20,19 @@ COMPS_DOCTYPE = (
     '<!DOCTYPE comps PUBLIC "-//Host OS//DTD Comps info//EN" "comps.dtd">')
 
 
-def convert_name_to_id(element_name):
+def convert_name_to_id(element_name, suffix):
     """
     Convert a human readable name of an element of the XML to a more
     parser friendly ID.
 
     Args:
         element_name (str): human readable element name
+        suffix (str): suffix to append to element ID
 
     Returns:
         str: element ID
     """
-    return element_name.lower().replace(" ", "-")
+    return element_name.lower().replace(" ", "-") + "-" + suffix
 
 
 def create_packagelist_xml(pkgs):
@@ -52,6 +53,24 @@ def create_packagelist_xml(pkgs):
     return root
 
 
+def create_grouplist_xml(grps):
+    """
+    Construct XML representing the 'grouplist' element.
+
+    Args:
+        grps ([str]): groups names
+
+    Returns:
+        Element: object representing the 'grouplist' element
+    """
+    root = Element('grouplist')
+    for grp in grps:
+        grp_entry = Element('groupid')
+        grp_entry.text = grp
+        root.append(grp_entry)
+    return root
+
+
 def create_group_xml(group_name, group_pkgs):
     """
     Construct XML object representing a 'group' element.
@@ -65,7 +84,7 @@ def create_group_xml(group_name, group_pkgs):
     """
     grp = Element('group')
     grp_id = Element('id')
-    grp_id.text = convert_name_to_id(group_name)
+    grp_id.text = convert_name_to_id(group_name, "group")
     grp_name = Element('name')
     grp_name.text = group_name
     grp_desc = Element('description')
@@ -82,21 +101,64 @@ def create_group_xml(group_name, group_pkgs):
     return grp
 
 
-def create_comps_xml(packages_groups):
+def create_environment_xml(environment_name, environment_groups):
+    """
+    Construct an XML object representing an 'environment' element.
+    Those elements will appear as options during the installation.
+    An environment contains a list of packages groups.
+
+    Args:
+        environment_name (str): name of the environment
+        environment_groups ([str]): list of groups that are members of
+            the environment
+
+    Returns:
+        Element: object representing the 'environment' element
+    """
+    env = Element('environment')
+    env_id = Element('id')
+    env_id.text = convert_name_to_id(environment_name, "environment")
+    env_name = Element('name')
+    env_name.text = environment_name.lower().title()
+    env_desc = Element('description')
+    env_desc.text = '{0} packages environment'.format(env_name.text)
+    env_uservisible = Element('uservisible')
+    env_uservisible.text = 'true'
+    env_grouplist = create_grouplist_xml(environment_groups)
+    env.append(env_id)
+    env.append(env_name)
+    env.append(env_desc)
+    env.append(env_uservisible)
+    env.append(env_grouplist)
+
+    return env
+
+
+def create_comps_xml(packages_environments, minimal_install_groups):
     """
     Construct XML string representing the 'comps' element.
 
     Args:
-        packages_groups ({str:[str]}): dictionary where key is the package group
-                                       name and value is the list of packages
-                                       that are member of the group
+        packages_environments ({str: [str]}): dictionary where key is
+            the package environment and value is the list of packages
+            that will (indirectly) belong to that environment. An
+            intermediary packages group with the same name will be
+            created to contain those packages.
+        minimal_install_groups ([str]): packages groups that must be
+            present in every base distro (e.g. CentOS) installation and
+            will be added to every environment.
 
     Returns:
         str: string representing the XML generated
     """
     root = Element('comps')
-    for group_name, group_pkgs in packages_groups.iteritems():
+    for group_name, group_pkgs in packages_environments.iteritems():
         root.append(create_group_xml(group_name, group_pkgs))
+
+    for environment_name in packages_environments:
+        groups = list(minimal_install_groups)
+        groups.append(convert_name_to_id(environment_name, "group"))
+        root.append(create_environment_xml(environment_name, groups))
 
     return E.tostring(root, pretty_print=True, doctype=COMPS_DOCTYPE,
                       xml_declaration=True, encoding="UTF-8")

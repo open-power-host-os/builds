@@ -48,7 +48,7 @@ build_iso:
       --verbose"
     packages_dir: "result/packages/latest"
     automated_install_file: "host-os.ks"
-    host_os_packages_groups:
+    installable_environments:
         OpenPOWER Host OS all:
             - "open-power-host-os-all"
         OpenPOWER Host OS base:
@@ -61,6 +61,8 @@ build_iso:
             - "open-power-host-os-virt-management"
         OpenPOWER Host OS RAS:
             - "open-power-host-os-ras"
+    base_distro_minimal_install_groups:
+        - "core"
     iso_root_fs_packages_groups:
         - "base"
         - "core"

@@ -115,12 +115,20 @@ ISO_ARGS = {
     ('--automated-install-file',):
         dict(help='Path of a kickstart file, used to automate the installation of a RPM-based Linux distribution',
              default='host-os.ks'),
-    ('--host-os-packages-groups',):
-        dict(help='Packages groups in yum repository'),
+    ('--installable-environments',):
+        dict(help='Those environments will be available at the "Sofware '
+             'selection" screen, along with the ones that come from the base '
+             'distro (e.g. CentOS) repository. They will contain a group with '
+             'the same name, that will in turn contain the packages listed.'),
+    ('--base-distro-minimal-install-groups',):
+        dict(help='Packages groups that must be present in every base distro '
+             '(e.g. CentOS) installation and will be added to every '
+             'environment.', nargs='*'),
     ('--iso-root-fs-packages-groups',):
         dict(help='Packages groups that will be installed in the ISO root '
-             'file system. Groups passed to the "--host-os-packages-groups" '
-             'option are automatically added to this list.', nargs='*'),
+             'file system. Groups implicitly created from the '
+             '"--installable-environments" option are automatically added to '
+             'this list.', nargs='*'),
     ('--iso-root-fs-packages',):
         dict(help='Packages that will be installed in the ISO root file '
              'system, in addition to the specified groups.', nargs='*'),
