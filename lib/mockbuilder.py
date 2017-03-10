@@ -156,7 +156,6 @@ class Mock(package_builder.PackageBuilder):
             os.path.abspath(CONF.get('common').get('work_dir')), 'mock_build',
             self.timestamp, package.name)
         os.makedirs(self.build_dir)
-        os.chmod(self.build_dir, 0777)
 
     def _destroy_build_directory(self):
         shutil.rmtree(self.build_dir)
