@@ -23,6 +23,13 @@ Refer to `30. How does CentOS versioning work?
 Installation
 ------------
 
+* Clone the repository
+
+::
+
+$ git clone https://github.com/open-power-host-os/builds.git
+$ cd builds
+
 RPM Based distributions
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -41,13 +48,6 @@ $ sudo yum install -y $(cat rpm_requirements.txt)
 Settings
 --------
 
-* Clone the repository
-
-::
-
-$ git clone https://github.com/open-power-host-os/builds.git
-$ cd builds
-
 * Add user to mock group
 
 ::
@@ -62,14 +62,14 @@ Running
 
 ::
 
-$ ./host_os.py build-package --packages kernel libvirt
+$ ./host_os.py build-packages --packages kernel libvirt
 
 
 * Build all software
 
 ::
 
-$ ./host_os.py --verbose build-package
+$ ./host_os.py --verbose build-packages
 
 Note the ``--verbose`` parameter to get all the log messages in the
 console. Instead of the standard ordinary messages. Please see
@@ -83,7 +83,7 @@ or
 
 ::
 
-$ ./host_os.py build-package --help
+$ ./host_os.py build-packages --help
 
 * Build old versions
 
