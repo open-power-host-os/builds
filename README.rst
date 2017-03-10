@@ -242,3 +242,8 @@ Please see ``--help`` for more options.
 ::
 
 $ ./host_os.py build-iso --help
+
+Contact us
+----------
+
+If you are interested, you might always stop by in #hostos on irc.freenode.net.
