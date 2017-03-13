@@ -55,8 +55,9 @@ def get_distro(name, version, architecture):
     detected_name, detected_version, detected_architecture = (
         detected_distribution)
     LOG.info("Detected distribution: %s" % str(detected_distribution))
-    if (detected_name != name or not(detected_version.startswith(version))
-            or detected_architecture != architecture):
+    if (detected_name.lower() != name.lower()
+            or not(detected_version.startswith(version))
+            or detected_architecture.lower() != architecture.lower()):
         LOG.warning("Detected linux distribution differs from selected one. "
                     "Build might fail.")
 
