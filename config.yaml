@@ -49,34 +49,18 @@ build_iso:
     packages_dir: "result/packages/latest"
     automated_install_file: "host-os.ks"
     host_os_packages_groups:
-        virtualization-hypervisor:
-            - "SLOF"
-            - "docker"
-            - "ginger"
-            - "ginger-base"
-            - "golang"
-            - "kernel"
-            - "kimchi"
-            - "libvirt"
-            - "libvirt-daemon-kvm"
-            - "libvirt-daemon-lxc"
-            - "libvirt-daemon-qemu"
-            - "libvirt-devel"
-            - "libvirt-docs"
-            - "libvirt-lock-sanlock"
-            - "libvirt-login-shell"
-            - "libvirt-nss"
-            - "libvpd"
-            - "lsvpd"
-            - "novnc"
-            - "ppc64-diag"
-            - "qemu"
-            - "qemu-guest-agent"
-            - "qemu-kvm-tools"
-            - "servicelog"
-            - "sos"
-            - "systemtap"
-            - "wok"
+        OpenPOWER Host OS all:
+            - "open-power-host-os-all"
+        OpenPOWER Host OS base:
+            - "open-power-host-os-base"
+        OpenPOWER Host OS container:
+            - "open-power-host-os-container"
+        OpenPOWER Host OS virtualization:
+            - "open-power-host-os-virt"
+        OpenPOWER Host OS virtualization management:
+            - "open-power-host-os-virt-management"
+        OpenPOWER Host OS RAS:
+            - "open-power-host-os-ras"
     iso_root_fs_packages_groups:
         - "base"
         - "core"

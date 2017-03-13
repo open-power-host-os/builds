@@ -125,10 +125,13 @@ class MockPungiIsoBuilder(object):
             f.write("%packages\n")
             iso_root_fs_packages_groups = self.config.get(
                 'iso_root_fs_packages_groups')
-            for host_os_group in self.config.get(
-                    'host_os_packages_groups').keys():
-                if host_os_group not in iso_root_fs_packages_groups:
-                    iso_root_fs_packages_groups.append(host_os_group)
+            host_os_groups_ids = [
+                packages_groups_xml_creator.convert_name_to_id(
+                    group_name) for group_name
+                in self.config.get('host_os_packages_groups')]
+            for host_os_group_id in host_os_groups_ids:
+                if host_os_group_id not in iso_root_fs_packages_groups:
+                    iso_root_fs_packages_groups.append(host_os_group_id)
             for group in iso_root_fs_packages_groups:
                 f.write("@{}\n".format(group))
             for package in self.config.get('iso_root_fs_packages'):

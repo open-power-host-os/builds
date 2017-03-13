@@ -20,6 +20,20 @@ COMPS_DOCTYPE = (
     '<!DOCTYPE comps PUBLIC "-//Host OS//DTD Comps info//EN" "comps.dtd">')
 
 
+def convert_name_to_id(element_name):
+    """
+    Convert a human readable name of an element of the XML to a more
+    parser friendly ID.
+
+    Args:
+        element_name (str): human readable element name
+
+    Returns:
+        str: element ID
+    """
+    return element_name.lower().replace(" ", "-")
+
+
 def create_packagelist_xml(pkgs):
     """
     Construct XML representing the 'packagelist' element.
@@ -51,9 +65,9 @@ def create_group_xml(group_name, group_pkgs):
     """
     grp = Element('group')
     grp_id = Element('id')
-    grp_id.text = group_name.lower()
+    grp_id.text = convert_name_to_id(group_name)
     grp_name = Element('name')
-    grp_name.text = group_name.lower().title()
+    grp_name.text = group_name
     grp_desc = Element('description')
     grp_desc.text = '{0} packages group'.format(grp_name.text)
     grp_uservisible = Element('uservisible')
