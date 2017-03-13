@@ -26,6 +26,19 @@ class CentOS(distro.LinuxDistribution):
 
     supported_versions = CENTOS_VERSIONS
 
-    def __init__(self, name, version, arch_and_endianness):
+    def __init__(self, name, version, architecture):
+        """
+        Constructor
+
+        Args:
+            name (str): distribution name
+            version (str): distribution version
+            architecture (str): distribution architecture codename
+                (e.g. ppc64le)
+
+        Raises:
+            exception.DistributionVersionNotSupportedError: unsupported
+                distribution
+        """
         super(CentOS, self).__init__(name=name, version=version,
-                                     arch_and_endianness=arch_and_endianness)
+                                     architecture=architecture)

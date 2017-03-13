@@ -35,28 +35,28 @@ def detect_distribution():
     # solution => platform module is deprecated in python 3.5 and will be
     # removed in python 3.7
     distro, version, _ = platform.linux_distribution(full_distribution_name=0)
-    arch_and_endianness = platform.machine()
+    architecture = platform.machine()
 
     # NOTE(maurosr): when it fails to detect the distro it defaults to the
     # distro and version arguments passsed as parameters - their default
     # values are empty strings.
-    if not distro or not version or not arch_and_endianness:
+    if not distro or not version or not architecture:
         raise exception.DistributionDetectionError
-    return (distro, version, arch_and_endianness)
+    return (distro, version, architecture)
 
 
-def get_distro(name, version, arch_and_endianness):
+def get_distro(name, version, architecture):
     """
     Get a distro object from the parameters specified.
     Also check if the distro object matches the system's distribution
     and log a warning message otherwise.
     """
     detected_distribution = detect_distribution()
-    detected_name, detected_version, detected_arch_and_endianness = (
+    detected_name, detected_version, detected_architecture = (
         detected_distribution)
     LOG.info("Detected distribution: %s" % str(detected_distribution))
     if (detected_name != name or not(detected_version.startswith(version))
-            or detected_arch_and_endianness != arch_and_endianness):
+            or detected_architecture != architecture):
         LOG.warning("Detected linux distribution differs from selected one. "
                     "Build might fail.")
 
@@ -67,4 +67,4 @@ def get_distro(name, version, arch_and_endianness):
         raise exception.DistributionNotSupportedError(
             distribution=name)
     distro_type = DISTRIBUTIONS.get(name)
-    return distro_type(name, version, arch_and_endianness)
+    return distro_type(name, version, architecture)

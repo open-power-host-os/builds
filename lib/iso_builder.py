@@ -45,7 +45,7 @@ class MockPungiIsoBuilder(object):
         distro = distro_utils.get_distro(
             self.common_config.get('distro_name'),
             self.common_config.get('distro_version'),
-            self.common_config.get('arch_and_endianness'))
+            self.common_config.get('architecture'))
         mock_config_file = self.config.get('mock_config').get(distro.lsb_name).get(
             distro.version)
         try:

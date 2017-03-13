@@ -153,7 +153,7 @@ def run(CONF):
     distro = distro_utils.get_distro(
         CONF.get('common').get('distro_name'),
         CONF.get('common').get('distro_version'),
-        CONF.get('common').get('arch_and_endianness'))
+        CONF.get('common').get('architecture'))
     release_notes_repo_url = CONF.get('build_release_notes').get('release_notes_repo_url')
     release_notes_repo_branch = CONF.get('build_release_notes').get('release_notes_repo_branch')
     commit_updates = CONF.get('common').get('commit_updates')

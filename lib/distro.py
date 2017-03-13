@@ -21,22 +21,31 @@ from lib import exception
 LOG = logging.getLogger(__name__)
 # NOTE(maurosr): make it a constant since we only plan to work with little
 # endian GNU/Linux distributions.
-SUPPORTED_ARCH_AND_ENDIANNESS = ("PPC64LE")
+SUPPORTED_ARCHITECTURES = ("PPC64LE")
 
 
 class LinuxDistribution(object):
     __metaclass__ = abc.ABCMeta
     supported_versions = []
 
-    def __init__(self, name=None, version=None, arch_and_endianness=None):
+    def __init__(self, name=None, version=None, architecture=None):
         """
-        :raises exception.DistributionVersionNotSupportedError: Unsupported
-        distro.
+        Constructor
+
+        Args:
+            name (str): distribution name
+            version (str): distribution version
+            architecture (str): distribution architecture codename
+                (e.g. ppc64le)
+
+        Raises:
+            exception.DistributionVersionNotSupportedError: unsupported
+                distribution
         """
         self.lsb_name = name
-        if arch_and_endianness.upper() not in SUPPORTED_ARCH_AND_ENDIANNESS:
+        if architecture.upper() not in SUPPORTED_ARCHITECTURES:
             raise exception.DistributionVersionNotSupportedError(
-                msg="Endianness not supported: %s" % arch_and_endianness)
+                msg="Architecture not supported: %s" % architecture)
 
         # NOTE(maurosr): to support multiple builds of a same version
         for supported_version in self.supported_versions:
