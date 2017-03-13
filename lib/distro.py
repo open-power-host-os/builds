@@ -21,7 +21,7 @@ from lib import exception
 LOG = logging.getLogger(__name__)
 # NOTE(maurosr): make it a constant since we only plan to work with little
 # endian GNU/Linux distributions.
-SUPPORTED_ARCHITECTURES = ("PPC64LE")
+SUPPORTED_ARCHITECTURES = ("ppc64le")
 
 
 class LinuxDistribution(object):
@@ -43,7 +43,7 @@ class LinuxDistribution(object):
                 distribution
         """
         self.lsb_name = name
-        if architecture.upper() not in SUPPORTED_ARCHITECTURES:
+        if architecture.lower() not in SUPPORTED_ARCHITECTURES:
             raise exception.DistributionVersionNotSupportedError(
                 msg="Architecture not supported: %s" % architecture)
 
