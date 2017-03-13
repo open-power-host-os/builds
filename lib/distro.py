@@ -42,7 +42,7 @@ class LinuxDistribution(object):
             exception.DistributionVersionNotSupportedError: unsupported
                 distribution
         """
-        self.lsb_name = name
+        self.name = name
         if architecture.lower() not in SUPPORTED_ARCHITECTURES:
             raise exception.DistributionVersionNotSupportedError(
                 msg="Architecture not supported: %s" % architecture)
@@ -55,5 +55,5 @@ class LinuxDistribution(object):
         else:
             raise exception.DistributionVersionNotSupportedError(
                 distribution=name, version=version)
-        LOG.info("Distribution detected: %(lsb_name)s %(version)s" %
+        LOG.info("Distribution detected: %(name)s %(version)s" %
                  vars(self))

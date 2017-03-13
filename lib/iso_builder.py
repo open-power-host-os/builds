@@ -46,7 +46,7 @@ class MockPungiIsoBuilder(object):
             self.common_config.get('distro_name'),
             self.common_config.get('distro_version'),
             self.common_config.get('architecture'))
-        mock_config_file = self.config.get('mock_config').get(distro.lsb_name).get(
+        mock_config_file = self.config.get('mock_config').get(distro.name).get(
             distro.version)
         try:
             utils.run_command("%s -r %s %s %s" % (
