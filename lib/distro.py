@@ -43,6 +43,7 @@ class LinuxDistribution(object):
                 distribution
         """
         self.name = name
+        self.architecture = architecture
         if architecture.lower() not in SUPPORTED_ARCHITECTURES:
             raise exception.DistributionVersionNotSupportedError(
                 msg="Architecture not supported: %s" % architecture)
@@ -55,5 +56,5 @@ class LinuxDistribution(object):
         else:
             raise exception.DistributionVersionNotSupportedError(
                 distribution=name, version=version)
-        LOG.info("Distribution detected: %(name)s %(version)s" %
-                 vars(self))
+        LOG.info("Distribution object created: %(name)s %(version)s "
+                 "%(architecture)s" % vars(self))
