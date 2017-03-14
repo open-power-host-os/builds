@@ -39,7 +39,7 @@ $ sudo yum install epel-release
 ```
 $ sudo yum install -y $(cat rpm_requirements.txt)
 ```
-    
+
 ## Settings
 
 * Add user to mock group
@@ -87,7 +87,7 @@ Update yum repository to CentOS 7.2:
 ```
 $ sed -i 's|http://mirror.centos.org/altarch/|http://vault.centos.org/altarch/7.2.1511/|' mock_configs/CentOS/7/CentOS-7-ppc64le.cfg
 ```
-    
+
 Update distro version to 7.2:
 
 ```
@@ -100,7 +100,7 @@ Update build version to v1.5.0 or v1.0.0:
 ```
 $ sed -i "s|build_version:.*|build_version: \"v1.5.0\"|" config.yaml  # use v1.5.0 or v1.0.0
 ```
-    
+
 Install rpm packages which were used in older build code, but are not anymore:
 
 ```
@@ -112,7 +112,7 @@ Clean yum repositories cache in mock:
 ```
 $ mock --scrub all
 ```
-    
+
 These steps are documented in
 https://github.com/open-power-host-os/infrastructure/tree/master/jenkins_jobs/build_old_host_os_versions/script.sh .
 
@@ -128,60 +128,31 @@ file or disable package repositories update in config.yaml.
 
 ## Using the RPMs
 
-We decided that's is a little bit intrusive to install all the
-produced RPMs since some of them may not fit your needs. At the end of
-the process you'll see a new ``result`` directory inside this
-project's root.
+At the end of the process you'll see a new ``result`` directory inside
+this project's root. It contains the built packages repositories under
+``packages`` and a yum repository config under ``repository_config``, to
+simplify using those repositories.
 
-A suggested set of packages tested is the following:
+To install only virtualization related packages, for example, you can
+install the open-power-host-os-virt metapackage:
+
+```
+$ sudo yum -c result/repository_config/latest install open-power-host-os-virt
+```
+
+It will then install all required dependencies:
 
  - kernel
  - libvirt
- - libvirt-client
- - libvirt-daemon
- - libvirt-daemon-config-network
- - libvirt-daemon-config-nwfilter
- - libvirt-daemon-driver-interface
- - libvirt-daemon-driver-lxc
- - libvirt-daemon-driver-network
- - libvirt-daemon-driver-nodedev
- - libvirt-daemon-driver-nwfilter
- - libvirt-daemon-driver-qemu
- - libvirt-daemon-driver-secret
- - libvirt-daemon-driver-storage
- - libvirt-daemon-kvm
- - libvirt-daemon-lxc
- - libvirt-daemon-qemu
- - libvirt-debuginfo
- - libvirt-devel
- - libvirt-docs
- - libvirt-lock-sanlock
- - libvirt-login-shell
- - libvirt-nss
  - qemu
- - qemu-common
- - qemu-debuginfo
- - qemu-guest-agent
- - qemu-img
- - qemu-kvm
- - qemu-kvm-tools
- - qemu-system-ppc
- - qemu-system-x86
  - SLOF
 
-You can use the following command to install, for instance,
-kernel's RPM:
+You can use similar commands to install specific packages, for instance,
+kernel's debuginfo RPM:
 
 ```
-$ sudo yum localinstall result/kernel-4.9.0-4.el7.centos.ppc64le.rpm
+$ sudo yum -c result/repository_config/latest install kernel-debuginfo
 ```
-
-Note that some of those packages are debuginfo which are recommended
-in order to provide useful information for bugs in the case of any
-failures.
-
-Also no version is informed on the list above to make it valid even
-for future versions with minor version changes.
 
 When using virtualization packages, SMT needs to be disabled:
 
@@ -202,7 +173,7 @@ You can do this by issuing the command below
 ```
 $ sudo pip install -r requirements-dev.txt
 ```
-    
+
 ### Running code linter
 
 From the root of the `builds` project directory, use the commands below to run
@@ -212,7 +183,7 @@ the code linter (Pylint):
 $ PYTHON_FILES=$(find . -name "*.py")
 $ pylint $PYTHON_FILES
 ```
-    
+
 ### Running unit tests
 
 From the root of the `builds` project directory, use the commands below to run
@@ -230,7 +201,7 @@ $ nosetests tests/unit
 ```
 $ ./host_os.py --verbose build-iso
 ```
-    
+
 Please see `--help` for more options.
 
 ```

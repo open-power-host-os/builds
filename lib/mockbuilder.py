@@ -25,11 +25,19 @@ from lib import exception
 from lib import package_builder
 from lib import package_source
 from lib import utils
-from lib.constants import LATEST_DIR
+from lib.constants import LATEST_SYMLINK_NAME
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 MOCK_CHROOT_BUILD_DIR = "/builddir/build/SOURCES"
+YUM_REPO_CONFIG_TEMPLATE = """
+[host-os-local-repo-{timestamp}]
+name=OpenPOWER Host OS local repository built at {timestamp}
+baseurl=file://{repo_path}
+failovermethod=priority
+enabled=1
+gpgcheck=0
+"""
 
 
 class Mock(package_builder.PackageBuilder):
@@ -194,12 +202,33 @@ class Mock(package_builder.PackageBuilder):
             self.timestamp, package.name)
         self._copy_rpms(package.build_cache_dir, package_build_results_dir)
 
+    def create_repository(self):
+        """
+        Create yum repository in build results directory.
+        """
+        result_dir = CONF.get('common').get('result_dir')
+        build_results_dir = os.path.join(
+            result_dir, 'packages', self.timestamp)
+        utils.run_command("createrepo %s" % build_results_dir)
+
+        repo_config_dir = os.path.join(result_dir, "repository_config")
+        utils.create_directory(repo_config_dir)
+        repo_config_path = os.path.join(
+            repo_config_dir, self.timestamp + ".repo")
+        with open(repo_config_path, "w") as repo_config:
+            repo_config.write(YUM_REPO_CONFIG_TEMPLATE.format(
+                timestamp=self.timestamp,
+                repo_path=os.path.abspath(build_results_dir)))
+
     def create_latest_symlink_result_dir(self):
         """
         Create latest symlink pointing to the current result directory.
         """
+        result_dir = CONF.get('common').get('result_dir')
         latest_package_build_results_dir = os.path.join(
-            CONF.get('common').get('result_dir'), 'packages',
-            LATEST_DIR)
-        utils.force_symlink(self.timestamp,
-                            latest_package_build_results_dir)
+            result_dir, 'packages', LATEST_SYMLINK_NAME)
+        utils.force_symlink(self.timestamp, latest_package_build_results_dir)
+
+        latest_repo_config_path = os.path.join(
+            result_dir, 'repository_config', LATEST_SYMLINK_NAME)
+        utils.force_symlink(self.timestamp + ".repo", latest_repo_config_path)
