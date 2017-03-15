@@ -51,3 +51,31 @@ kernel's debuginfo RPM:
 ```
 sudo yum -c <path_to_yum_repository_config> install kernel-debuginfo
 ```
+
+# ISO installation
+
+If you want to install Host OS on a clean system, you may use the
+Host OS ISO to avoid installing CentOS first. One way to do this is
+booting from an HTTP server:
+
+- Mount the ISO on an HTTP server:
+
+```
+sudo mount -o loop <path_to_iso_file> <path_to_mounted_iso>
+```
+
+- Configure a Petitboot entry:
+
+```
+kernel http://<server_url>/<path_to_mounted_iso>/ppc/ppc64/vmlinuz
+initrd http://<server_url>/<path_to_mounted_iso>/ppc/ppc64/initrd.img
+append root=live:http://<server_url>/<path_to_mounted_iso>/LiveOS/squashfs.img repo=http://<server_url>/<path_to_mounted_iso>
+```
+
+- Log into target system and boot using netboot entry.
+
+- During installation, on "Software selection" option, you can choose between:
+
+  - "Minimal Install": CentOS core package group + **Host OS kernel**
+  - "Infrastructure Server": CentOS core and base package groups + **Host OS kernel**
+  - "Virtualization Host": CentOS core, base and virtualization-tools package groups + **Host OS virtualization stack** (SLOF, docker, ginger, ginger-base, golang, kernel, kimchi, libvirt, libvirt-daemon-kvm, libvirt-daemon-lxc, libvirt-daemon-qemu, libvirt-devel, libvirt-docs, libvirt-lock-sanlock, libvirt-login-shell, libvirt-nss, libvpd, lsvpd, novnc, ppc64-diag, qemu, qemu-guest-agent, qemu-kvm-tools, servicelog, sos, systemtap, wok)
