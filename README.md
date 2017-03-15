@@ -22,8 +22,8 @@ Refer to [30. How does CentOS versioning work?](https://wiki.centos.org/FAQ/Gene
 * Clone the repository
 
 ```
-$ git clone https://github.com/open-power-host-os/builds.git
-$ cd builds
+git clone https://github.com/open-power-host-os/builds.git
+cd builds
 ```
 
 ### RPM Based distributions
@@ -31,13 +31,13 @@ $ cd builds
 * Install epel repository (Extra Packages for Enterprise Linux):
 
 ```
-$ sudo yum install epel-release
+sudo yum install epel-release
 ```
 
 * Install RPM dependencies
 
 ```
-$ sudo yum install -y $(cat rpm_requirements.txt)
+sudo yum install -y $(cat rpm_requirements.txt)
 ```
 
 ## Settings
@@ -45,7 +45,7 @@ $ sudo yum install -y $(cat rpm_requirements.txt)
 * Add user to mock group
 
 ```
-$ sudo usermod -a -G mock $(whoami)
+sudo usermod -a -G mock $(whoami)
 ```
 
 ## Running
@@ -53,13 +53,13 @@ $ sudo usermod -a -G mock $(whoami)
 * Build a single or multiple packages
 
 ```
-$ ./host_os.py build-packages --packages kernel libvirt
+./host_os.py build-packages --packages kernel libvirt
 ```
 
 * Build all software
 
 ```
-$ ./host_os.py --verbose build-packages
+./host_os.py --verbose build-packages
 ```
 
 Note the `--verbose` parameter to get all the log messages in the
@@ -67,13 +67,13 @@ console. Instead of the standard ordinary messages. Please see
 `--help` for more options.
 
 ```
-$ ./host_os.py --help
+./host_os.py --help
 ```
 
 or
 
 ```
-$ ./host_os.py build-packages --help
+./host_os.py build-packages --help
 ```
 
 * Build old versions
@@ -97,32 +97,7 @@ this project's root. It contains the built packages repositories under
 ``packages`` and a yum repository config under ``repository_config``, to
 simplify using those repositories.
 
-To install only virtualization related packages, for example, you can
-install the open-power-host-os-virt metapackage:
-
-```
-$ sudo yum -c result/repository_config/latest install open-power-host-os-virt
-```
-
-It will then install all required dependencies:
-
- - kernel
- - libvirt
- - qemu
- - SLOF
-
-You can use similar commands to install specific packages, for instance,
-kernel's debuginfo RPM:
-
-```
-$ sudo yum -c result/repository_config/latest install kernel-debuginfo
-```
-
-When using virtualization packages, SMT needs to be disabled:
-
-```
-$ sudo ppc64_cpu --smt=off
-```
+To install them, follow the instructions [here](INSTALLING_PACKAGES.md).
 
 ## Contact us
 
