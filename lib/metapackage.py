@@ -2,6 +2,7 @@ import logging
 import os
 import re
 
+from lib import exception
 from lib import packages_manager
 from lib import rpm_package
 from lib.versions_repository import replace_file_section
@@ -107,7 +108,7 @@ def update_metapackage(
     version_file_path = os.path.join(versions_repo.working_tree_dir, "VERSION")
     with open(version_file_path) as version_file:
         version_parts = version_file.readlines()[-1].strip().split("-")
-    metapackage_version = version_parts.pop(0)
+    new_metapackage_version = version_parts.pop(0)
     if version_parts:
         metapackage_milestone = version_parts.pop(0)
     else:
@@ -115,7 +116,15 @@ def update_metapackage(
 
     metapackage = rpm_package.RPM_Package.get_instance(
         metapackage_name, distro)
-    metapackage.spec_file.update_version(metapackage_version)
+
+    version_compare = rpm_package.compare_versions(
+        metapackage.version, new_metapackage_version)
+    if version_compare < 0:
+        metapackage.spec_file.update_version(new_metapackage_version)
+    elif version_compare > 0:
+        raise exception.PackageError(
+            "Current version (%s) is greater than new version (%s)" %
+            (metapackage.version, new_metapackage_version))
     metapackage.spec_file.replace_macro_definition(
         "milestone", metapackage_milestone)
 
