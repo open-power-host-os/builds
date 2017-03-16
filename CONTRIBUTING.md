@@ -13,6 +13,10 @@ Also, please, follow the code style proposed by [PEP8](https://www.python.org/de
 
 For details on adding new packages to the project, refer to the versions repository documentation at https://github.com/open-power-host-os/versions/blob/master/CONTRIBUTING.md.
 
+## Review process
+
+See details on review process [here](REVIEW_PROCESS.md).
+
 ## Validating
 
 There is a whole repository dedicated to testing available at
