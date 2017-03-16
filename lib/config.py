@@ -213,7 +213,6 @@ class ConfigParser(object):
         self.parser.add_argument('--config-file', '-c',
                                  help='Path of the configuration file for build '
                                       'scripts',
-                                 # NOTE(maurosr): move this to /etc in the future
                                  default='config/host_os.yaml')
         self.parser.add_argument('--verbose', '-v',
                                  help='Set the scripts to be verbose',
