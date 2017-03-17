@@ -89,7 +89,7 @@ class MockPungiIsoBuilder(object):
 
         LOG.debug("Creating package groups metadata file (comps.xml)")
         comps_xml_str = packages_groups_xml_creator.create_comps_xml(
-            self.config.get('hostos_packages_groups'))
+            self.config.get('host_os_packages_groups'))
         comps_xml_file = "host-os-comps.xml"
         comps_xml_path = os.path.join(self.work_dir, comps_xml_file)
         try:
@@ -124,10 +124,11 @@ class MockPungiIsoBuilder(object):
 
             f.write("%packages\n")
             groups = self.config.get('automated_install_packages_groups')
-            for hostos_group in self.config.get('hostos_packages_groups').keys():
-                hostos_group = "@%s" % hostos_group
-                if hostos_group not in groups:
-                    groups.append(hostos_group)
+            for host_os_group in self.config.get(
+                    'host_os_packages_groups').keys():
+                host_os_group = "@%s" % host_os_group
+                if host_os_group not in groups:
+                    groups.append(host_os_group)
             for group in groups:
                 f.write(group + "\n")
 

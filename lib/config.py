@@ -115,7 +115,7 @@ ISO_ARGS = {
     ('--automated-install-file',):
         dict(help='Path of a kickstart file, used to automate the installation of a RPM-based Linux distribution',
              default='host-os.ks'),
-    ('--hostos-packages-groups',):
+    ('--host-os-packages-groups',):
         dict(help='Packages groups in yum repository'),
     ('--automated-install-packages-groups',):
         dict(help='Packages and packages groups which are installed using automated installation', nargs='*'),

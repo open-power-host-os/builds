@@ -48,7 +48,7 @@ build_iso:
       --verbose"
     packages_dir: "result/packages/latest"
     automated_install_file: "host-os.ks"
-    hostos_packages_groups:
+    host_os_packages_groups:
         virtualization-hypervisor:
             - "SLOF"
             - "docker"
@@ -87,7 +87,7 @@ build_iso:
         - "@remote-system-management"
         - "@virtualization-platform"
         - "grub2"
-    mock_iso_repo_name: "hostos"
+    mock_iso_repo_name: "host_os"
     mock_iso_repo_dir: "/host-os-repo"
     distro_repos_urls:
         base: "http://mirror.centos.org/altarch/7/os/ppc64le/"
