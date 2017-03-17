@@ -117,8 +117,11 @@ ISO_ARGS = {
              default='host-os.ks'),
     ('--host-os-packages-groups',):
         dict(help='Packages groups in yum repository'),
-    ('--automated-install-packages-groups',):
-        dict(help='Packages and packages groups which are installed using automated installation', nargs='*'),
+    ('--iso-root-fs-packages-groups',):
+        dict(help='Packages and packages groups that will be installed in '
+             'the ISO root file system. Groups passed to the '
+             '"--host-os-packages-groups" option are automatically added to '
+             'this list.', nargs='*'),
     ('--mock-iso-repo-name',):
         dict(help='Name of the yum repository, to create from OpenPOWER Host OS packages'),
     ('--mock-iso-repo-dir',):

@@ -123,7 +123,7 @@ class MockPungiIsoBuilder(object):
                 f.write(repo)
 
             f.write("%packages\n")
-            groups = self.config.get('automated_install_packages_groups')
+            groups = self.config.get('iso_root_fs_packages_groups')
             for host_os_group in self.config.get(
                     'host_os_packages_groups').keys():
                 host_os_group = "@%s" % host_os_group
