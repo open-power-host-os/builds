@@ -194,9 +194,14 @@ def run(CONF):
         if CONF.get(section).get(parameter) is None:
             raise exception.RequiredParameterMissing(parameter=parameter)
 
+    # get packages names
+    packages_to_update_names = []
+    for package in packages_to_update:
+        packages_to_update_names.append(package.split("#")[0])
+
     LOG.info("Checking for updates in packages versions: %s",
-             ", ".join(packages_to_update))
-    pm = packages_manager.PackagesManager(packages_to_update)
+             ", ".join(packages_to_update_names))
+    pm = packages_manager.PackagesManager(packages_to_update_names)
     pm.prepare_packages(packages_class=rpm_package.RPM_Package,
                         download_source_code=False, distro=distro)
 
