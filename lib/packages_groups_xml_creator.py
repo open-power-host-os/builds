@@ -16,7 +16,8 @@
 from lxml import etree as E
 from lxml.etree import Element
 
-COMPS_DOCTYPE = "<!DOCTYPE comps PUBLIC \"-//HostOS//DTD Comps info//EN\" \"comps.dtd\">"
+COMPS_DOCTYPE = (
+    '<!DOCTYPE comps PUBLIC "-//Host OS//DTD Comps info//EN" "comps.dtd">')
 
 
 def create_packagelist_xml(pkgs):
