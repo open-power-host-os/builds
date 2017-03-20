@@ -118,10 +118,12 @@ ISO_ARGS = {
     ('--host-os-packages-groups',):
         dict(help='Packages groups in yum repository'),
     ('--iso-root-fs-packages-groups',):
-        dict(help='Packages and packages groups that will be installed in '
-             'the ISO root file system. Groups passed to the '
-             '"--host-os-packages-groups" option are automatically added to '
-             'this list.', nargs='*'),
+        dict(help='Packages groups that will be installed in the ISO root '
+             'file system. Groups passed to the "--host-os-packages-groups" '
+             'option are automatically added to this list.', nargs='*'),
+    ('--iso-root-fs-packages',):
+        dict(help='Packages that will be installed in the ISO root file '
+             'system, in addition to the specified groups.', nargs='*'),
     ('--mock-iso-repo-name',):
         dict(help='Name of the yum repository, to create from OpenPOWER Host OS packages'),
     ('--mock-iso-repo-dir',):
