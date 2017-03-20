@@ -10,6 +10,30 @@ from lib import repository
 from lib import utils
 
 
+def set_dest_dir(source, directory, local_copy_subdir_name):
+    """
+    Set local directory to which the repository/URL will be downloaded in source dict.
+
+    Args:
+        source (dict): source
+        directory (str): target directory
+        local_copy_subdir_name: target subdirectory in directory. Used only by SVN.
+    """
+
+    source_type = source.keys()[0]
+    if source_type != 'url':
+        if source_type == 'svn':
+            dest = os.path.join(directory, local_copy_subdir_name)
+        else:
+            repo_name = os.path.basename(source[source_type]['src'])
+            dest = os.path.join(directory, repo_name)
+    else:
+        file_name = os.path.basename(source['url']['src'])
+        dest = os.path.join(directory, file_name)
+
+    source[source_type]['dest'] = dest
+
+
 def _hg_download(source, directory):
     """
     Clones a mercurial [source] to [directory] and returns a source dict.
@@ -48,9 +72,7 @@ def _hg_download(source, directory):
                            is_timeout_error_f=_is_timeout_error,
                            initial_timeout=60)
 
-    source['hg']['dest'] = dest
     return source
-
 
 def _git_download(source, directory):
     """
@@ -73,7 +95,6 @@ def _git_download(source, directory):
     repo.checkout(commit_id or branch)
     source['git']['repo'] = repo
     return source
-
 
 def _svn_download(source, directory):
     """
@@ -99,7 +120,6 @@ def _svn_download(source, directory):
                          error=exception.RepositoryError)
 
     source['svn']['repo'] = repo
-    source['svn']['dest'] = directory
     return source
 
 def _url_download(source, directory):
@@ -126,7 +146,6 @@ def _url_download(source, directory):
             if not chunk:
                 break
             f.write(chunk)
-    source['url']['dest'] = dest
     return source
 
 
