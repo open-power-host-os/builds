@@ -26,7 +26,8 @@ build_packages:
    "--enable-plugin=tmpfs
    --plugin-option=tmpfs:keep_mounted=True
    --plugin-option=tmpfs:max_fs_size=32g
-   --plugin-option=tmpfs:required_ram_mb=39800"
+   --plugin-option=tmpfs:required_ram_mb=39800
+   --verbose"
  update_packages_repos_before_build: True
 build_release_notes:
  release_notes_repo_url: "https://github.com/open-power-host-os/open-power-host-os.github.io.git"
@@ -39,6 +40,12 @@ build_iso:
      CentOS:
       '7': "./mock_configs/CentOS/7/build-iso-CentOS-7-ppc64le.cfg"
     mock_args:
+      # If the system has less RAM than required, the plugin will be disabled
+      "--enable-plugin=tmpfs
+      --plugin-option=tmpfs:keep_mounted=True
+      --plugin-option=tmpfs:max_fs_size=32g
+      --plugin-option=tmpfs:required_ram_mb=39800
+      --verbose"
     packages_dir: "result/packages/latest"
     automated_install_file: "host-os.ks"
     hostos_packages_groups:
