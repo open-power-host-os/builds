@@ -28,6 +28,12 @@ from lib.package import Package
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
+# We assume the main source is the first of the list
+PACKAGE_METADATA_TO_RPM_MACRO_MAPPING = {
+    ("sources", 0, "git", "commit_id"): "git_commit_id",
+    ("sources", 0, "svn", "commit_id"): "svn_revision",
+    ("sources", 0, "hg", "commit_id"): "hg_commit_id",
+}
 
 
 def compare_versions(v1, v2):
@@ -254,6 +260,37 @@ class RPM_Package(Package):
                     distro_version=self.distro.version)
         except TypeError:
             raise exception.PackageDescriptorError(package=self.name)
+
+    def get_spec_macros(self):
+        """
+        Get command line string to define spec file macros externally.
+
+        Returns:
+            str: string to be appended to the rpmbuild command
+        """
+        macros_string = ""
+        for package_attribute, macro_name in (
+                PACKAGE_METADATA_TO_RPM_MACRO_MAPPING.items()):
+            subnode = self.package_data
+            for subnode_id in package_attribute:
+                try:
+                    subnode = subnode[subnode_id]
+                except (KeyError, IndexError):
+                    break
+            else:
+                macro_value = subnode
+                LOG.debug(
+                    "Package {package_name} is defining {macro_name}'s value "
+                    "{value} based on attribute {attribute}".format(
+                        package_name=self.name, macro_name=macro_name,
+                        value=macro_value, attribute=package_attribute))
+                macros_string += " --define '{name} {value}'".format(
+                    name=macro_name, value=macro_value)
+
+        if not macros_string:
+            LOG.debug("Package {package_name} has no external macros to define"
+                      .format(package_name=self.name))
+        return macros_string
 
     @property
     def cached_build_results(self):
