@@ -48,46 +48,33 @@ build_iso:
       --verbose"
     packages_dir: "result/packages/latest"
     automated_install_file: "host-os.ks"
-    hostos_packages_groups:
-        virtualization-hypervisor:
-            - "SLOF"
-            - "docker"
-            - "ginger"
-            - "ginger-base"
-            - "golang"
-            - "kernel"
-            - "kimchi"
-            - "libvirt"
-            - "libvirt-daemon-kvm"
-            - "libvirt-daemon-lxc"
-            - "libvirt-daemon-qemu"
-            - "libvirt-devel"
-            - "libvirt-docs"
-            - "libvirt-lock-sanlock"
-            - "libvirt-login-shell"
-            - "libvirt-nss"
-            - "libvpd"
-            - "lsvpd"
-            - "novnc"
-            - "ppc64-diag"
-            - "qemu"
-            - "qemu-guest-agent"
-            - "qemu-kvm-tools"
-            - "servicelog"
-            - "sos"
-            - "systemtap"
-            - "wok"
-    automated_install_packages_groups:
-        - "@base"
-        - "@core"
-        - "@debugging"
-        - "@virtualization-hypervisor"
-        - "@virtualization-tools"
-        - "@network-file-system-client"
-        - "@remote-system-management"
-        - "@virtualization-platform"
+    installable_environments:
+        OpenPOWER Host OS all:
+            - "open-power-host-os-all"
+        OpenPOWER Host OS base:
+            - "open-power-host-os-base"
+        OpenPOWER Host OS container:
+            - "open-power-host-os-container"
+        OpenPOWER Host OS virtualization:
+            - "open-power-host-os-virt"
+        OpenPOWER Host OS virtualization management:
+            - "open-power-host-os-virt-management"
+        OpenPOWER Host OS RAS:
+            - "open-power-host-os-ras"
+    base_distro_minimal_install_groups:
+        - "core"
+    iso_root_fs_packages_groups:
+        - "base"
+        - "core"
+        - "debugging"
+        - "virtualization-hypervisor"
+        - "virtualization-tools"
+        - "network-file-system-client"
+        - "remote-system-management"
+        - "virtualization-platform"
+    iso_root_fs_packages:
         - "grub2"
-    mock_iso_repo_name: "hostos"
+    mock_iso_repo_name: "host_os"
     mock_iso_repo_dir: "/host-os-repo"
     distro_repos_urls:
         base: "http://mirror.centos.org/altarch/7/os/ppc64le/"

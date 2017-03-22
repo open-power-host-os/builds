@@ -89,7 +89,8 @@ class MockPungiIsoBuilder(object):
 
         LOG.debug("Creating package groups metadata file (comps.xml)")
         comps_xml_str = packages_groups_xml_creator.create_comps_xml(
-            self.config.get('hostos_packages_groups'))
+            self.config.get('installable_environments'),
+            self.config.get("base_distro_minimal_install_groups"))
         comps_xml_file = "host-os-comps.xml"
         comps_xml_path = os.path.join(self.work_dir, comps_xml_file)
         try:
@@ -123,13 +124,19 @@ class MockPungiIsoBuilder(object):
                 f.write(repo)
 
             f.write("%packages\n")
-            groups = self.config.get('automated_install_packages_groups')
-            for hostos_group in self.config.get('hostos_packages_groups').keys():
-                hostos_group = "@%s" % hostos_group
-                if hostos_group not in groups:
-                    groups.append(hostos_group)
-            for group in groups:
-                f.write(group + "\n")
+            iso_root_fs_packages_groups = self.config.get(
+                'iso_root_fs_packages_groups')
+            host_os_groups_ids = [
+                packages_groups_xml_creator.convert_name_to_id(
+                    group_name, "group") for group_name
+                in self.config.get('installable_environments')]
+            for host_os_group_id in host_os_groups_ids:
+                if host_os_group_id not in iso_root_fs_packages_groups:
+                    iso_root_fs_packages_groups.append(host_os_group_id)
+            for group in iso_root_fs_packages_groups:
+                f.write("@{}\n".format(group))
+            for package in self.config.get('iso_root_fs_packages'):
+                f.write("{}\n".format(package))
 
             f.write("%end\n")
 
