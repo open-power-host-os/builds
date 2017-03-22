@@ -69,8 +69,10 @@ class Mock(package_builder.PackageBuilder):
         LOG.info("%s: Starting build process" % package.name)
         self._build_srpm(package)
         self._install_external_dependencies(package)
-        cmd = (self.common_mock_args + " --rebuild %s --no-clean --resultdir=%s"
-               % (self.build_dir + "/*.rpm", self.build_dir))
+        cmd = (self.common_mock_args
+               + " --rebuild %s --no-clean --resultdir=%s %s" % (
+                   self.build_dir + "/*.rpm", self.build_dir,
+                   package.get_spec_macros()))
 
         if package.rpmmacro:
             cmd = cmd + " --macro-file=%s" % package.rpmmacro
@@ -94,9 +96,11 @@ class Mock(package_builder.PackageBuilder):
 
     def _build_srpm(self, package):
         LOG.info("%s: Building SRPM" % package.name)
-        cmd = (self.common_mock_args +
-               " --buildsrpm --no-clean --spec %s --sources %s --resultdir=%s"
-               % (package.spec_file.path, self.archive, self.build_dir))
+        cmd = (self.common_mock_args
+               + (" --buildsrpm --no-clean --spec %s --sources %s "
+                  "--resultdir=%s %s" % (
+                      package.spec_file.path, self.archive, self.build_dir,
+                      package.get_spec_macros())))
         utils.run_command(cmd)
 
     def prepare_sources(self, package):
