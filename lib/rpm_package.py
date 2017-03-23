@@ -72,20 +72,26 @@ class SpecFile(object):
             file_.write(self._content)
         self._cached_tags = dict()
 
-    def query_tag(self, tag):
+    def query_tag(self, tag_name):
         """
         Queries the spec file for a tag's value.
         Cached content not yet written to the file is not considered.
-        """
-        if tag not in self._cached_tags:
-            tag = utils.run_command(
-                "rpmspec --srpm -q --qf '%%{%s}' %s 2>/dev/null" % (
-                    tag.upper(), self.path)).strip()
-            if tag == "(none)":
-                tag = None
-            self._cached_tags[tag] = tag
 
-        return self._cached_tags[tag]
+        Args:
+            tag_name (str): name of the tag to query
+
+        Returns:
+            str: tag value
+        """
+        if tag_name not in self._cached_tags:
+            tag_value = utils.run_command(
+                "rpmspec --srpm -q --qf '%%{%s}' %s 2>/dev/null" % (
+                    tag_name.upper(), self.path)).strip()
+            if tag_value == "(none)":
+                tag_value = None
+            self._cached_tags[tag_name] = tag_value
+
+        return self._cached_tags[tag_name]
 
     def update_version(self, new_version):
         LOG.info("Updating '%s' version to: %s" % (self.path, new_version))
