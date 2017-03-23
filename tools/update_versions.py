@@ -14,7 +14,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from datetime import datetime
-import copy
 import logging
 import os
 import re
@@ -75,44 +74,66 @@ class Version(object):
         LOG.info("%s: Current version: %s" % (self.pkg, self.pkg.version))
 
     def update(self, user_name, user_email):
-        pkg = copy.deepcopy(self.pkg)
-        pkg.sources[0]["git"]["commit_id"] = None
-        pkg.download_files(recurse=False)
-        newest_commit_id = pkg.sources[0]["git"]["repo"].head.commit.hexsha
+        """
+        Update the package's information, including version, release and git
+        repository source.
 
-        if newest_commit_id == self.pkg.sources[0]["git"]["commit_id"]:
+        Args:
+            user_name (str): name used when updating RPM specification files
+                change logs
+            user_email (str): email used when updating RPM specification files
+                change logs
+        """
+        previous_commit_id = self.pkg.sources[0]["git"]["commit_id"]
+        previous_version = self.pkg.version
+
+        self.pkg.sources[0]["git"]["commit_id"] = None
+        self.pkg.download_files(recurse=False)
+        newest_commit_id = self.pkg.sources[0]["git"]["repo"].head.commit.hexsha
+        self.pkg.sources[0]["git"]["commit_id"] = newest_commit_id
+
+        if newest_commit_id == previous_commit_id:
             LOG.debug("%s: no changes.", self.pkg)
             return
 
-        pkg.sources[0]["git"]["commit_id"] = newest_commit_id
-
         self._read_version_from_repo(
-            pkg.sources[0]["git"]["repo"].working_tree_dir)
+            self.pkg.sources[0]["git"]["repo"].working_tree_dir)
 
         change_log_header = None
         result = rpm_package.compare_versions(
-            self.pkg.version, self._repo_version)
+            previous_version, self._repo_version)
         if result < 0:
-            pkg.spec_file.update_version(self._repo_version)
+            self.pkg.spec_file.update_version(self._repo_version)
             change_log_header = "Version update"
         elif result > 0:
             raise exception.PackageError(
                 "Current version (%s) is greater than repo version (%s)" %
-                (self.pkg.version, self._repo_version))
+                (previous_version, self._repo_version))
 
-        pkg.spec_file.update_prerelease_tag(self._repo_prerelease)
-        self._bump_release(pkg, change_log_header, user_name, user_email)
+        self.pkg.spec_file.update_prerelease_tag(self._repo_prerelease)
+        self._bump_release(previous_commit_id, change_log_header, user_name, user_email)
 
-    def _bump_release(self, pkg, change_log_header=None, user_name=None,
-                      user_email=None):
+    def _bump_release(self, previous_commit_id, change_log_header=None,
+                      user_name=None, user_email=None):
+        """
+        Bump package's spec file release number and mention it in the
+        change log.
+
+        Args:
+            previous_commit_id (str): previous package's commit ID
+            change_log_header (str): first line of the change log
+            user_name (str): name used when updating RPM specification files
+                change logs
+            user_email (str): email used when updating RPM specification files
+                change logs
+        """
         LOG.info("%s: Bumping release" % self.pkg)
         change_log_lines = []
         if change_log_header is not None:
             change_log_lines.append(change_log_header)
 
-        previous_commit_id = self.pkg.sources[0]["git"]["commit_id"]
         if previous_commit_id:
-            new_source = pkg.sources[0]["git"]
+            new_source = self.pkg.sources[0]["git"]
             new_commit_id = new_source["commit_id"]
             LOG.info("Updating package %s from %s to %s" % (
                 self.pkg.name, previous_commit_id, new_commit_id))
@@ -120,12 +141,12 @@ class Version(object):
                 new_source["repo"], new_commit_id)
             replace_str_in_file(
                 self.pkg.package_file, previous_commit_id, new_commit_id)
-            pkg.spec_file.update_commit_id(previous_commit_id, new_commit_id)
+            self.pkg.spec_file.update_commit_id(previous_commit_id, new_commit_id)
 
         if change_log_lines:
             assert user_name is not None
             assert user_email is not None
-            pkg.spec_file.bump_release(change_log_lines, user_name, user_email)
+            self.pkg.spec_file.bump_release(change_log_lines, user_name, user_email)
 
     def _read_version_from_repo(self, repo_path):
 
