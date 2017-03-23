@@ -51,22 +51,20 @@ PACKAGES = [
 PRERELEASE_TERMS = ['rc']
 
 
-def _get_git_log(repo, since_id):
+def _get_git_commit_log(repo, commit_id):
     """
-    Get log of commit SHA1 and short messages since the ID provided
-    (non-inclusive).
+    Get log of short SHA1 and short message for commit_id
     """
+    SHORT_HEX_SHA_LENGTH = 7
     log = []
-    for commit in repo.iter_commits():
-        if commit.hexsha.startswith(since_id):
-            break
-        commit_message = commit.message.split('\n')[0]
-        commit_message = commit_message.replace("'", "")
-        commit_message = commit_message.replace("\"", "")
-        log.append("%s %s" % (commit.hexsha, commit_message))
+    commit = repo.commit(commit_id)
+    commit_message = commit.message.split('\n')[0]
+    commit_message = commit_message.replace("'", "")
+    commit_message = commit_message.replace("\"", "")
+    log.append("Updating to %s %s" % (
+        commit.hexsha[0:SHORT_HEX_SHA_LENGTH], commit_message))
 
     return log
-
 
 class Version(object):
     def __init__(self, pkg):
@@ -118,8 +116,8 @@ class Version(object):
             new_commit_id = new_source["commit_id"]
             LOG.info("Updating package %s from %s to %s" % (
                 self.pkg.name, old_commit_id, new_commit_id))
-            change_log_lines += _get_git_log(
-                new_source["repo"], old_commit_id)
+            change_log_lines += _get_git_commit_log(
+                new_source["repo"], new_commit_id)
             replace_str_in_file(
                 self.pkg.package_file, old_commit_id, new_commit_id)
             pkg.spec_file.update_commit_id(old_commit_id, new_commit_id)
