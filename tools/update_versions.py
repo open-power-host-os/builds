@@ -110,17 +110,17 @@ class Version(object):
         if change_log_header is not None:
             change_log_lines.append(change_log_header)
 
-        old_commit_id = self.pkg.sources[0]["git"]["commit_id"]
-        if old_commit_id:
+        previous_commit_id = self.pkg.sources[0]["git"]["commit_id"]
+        if previous_commit_id:
             new_source = pkg.sources[0]["git"]
             new_commit_id = new_source["commit_id"]
             LOG.info("Updating package %s from %s to %s" % (
-                self.pkg.name, old_commit_id, new_commit_id))
+                self.pkg.name, previous_commit_id, new_commit_id))
             change_log_lines += _get_git_commit_log(
                 new_source["repo"], new_commit_id)
             replace_str_in_file(
-                self.pkg.package_file, old_commit_id, new_commit_id)
-            pkg.spec_file.update_commit_id(old_commit_id, new_commit_id)
+                self.pkg.package_file, previous_commit_id, new_commit_id)
+            pkg.spec_file.update_commit_id(previous_commit_id, new_commit_id)
 
         if change_log_lines:
             assert user_name is not None
