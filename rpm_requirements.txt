@@ -1,5 +1,6 @@
 GitPython
 PyYAML
+createrepo
 git
 lzop
 mock
