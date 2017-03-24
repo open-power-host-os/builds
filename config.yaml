@@ -8,7 +8,7 @@ common:
  http_proxy: ''
  distro_name: 'CentOS'
  distro_version: '7'
- arch_and_endianness: 'ppc64le'
+ architecture: 'ppc64le'
  mock_binary: "/usr/bin/mock"
  commit_updates: True
  push_updates: True

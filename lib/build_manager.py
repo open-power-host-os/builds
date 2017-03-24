@@ -43,9 +43,9 @@ class BuildManager(object):
         """
 
         # create package builder based on distro
-        if distro.lsb_name == "CentOS":
-            mock_config_file = CONF.get('build_packages').get('mock_config').get(
-                distro.lsb_name).get(distro.version)
+        if distro.name == "CentOS":
+            mock_config_file = CONF.get('build_packages').get(
+                'mock_config').get(distro.name).get(distro.version)
             package_builder = mockbuilder.Mock(mock_config_file)
         else:
             raise exception.DistributionError()

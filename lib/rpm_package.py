@@ -192,17 +192,17 @@ class RPM_Package(Package):
         try:
             # keeps backwards compatibility with old yaml files which have 'centos'
             # instead of 'CentOS'
-            if self.distro.lsb_name in self.package_data.get('files', {}):
-                distro_attrib_name = self.distro.lsb_name
+            if self.distro.name in self.package_data.get('files', {}):
+                distro_attrib_name = self.distro.name
             else:
-                distro_attrib_name = self.distro.lsb_name.lower()
+                distro_attrib_name = self.distro.name.lower()
 
             # load distro files
             files = self.package_data.get('files', {}).get(
                 distro_attrib_name, {}).get(self.distro.version, {}) or {}
 
             default_build_files_dir_rel_path = os.path.join(
-                self.distro.lsb_name, self.distro.version, "SOURCES")
+                self.distro.name, self.distro.version, "SOURCES")
             build_files_dir_rel_path = files.get('build_files') or default_build_files_dir_rel_path
             build_files_dir_path = os.path.join(self.package_dir, build_files_dir_rel_path)
             if os.path.isdir(build_files_dir_path):
@@ -236,7 +236,7 @@ class RPM_Package(Package):
                     self.build_dependencies + self.install_dependencies))
 
             default_rpm_macros_file_rel_path = os.path.join(
-                self.distro.lsb_name, self.distro.version, "rpmmacro")
+                self.distro.name, self.distro.version, "rpmmacro")
             rpm_macros_file_rel_path = files.get('rpmmacro', default_rpm_macros_file_rel_path)
             rpm_macros_file_path = os.path.join(self.package_dir, rpm_macros_file_rel_path)
             if os.path.isfile(rpm_macros_file_path):
@@ -245,18 +245,18 @@ class RPM_Package(Package):
                 self.rpmmacro = None
 
             default_spec_file_rel_path = os.path.join(
-                self.distro.lsb_name, self.distro.version, "%s.spec" % self.name)
+                self.distro.name, self.distro.version, "%s.spec" % self.name)
             spec_file_rel_path = files.get('spec', default_spec_file_rel_path)
             self.spec_file_path = os.path.join(self.package_dir, spec_file_rel_path)
             self.spec_file = SpecFile(self.spec_file_path)
 
             if os.path.isfile(self.spec_file.path):
                 LOG.info("Package found: %s for %s %s" % (
-                    self.name, self.distro.lsb_name, self.distro.version))
+                    self.name, self.distro.name, self.distro.version))
             else:
                 raise exception.PackageSpecError(
                     package=self.name,
-                    distro=self.distro.lsb_name,
+                    distro=self.distro.name,
                     distro_version=self.distro.version)
         except TypeError:
             raise exception.PackageDescriptorError(package=self.name)

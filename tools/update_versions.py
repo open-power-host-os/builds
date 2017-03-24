@@ -176,7 +176,7 @@ def run(CONF):
     distro = distro_utils.get_distro(
         CONF.get('common').get('distro_name'),
         CONF.get('common').get('distro_version'),
-        CONF.get('common').get('arch_and_endianness'))
+        CONF.get('common').get('architecture'))
     commit_updates = CONF.get('common').get('commit_updates')
     push_updates = CONF.get('common').get('push_updates')
     push_repo_url = CONF.get('update_versions').get('push_repo_url')
