@@ -1,4 +1,4 @@
-# Repository installation
+# Installation using yum repository
 
 To install Host OS packages from a repository, you'll first need a
 system with a
@@ -52,7 +52,7 @@ kernel's debuginfo RPM:
 sudo yum -c <path_to_yum_repository_config> install kernel-debuginfo
 ```
 
-# ISO installation
+# Installation using ISO file
 
 If you want to install Host OS on a clean system, you may use the
 Host OS ISO to avoid installing CentOS first. One way to do this is
