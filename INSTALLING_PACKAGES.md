@@ -74,8 +74,22 @@ append root=live:http://<server_url>/<path_to_mounted_iso>/LiveOS/squashfs.img r
 
 - Log into target system and boot using netboot entry.
 
-- During installation, on "Software selection" option, you can choose between:
+- During installation, on "Software selection" option, you should see the
+following options:
 
-  - "Minimal Install": CentOS core package group + **Host OS kernel**
-  - "Infrastructure Server": CentOS core and base package groups + **Host OS kernel**
-  - "Virtualization Host": CentOS core, base and virtualization-tools package groups + **Host OS virtualization stack** (SLOF, docker, ginger, ginger-base, golang, kernel, kimchi, libvirt, libvirt-daemon-kvm, libvirt-daemon-lxc, libvirt-daemon-qemu, libvirt-devel, libvirt-docs, libvirt-lock-sanlock, libvirt-login-shell, libvirt-nss, libvpd, lsvpd, novnc, ppc64-diag, qemu, qemu-guest-agent, qemu-kvm-tools, servicelog, sos, systemtap, wok)
+```
+ 1)  [ ] Minimal Install                 6)  [ ] Openpower Host Os Container
+ 2)  [ ] Infrastructure Server           7)  [ ] Openpower Host Os Ras
+ 3)  [ ] Virtualization Host             8)  [ ] Openpower Host Os
+ 4)  [ ] Openpower Host Os All                   Virtualization
+ 5)  [ ] Openpower Host Os Base          9)  [ ] Openpower Host Os
+                                                 Virtualization Management
+```
+
+The first three ones are same that are present on a stardard CentOS installation,
+with the difference that they will install the most updated versions of packages
+present, substituting CentOS kernel for Host OS one, for example.
+
+We recommend the installation of any of the OpenPOWER Host OS options, depending
+on your needs. For the complete Host OS, select "Openpower Host Os All". The
+specific packages belonging to each group can be found [here](https://github.com/olavphibm/versions/blob/master/README.md#packages-groups).
