@@ -49,6 +49,7 @@ def run(CONF):
             raise exception.RequiredParameterMissing(parameter=parameter)
 
     METAPACKAGE_NAME = "open-power-host-os"
+    package_names.remove(METAPACKAGE_NAME)
     update_metapackage(
         versions_repo, distro, METAPACKAGE_NAME, package_names,
         updater_name, updater_email)
