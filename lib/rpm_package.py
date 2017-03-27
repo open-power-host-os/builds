@@ -72,20 +72,31 @@ class SpecFile(object):
             file_.write(self._content)
         self._cached_tags = dict()
 
-    def query_tag(self, tag):
+    def query_tag(self, tag_name, extra_args=""):
         """
         Queries the spec file for a tag's value.
         Cached content not yet written to the file is not considered.
-        """
-        if tag not in self._cached_tags:
-            tag = utils.run_command(
-                "rpmspec --srpm -q --qf '%%{%s}' %s 2>/dev/null" % (
-                    tag.upper(), self.path)).strip()
-            if tag == "(none)":
-                tag = None
-            self._cached_tags[tag] = tag
 
-        return self._cached_tags[tag]
+        Args:
+            tag_name (str): name of the tag to query
+            extra_args (str): extra arguments to append to the command
+
+        Returns:
+            str: tag value
+        """
+        if tag_name in self._cached_tags:
+            tag_value = self._cached_tags[tag_name]
+        else:
+            command = "rpmspec --srpm -q --qf '%%{%s}' %s %s 2>/dev/null" % (
+                    tag_name.upper(), self.path, extra_args)
+            tag_value = utils.run_command(command).strip()
+            if tag_value == "(none)":
+                tag_value = None
+            if not extra_args:
+                # Extra arguments may define macros that alter the tags
+                self._cached_tags[tag_name] = tag_value
+
+        return tag_value
 
     def update_version(self, new_version):
         LOG.info("Updating '%s' version to: %s" % (self.path, new_version))
@@ -305,12 +316,12 @@ class RPM_Package(Package):
 
     @property
     def epoch(self):
-        return self.spec_file.query_tag("epoch")
+        return self.spec_file.query_tag("epoch", self.get_spec_macros())
 
     @property
     def version(self):
-        return self.spec_file.query_tag("version")
+        return self.spec_file.query_tag("version", self.get_spec_macros())
 
     @property
     def release(self):
-        return self.spec_file.query_tag("release")
+        return self.spec_file.query_tag("release", self.get_spec_macros())
