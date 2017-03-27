@@ -33,7 +33,7 @@ To install only virtualization related packages, choose the
 `open-power-host-os-virt` metapackage:
 
 ```
-sudo yum -c result/repository_config/latest install open-power-host-os-virt
+sudo yum -c <path_to_yum_repository_config> install open-power-host-os-virt
 ```
 
 When using virtualization packages in POWER systems, SMT needs to be disabled:
