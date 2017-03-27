@@ -28,7 +28,7 @@ sudo yum -c <path_to_yum_repository_config> install kernel-debuginfo
 Yum will take care of the dependencies.
 
 If you want to install a group of packages, we have several that may be of
-interest, described [here](https://github.com/olavphibm/versions/blob/master/README.md#packages-groups).
+interest, described [here](https://github.com/open-power-host-os/versions/blob/master/README.md#packages-groups).
 To install only virtualization related packages, choose the
 `open-power-host-os-virt` metapackage:
 
@@ -88,4 +88,5 @@ present, substituting CentOS kernel for Host OS one, for example.
 
 We recommend the installation of any of the OpenPOWER Host OS options, depending
 on your needs. For the complete Host OS, select "Openpower Host Os All". The
-specific packages belonging to each group can be found [here](https://github.com/olavphibm/versions/blob/master/README.md#packages-groups).
+specific packages belonging to each group can be found
+[here](https://github.com/open-power-host-os/versions/blob/master/README.md#packages-groups).
