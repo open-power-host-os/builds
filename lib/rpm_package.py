@@ -201,16 +201,9 @@ class RPM_Package(Package):
         """
         super(RPM_Package, self)._load()
         try:
-            # keeps backwards compatibility with old yaml files which have 'centos'
-            # instead of 'CentOS'
-            if self.distro.name in self.package_data.get('files', {}):
-                distro_attrib_name = self.distro.name
-            else:
-                distro_attrib_name = self.distro.name.lower()
-
             # load distro files
             files = self.package_data.get('files', {}).get(
-                distro_attrib_name, {}).get(self.distro.version, {}) or {}
+                self.distro.name, {}).get(self.distro.version, {}) or {}
 
             default_build_files_dir_rel_path = os.path.join(
                 self.distro.name, self.distro.version, "SOURCES")
@@ -228,23 +221,10 @@ class RPM_Package(Package):
                     dep_name, self.distro, force_rebuild=self.force_rebuild)
                 self.install_dependencies.append(dep)
 
-            # keeps backward compatibility with old yaml files which have 'dependencies'
-            # instead of 'install_dependencies'
-            for dep_name in files.get('dependencies', []):
-                dep = RPM_Package.get_instance(
-                    dep_name, self.distro, force_rebuild=self.force_rebuild)
-                self.install_dependencies.append(dep)
-
             for dep_name in files.get('build_dependencies', []):
                 dep = RPM_Package.get_instance(
                     dep_name, self.distro, force_rebuild=self.force_rebuild)
                 self.build_dependencies.append(dep)
-
-            # keeps backward compatibility with old yaml files which have build
-            # dependencies listed as install dependencies
-            if self.distro.version == "7.2":
-                self.build_dependencies = list(set(
-                    self.build_dependencies + self.install_dependencies))
 
             default_rpm_macros_file_rel_path = os.path.join(
                 self.distro.name, self.distro.version, "rpmmacro")
