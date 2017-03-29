@@ -27,19 +27,16 @@ sudo yum -c <path_to_yum_repository_config> install kernel-debuginfo
 
 Yum will take care of the dependencies.
 
-If you want to install a group of packages, we have several that may be of
-interest, described [here](https://github.com/open-power-host-os/versions/blob/master/README.md#packages-groups).
+The recommendation, however, is to install a group of packages, which will also
+take care of system-wide configurations to fully enable the use of the shipped
+packages. We have several groups that may be of interest, described
+[here](https://github.com/open-power-host-os/versions/blob/master/README.md#packages-groups).
+
 To install only virtualization related packages, choose the
 `open-power-host-os-virt` metapackage:
 
 ```
 sudo yum -c <path_to_yum_repository_config> install open-power-host-os-virt
-```
-
-When using virtualization packages in POWER systems, SMT needs to be disabled:
-
-```
-sudo ppc64_cpu --smt=off
 ```
 
 If you want to install all of Host OS packages, execute:
