@@ -69,6 +69,31 @@ class Mock(package_builder.PackageBuilder):
         LOG.info("%s: Starting build process" % package.name)
         self._build_srpm(package)
         self._install_external_dependencies(package)
+        self._build_rpm(package)
+
+        msg = "%s: Success! RPMs built!" % (package.name)
+        self._copy_rpms(self.build_dir, package.build_cache_dir)
+        LOG.info(msg)
+        if not CONF.get('build_packages').get('keep_build_dir'):
+            self._destroy_build_directory()
+
+    def _build_srpm(self, package):
+        LOG.info("%s: Building SRPM" % package.name)
+        cmd = (self.common_mock_args
+               + (" --buildsrpm --no-clean --spec %s --sources %s "
+                  "--resultdir=%s %s" % (
+                      package.spec_file.path, self.archive, self.build_dir,
+                      package.get_spec_macros())))
+        utils.run_command(cmd)
+
+    def _build_rpm(self, package):
+        """
+        Build RPM packages from a source RPM package
+
+        Args:
+            package (str): package name
+        """
+
         cmd = (self.common_mock_args
                + " --rebuild %s --no-clean --resultdir=%s %s" % (
                    self.build_dir + "/*.rpm", self.build_dir,
@@ -87,21 +112,6 @@ class Mock(package_builder.PackageBuilder):
             LOG.info("%s: Failed to build RPMs, build artifacts are kept at "
                   "%s" % (package.name, self.build_dir))
             raise
-
-        msg = "%s: Success! RPMs built!" % (package.name)
-        self._copy_rpms(self.build_dir, package.build_cache_dir)
-        LOG.info(msg)
-        if not CONF.get('build_packages').get('keep_build_dir'):
-            self._destroy_build_directory()
-
-    def _build_srpm(self, package):
-        LOG.info("%s: Building SRPM" % package.name)
-        cmd = (self.common_mock_args
-               + (" --buildsrpm --no-clean --spec %s --sources %s "
-                  "--resultdir=%s %s" % (
-                      package.spec_file.path, self.archive, self.build_dir,
-                      package.get_spec_macros())))
-        utils.run_command(cmd)
 
     def prepare_sources(self, package):
         LOG.info("%s: Preparing source files." % package.name)
