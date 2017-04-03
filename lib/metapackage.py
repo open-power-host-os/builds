@@ -5,9 +5,13 @@ import re
 from lib import exception
 from lib import packages_manager
 from lib import rpm_package
+from lib import utils
 from lib.versions_repository import replace_file_section
 
 LOG = logging.getLogger(__name__)
+DIST_MACRO_NAME = "%{dist}"
+DIST_MACRO_VALUE = utils.run_command(
+    "rpm --eval {}".format(DIST_MACRO_NAME)).strip()
 
 
 def create_yaml_install_dependencies_string(packages):
@@ -55,8 +59,10 @@ def replace_spec_dependencies(spec_file_path):
                     package_evr = package.epoch + ":"
                 else:
                     package_evr = ""
+                release = package.release.replace(
+                    DIST_MACRO_VALUE, DIST_MACRO_NAME)
                 package_evr += "{version}-{release}".format(
-                    version=package.version, release=package.release)
+                    version=package.version, release=release)
 
                 LOG.debug("Updating package {name} to {evr}".format(
                     name=package.name, evr=package_evr))
