@@ -126,9 +126,7 @@ ISO_ARGS = {
              'environment.', nargs='*'),
     ('--iso-repo-packages-groups',):
         dict(help='Packages groups that will be available in the ISO yum '
-             'repository. Groups implicitly created from the '
-             '"--installable-environments" option are automatically added to '
-             'this list.', nargs='*'),
+             'repository.', nargs='*'),
     ('--iso-repo-packages',):
         dict(help='Packages that will be available in the ISO yum '
              'repository, in addition to the specified groups.', nargs='*'),

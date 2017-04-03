@@ -72,6 +72,12 @@ build_iso:
         - "network-file-system-client"
         - "remote-system-management"
         - "virtualization-platform"
+        - "OpenPOWER Host OS all"
+        - "OpenPOWER Host OS base"
+        - "OpenPOWER Host OS container"
+        - "OpenPOWER Host OS virtualization"
+        - "OpenPOWER Host OS virtualization management"
+        - "OpenPOWER Host OS RAS"
     iso_repo_packages:
         - "grub2"
     mock_iso_repo_name: "host_os"
