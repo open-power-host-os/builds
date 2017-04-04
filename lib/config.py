@@ -119,17 +119,17 @@ ISO_ARGS = {
         dict(help='Those environments will be available at the "Sofware '
              'selection" screen, along with the ones that come from the base '
              'distro (e.g. CentOS) repository. They will contain a group with '
-             'the same name, that will in turn contain the packages listed.'),
-    ('--base-distro-minimal-install-groups',):
-        dict(help='Packages groups that must be present in every base distro '
-             '(e.g. CentOS) installation and will be added to every '
-             'environment.', nargs='*'),
+             'the same name, that will in turn contain the packages listed. '
+             'Those groups must be available in the ISO yum repository in '
+             'order to show up.'),
     ('--iso-repo-packages-groups',):
         dict(help='Packages groups that will be available in the ISO yum '
-             'repository.', nargs='*'),
+             'repository, in addition to the ones required by a minimal '
+             'installation of the base distro.', nargs='*'),
     ('--iso-repo-packages',):
         dict(help='Packages that will be available in the ISO yum '
-             'repository, in addition to the specified groups.', nargs='*'),
+             'repository, in addition to the ones required by a minimal '
+             'installation of the base distro.', nargs='*'),
     ('--mock-iso-repo-name',):
         dict(help='Name of the yum repository, to create from OpenPOWER Host OS packages'),
     ('--mock-iso-repo-dir',):

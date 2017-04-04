@@ -61,11 +61,8 @@ build_iso:
             - "open-power-host-os-virt-management"
         OpenPOWER Host OS RAS:
             - "open-power-host-os-ras"
-    base_distro_minimal_install_groups:
-        - "core"
     iso_repo_packages_groups:
         - "base"
-        - "core"
         - "debugging"
         - "virtualization-hypervisor"
         - "virtualization-tools"
@@ -78,10 +75,7 @@ build_iso:
         - "OpenPOWER Host OS virtualization"
         - "OpenPOWER Host OS virtualization management"
         - "OpenPOWER Host OS RAS"
-    iso_repo_packages:
-        - "grub2"
-        - "authconfig"
-        - "chrony"
+    iso_repo_packages: []
     mock_iso_repo_name: "host_os"
     mock_iso_repo_dir: "/host-os-repo"
     distro_repos_urls:

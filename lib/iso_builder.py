@@ -24,6 +24,8 @@ from lib import packages_groups_xml_creator
 from lib.constants import LATEST_SYMLINK_NAME
 
 LOG = logging.getLogger(__name__)
+ISO_REPO_MINIMAL_PACKAGES_GROUPS = ["core"]
+ISO_REPO_MINIMAL_PACKAGES = ["authconfig", "chrony", "grub2"]
 
 
 class MockPungiIsoBuilder(object):
@@ -90,7 +92,7 @@ class MockPungiIsoBuilder(object):
         LOG.debug("Creating package groups metadata file (comps.xml)")
         comps_xml_str = packages_groups_xml_creator.create_comps_xml(
             self.config.get('installable_environments'),
-            self.config.get("base_distro_minimal_install_groups"))
+            ISO_REPO_MINIMAL_PACKAGES_GROUPS)
         comps_xml_file = "host-os-comps.xml"
         comps_xml_path = os.path.join(self.work_dir, comps_xml_file)
         try:
@@ -118,8 +120,12 @@ class MockPungiIsoBuilder(object):
         mock_iso_repo_name = self.config.get('mock_iso_repo_name')
         mock_iso_repo_dir = self.config.get('mock_iso_repo_dir')
         repo_urls[mock_iso_repo_name] = "file://%s/" % mock_iso_repo_dir
-        iso_repo_packages_groups = self.config.get('iso_repo_packages_groups')
-        iso_repo_packages = self.config.get('iso_repo_packages')
+        iso_repo_packages_groups = (
+            ISO_REPO_MINIMAL_PACKAGES_GROUPS
+            + self.config.get('iso_repo_packages_groups'))
+        iso_repo_packages = (
+            ISO_REPO_MINIMAL_PACKAGES
+            + self.config.get('iso_repo_packages'))
 
         with open(kickstart_path, "wt") as kickstart_file:
             for name, url in repo_urls.items():
