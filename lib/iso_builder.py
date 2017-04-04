@@ -114,23 +114,22 @@ class MockPungiIsoBuilder(object):
         kickstart_path = os.path.join(self.work_dir, kickstart_file)
         LOG.info("Creating ISO kickstart file %s" % kickstart_path)
 
+        repo_urls = self.config.get('distro_repos_urls')
+        mock_iso_repo_name = self.config.get('mock_iso_repo_name')
+        mock_iso_repo_dir = self.config.get('mock_iso_repo_dir')
+        repo_urls[mock_iso_repo_name] = "file://%s/" % mock_iso_repo_dir
+        iso_repo_packages_groups = self.config.get('iso_repo_packages_groups')
+        iso_repo_packages = self.config.get('iso_repo_packages')
+
         with open(kickstart_path, "wt") as kickstart_file:
-            repo_urls = self.config.get('distro_repos_urls')
-            mock_iso_repo_name = self.config.get('mock_iso_repo_name')
-            mock_iso_repo_dir = self.config.get('mock_iso_repo_dir')
-            repo_urls[mock_iso_repo_name] = "file://%s/" % mock_iso_repo_dir
             for name, url in repo_urls.items():
                 repo = ("repo --name=%s --baseurl=%s\n" % (name, url))
                 kickstart_file.write(repo)
-
             kickstart_file.write("%packages\n")
-            iso_repo_packages_groups = self.config.get(
-                'iso_repo_packages_groups')
             for group in iso_repo_packages_groups:
                 kickstart_file.write("@{}\n".format(group))
-            for package in self.config.get('iso_repo_packages'):
+            for package in iso_repo_packages:
                 kickstart_file.write("{}\n".format(package))
-
             kickstart_file.write("%end\n")
 
         self._run_mock_command("--copyin %s /" % kickstart_path)
