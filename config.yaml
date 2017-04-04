@@ -80,6 +80,8 @@ build_iso:
         - "OpenPOWER Host OS RAS"
     iso_repo_packages:
         - "grub2"
+        - "authconfig"
+        - "chrony"
     mock_iso_repo_name: "host_os"
     mock_iso_repo_dir: "/host-os-repo"
     distro_repos_urls:
