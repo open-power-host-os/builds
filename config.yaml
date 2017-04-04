@@ -63,7 +63,7 @@ build_iso:
             - "open-power-host-os-ras"
     base_distro_minimal_install_groups:
         - "core"
-    iso_root_fs_packages_groups:
+    iso_repo_packages_groups:
         - "base"
         - "core"
         - "debugging"
@@ -72,7 +72,7 @@ build_iso:
         - "network-file-system-client"
         - "remote-system-management"
         - "virtualization-platform"
-    iso_root_fs_packages:
+    iso_repo_packages:
         - "grub2"
     mock_iso_repo_name: "host_os"
     mock_iso_repo_dir: "/host-os-repo"

@@ -124,14 +124,14 @@ ISO_ARGS = {
         dict(help='Packages groups that must be present in every base distro '
              '(e.g. CentOS) installation and will be added to every '
              'environment.', nargs='*'),
-    ('--iso-root-fs-packages-groups',):
-        dict(help='Packages groups that will be installed in the ISO root '
-             'file system. Groups implicitly created from the '
+    ('--iso-repo-packages-groups',):
+        dict(help='Packages groups that will be available in the ISO yum '
+             'repository. Groups implicitly created from the '
              '"--installable-environments" option are automatically added to '
              'this list.', nargs='*'),
-    ('--iso-root-fs-packages',):
-        dict(help='Packages that will be installed in the ISO root file '
-             'system, in addition to the specified groups.', nargs='*'),
+    ('--iso-repo-packages',):
+        dict(help='Packages that will be available in the ISO yum '
+             'repository, in addition to the specified groups.', nargs='*'),
     ('--mock-iso-repo-name',):
         dict(help='Name of the yum repository, to create from OpenPOWER Host OS packages'),
     ('--mock-iso-repo-dir',):

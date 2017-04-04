@@ -124,18 +124,18 @@ class MockPungiIsoBuilder(object):
                 f.write(repo)
 
             f.write("%packages\n")
-            iso_root_fs_packages_groups = self.config.get(
-                'iso_root_fs_packages_groups')
+            iso_repo_packages_groups = self.config.get(
+                'iso_repo_packages_groups')
             host_os_groups_ids = [
                 packages_groups_xml_creator.convert_name_to_id(
                     group_name, "group") for group_name
                 in self.config.get('installable_environments')]
             for host_os_group_id in host_os_groups_ids:
-                if host_os_group_id not in iso_root_fs_packages_groups:
-                    iso_root_fs_packages_groups.append(host_os_group_id)
-            for group in iso_root_fs_packages_groups:
+                if host_os_group_id not in iso_repo_packages_groups:
+                    iso_repo_packages_groups.append(host_os_group_id)
+            for group in iso_repo_packages_groups:
                 f.write("@{}\n".format(group))
-            for package in self.config.get('iso_root_fs_packages'):
+            for package in self.config.get('iso_repo_packages'):
                 f.write("{}\n".format(package))
 
             f.write("%end\n")
