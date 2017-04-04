@@ -20,3 +20,12 @@ See `--help` for more options.
 ```
 ./host_os.py build-iso --help
 ```
+
+
+## Creating custom installable environments
+
+To create and add packages to installable environments, modify the
+`installable_environments` option in the configuration. Each entry is an
+environment name that will show during installation in the "Software selection"
+screen and each item listed inside is a package that will be installed by that
+environment.
