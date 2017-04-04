@@ -5,9 +5,13 @@ import re
 from lib import exception
 from lib import packages_manager
 from lib import rpm_package
+from lib import utils
 from lib.versions_repository import replace_file_section
 
 LOG = logging.getLogger(__name__)
+DIST_MACRO_NAME = "%{dist}"
+DIST_MACRO_VALUE = utils.run_command(
+    "rpm --eval {}".format(DIST_MACRO_NAME)).strip()
 
 
 def create_yaml_install_dependencies_string(packages):
@@ -35,7 +39,7 @@ def replace_spec_dependencies(spec_file_path):
         spec_file_path (str): path to spec file
     """
     SPEC_DEPENDENCY_PATTERN = r"Requires\(post\): (?P<name>\S+) = \S+"
-    SPEC_DEPENDENCY_TEMPLATE = "Requires(post): {name} = {evra}\n"
+    SPEC_DEPENDENCY_TEMPLATE = "Requires(post): {name} = {evr}\n"
     spec_dependency_regex = re.compile(SPEC_DEPENDENCY_PATTERN)
 
     spec_file_contents = ""
@@ -52,16 +56,18 @@ def replace_spec_dependencies(spec_file_path):
                     match.group("name"))
 
                 if package.epoch:
-                    package_evra = package.epoch + ":"
+                    package_evr = package.epoch + ":"
                 else:
-                    package_evra = ""
-                package_evra += "{version}-{release}".format(
-                    version=package.version, release=package.release)
+                    package_evr = ""
+                release = package.release.replace(
+                    DIST_MACRO_VALUE, DIST_MACRO_NAME)
+                package_evr += "{version}-{release}".format(
+                    version=package.version, release=release)
 
-                LOG.debug("Updating package {name} to {evra}".format(
-                    name=package.name, evra=package_evra))
+                LOG.debug("Updating package {name} to {evr}".format(
+                    name=package.name, evr=package_evr))
                 spec_file_contents += SPEC_DEPENDENCY_TEMPLATE.format(
-                    name=package.name, evra=package_evra)
+                    name=package.name, evr=package_evr)
 
     if spec_updated:
         with open(spec_file_path, "w") as spec_file:
