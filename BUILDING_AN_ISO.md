@@ -29,3 +29,11 @@ To create and add packages to installable environments, modify the
 environment name that will show during installation in the "Software selection"
 screen and each item listed inside is a package that will be installed by that
 environment.
+
+
+## Building a reduced ISO file
+
+To build a reduced ISO file, list the groups you wish available in the ISO in
+the `iso_repo_packages_groups` option. If there are groups set by
+`installable_environments` option that are not available in the ISO, they
+will not show up during the installation.
