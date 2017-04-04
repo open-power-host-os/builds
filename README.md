@@ -99,6 +99,13 @@ simplify using those repositories.
 
 To install them, follow the instructions [here](INSTALLING_PACKAGES.md).
 
+
+## Building an ISO
+
+To build an ISO with the built packages, follow those
+[instructions](BUILDING_AN_ISO).
+
+
 ## Contact us
 
 If you are interested, you might always stop by in `#hostos` on irc.freenode.net.
