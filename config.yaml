@@ -62,13 +62,6 @@ build_iso:
         OpenPOWER Host OS RAS:
             - "open-power-host-os-ras"
     iso_repo_packages_groups:
-        - "base"
-        - "debugging"
-        - "virtualization-hypervisor"
-        - "virtualization-tools"
-        - "network-file-system-client"
-        - "remote-system-management"
-        - "virtualization-platform"
         - "OpenPOWER Host OS all"
         - "OpenPOWER Host OS base"
         - "OpenPOWER Host OS container"
