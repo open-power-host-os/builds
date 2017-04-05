@@ -49,18 +49,20 @@ class PackageReleaseInfo(object):
         self.package = package
 
     def __iter__(self):
-        if self.package.sources and "git" in self.package.sources[0]:
-            main_git_source = self.package.sources[0]["git"]
-        else:
-            main_git_source = None
-
         yield "name", self.package.name
-        yield "clone_url", main_git_source["src"] if main_git_source else ""
         yield "version", self.package.version
         yield "release", self.package.release
-        yield "branch", main_git_source["branch"] if main_git_source else ""
-        yield ("commit_id",
-               main_git_source["commit_id"] if main_git_source else "")
+
+        sources = []
+        for source in self.package.sources:
+            # Dereference dict with repository type as key
+            source = source.values()[0]
+            sources.append({
+                "src": source.get("src", ""),
+                "branch": source.get("branch", ""),
+                "commit_id": source.get("commit_id", ""),
+            })
+        yield "sources", sources
 
 
 def write_version_info(release_tag, file_path, versions_repo, packages):
