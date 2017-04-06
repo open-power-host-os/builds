@@ -134,7 +134,7 @@ def create_environment_xml(environment_name, environment_groups):
     return env
 
 
-def create_comps_xml(packages_environments, minimal_install_groups):
+def create_comps_xml(packages_environments):
     """
     Construct XML string representing the 'comps' element.
 
@@ -144,9 +144,6 @@ def create_comps_xml(packages_environments, minimal_install_groups):
             that will (indirectly) belong to that environment. An
             intermediary packages group with the same name will be
             created to contain those packages.
-        minimal_install_groups ([str]): packages groups that must be
-            present in every base distro (e.g. CentOS) installation and
-            will be added to every environment.
 
     Returns:
         str: string representing the XML generated
@@ -156,8 +153,7 @@ def create_comps_xml(packages_environments, minimal_install_groups):
         root.append(create_group_xml(group_name, group_pkgs))
 
     for environment_name in packages_environments:
-        groups = list(minimal_install_groups)
-        groups.append(convert_name_to_id(environment_name, "group"))
+        groups = [convert_name_to_id(environment_name, "group")]
         root.append(create_environment_xml(environment_name, groups))
 
     return E.tostring(root, pretty_print=True, doctype=COMPS_DOCTYPE,

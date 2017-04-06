@@ -91,8 +91,7 @@ class MockPungiIsoBuilder(object):
 
         LOG.debug("Creating package groups metadata file (comps.xml)")
         comps_xml_str = packages_groups_xml_creator.create_comps_xml(
-            self.config.get('installable_environments'),
-            ISO_REPO_MINIMAL_PACKAGES_GROUPS)
+            self.config.get('installable_environments'))
         comps_xml_file = "host-os-comps.xml"
         comps_xml_path = os.path.join(self.work_dir, comps_xml_file)
         try:
