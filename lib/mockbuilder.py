@@ -42,6 +42,12 @@ gpgcheck=0
 
 class Mock(package_builder.PackageBuilder):
     def __init__(self, config_file):
+        """
+        Constructor
+
+        Args:
+            config_file (str): config file path
+        """
         super(Mock, self).__init__()
         binary_file = CONF.get('common').get('mock_binary')
         extra_args = CONF.get('build_packages').get('mock_args') or ""
@@ -65,10 +71,44 @@ class Mock(package_builder.PackageBuilder):
         utils.run_command(cmd)
 
     def build(self, package):
+        """
+        Build RPM package and its subpackages
+
+        Args:
+            package (RPM_Package): package
+        """
         self.clean_cache_dir(package)
         LOG.info("%s: Starting build process" % package.name)
         self._build_srpm(package)
         self._install_external_dependencies(package)
+        self._build_rpm(package)
+        self._copy_rpms(self.build_dir, package.build_cache_dir)
+        if not CONF.get('build_packages').get('keep_build_dir'):
+            self._destroy_build_directory()
+
+    def _build_srpm(self, package):
+        """
+        Build source RPM package
+
+        Args:
+            package (RPM_Package): package
+        """
+        LOG.info("%s: Building SRPM" % package.name)
+        cmd = (self.common_mock_args
+               + (" --buildsrpm --no-clean --spec %s --sources %s "
+                  "--resultdir=%s %s" % (
+                      package.spec_file.path, self.archive, self.build_dir,
+                      package.get_spec_macros())))
+        utils.run_command(cmd)
+
+    def _build_rpm(self, package):
+        """
+        Build RPM packages from a source RPM package
+
+        Args:
+            package (RPM_Package): package
+        """
+
         cmd = (self.common_mock_args
                + " --rebuild %s --no-clean --resultdir=%s %s" % (
                    self.build_dir + "/*.rpm", self.build_dir,
@@ -89,21 +129,16 @@ class Mock(package_builder.PackageBuilder):
             raise
 
         msg = "%s: Success! RPMs built!" % (package.name)
-        self._copy_rpms(self.build_dir, package.build_cache_dir)
         LOG.info(msg)
-        if not CONF.get('build_packages').get('keep_build_dir'):
-            self._destroy_build_directory()
-
-    def _build_srpm(self, package):
-        LOG.info("%s: Building SRPM" % package.name)
-        cmd = (self.common_mock_args
-               + (" --buildsrpm --no-clean --spec %s --sources %s "
-                  "--resultdir=%s %s" % (
-                      package.spec_file.path, self.archive, self.build_dir,
-                      package.get_spec_macros())))
-        utils.run_command(cmd)
 
     def prepare_sources(self, package):
+        """
+        Create build directory structure, create a tar.gz file with the source code
+        and copy files to chroot.
+
+        Args:
+            package (RPM_Package): package
+        """
         LOG.info("%s: Preparing source files." % package.name)
         self._create_build_directory(package)
         self._prepare_archive(package)
@@ -111,6 +146,12 @@ class Mock(package_builder.PackageBuilder):
             self._copy_files_to_chroot(package)
 
     def _prepare_archive(self, package):
+        """
+        Create an archive (tar.gz) with a package source
+
+        Args:
+            package (RPM_Package): package
+        """
         LOG.info("%s: Preparing archive." % package.name)
 
         if package.sources:
@@ -132,12 +173,21 @@ class Mock(package_builder.PackageBuilder):
             self.archive = self.build_dir
 
     def _copy_files_to_chroot(self, package):
+        """
+        Copy files required to build a package to its build environment (chroot)
+
+        Args:
+            package (RPM_Package): package
+        """
         for f in os.listdir(package.build_files):
             file_path = os.path.join(package.build_files, f)
             LOG.info("copying %s to %s" % (file_path, self.archive))
             shutil.copy(file_path, self.archive)
 
     def clean(self):
+        """
+        Clean build environment
+        """
         utils.run_command(self.common_mock_args + " --clean")
 
     def clean_cache_dir(self, package):
@@ -153,6 +203,12 @@ class Mock(package_builder.PackageBuilder):
             shutil.rmtree(package.build_cache_dir)
 
     def _install_external_dependencies(self, package):
+        """
+        Install the build dependencies of a package
+
+        Args:
+            package (RPM_Package): package
+        """
         if package.build_dependencies:
             cmd = self.common_mock_args
             install = " --install"
@@ -164,12 +220,21 @@ class Mock(package_builder.PackageBuilder):
             utils.run_command(cmd)
 
     def _create_build_directory(self, package):
+        """
+        Create build directory
+
+        Args:
+            package (RPM_Package): package
+        """
         self.build_dir = os.path.join(
             os.path.abspath(CONF.get('common').get('work_dir')), 'mock_build',
             self.timestamp, package.name)
         os.makedirs(self.build_dir)
 
     def _destroy_build_directory(self):
+        """
+        Destroy build directory
+        """
         shutil.rmtree(self.build_dir)
 
     def _copy_rpms(self, source_dir, target_dir):
