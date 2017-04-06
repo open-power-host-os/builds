@@ -50,7 +50,7 @@ MOCK_REQUIRED_SUBCOMANDS = [
 
 if __name__ == '__main__':
     CONF = config.setup_default_config()
-    subcommand = CONF.get('common').get('subcommand')
+    subcommand = CONF.get('subcommand')
 
     # validate if all required packages are installed
     with open(REQUIRED_PACKAGES_FILE_PATH) as f:

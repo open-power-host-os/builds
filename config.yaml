@@ -1,93 +1,102 @@
-common:
- work_dir: 'workspace'
- result_dir: 'result'
- verbose: False
- log_size: 2097152
- packages_metadata_repo_url: "https://github.com/open-power-host-os/versions.git"
- packages_metadata_repo_branch: 'master'
- http_proxy: ''
- distro_name: 'CentOS'
- distro_version: '7'
- architecture: 'ppc64le'
- mock_binary: "/usr/bin/mock"
- commit_updates: True
- push_updates: True
- updater_name:
- updater_email:
-build_packages:
- packages:
- keep_build_dir: False
- force_rebuild: False
- mock_config:
-  CentOS:
-   '7': "./mock_configs/CentOS/7/CentOS-7-ppc64le.cfg"
- mock_args:
-   # If the system has less RAM than required, the plugin will be disabled
-   "--enable-plugin=tmpfs
-   --plugin-option=tmpfs:keep_mounted=True
-   --plugin-option=tmpfs:max_fs_size=32g
-   --plugin-option=tmpfs:required_ram_mb=39800
-   --verbose"
- update_packages_repos_before_build: True
-build_release_notes:
- release_notes_repo_url: "https://github.com/open-power-host-os/open-power-host-os.github.io.git"
- release_notes_repo_branch: "master"
- push_repo_url:
- push_repo_branch: "master"
 build_iso:
-    iso_name: "OpenPOWER-Host_OS"
-    mock_config:
-     CentOS:
-      '7': "./mock_configs/CentOS/7/build-iso-CentOS-7-ppc64le.cfg"
-    mock_args:
-      # If the system has less RAM than required, the plugin will be disabled
-      "--enable-plugin=tmpfs
-      --plugin-option=tmpfs:keep_mounted=True
-      --plugin-option=tmpfs:max_fs_size=32g
-      --plugin-option=tmpfs:required_ram_mb=39800
-      --verbose"
-    packages_dir: "result/packages/latest"
-    automated_install_file: "host-os.ks"
-    installable_environments:
-        OpenPOWER Host OS all:
-            - "open-power-host-os-all"
-        OpenPOWER Host OS base:
-            - "open-power-host-os-base"
-        OpenPOWER Host OS container:
-            - "open-power-host-os-container"
-        OpenPOWER Host OS virtualization:
-            - "open-power-host-os-virt"
-        OpenPOWER Host OS virtualization management:
-            - "open-power-host-os-virt-management"
-        OpenPOWER Host OS RAS:
-            - "open-power-host-os-ras"
-    base_distro_minimal_install_groups:
-        - "core"
-    iso_root_fs_packages_groups:
-        - "base"
-        - "core"
-        - "debugging"
-        - "virtualization-hypervisor"
-        - "virtualization-tools"
-        - "network-file-system-client"
-        - "remote-system-management"
-        - "virtualization-platform"
-    iso_root_fs_packages:
-        - "grub2"
-    mock_iso_repo_name: "host_os"
-    mock_iso_repo_dir: "/host-os-repo"
-    distro_repos_urls:
-        base: "http://mirror.centos.org/altarch/7/os/ppc64le/"
-        updates: "http://mirror.centos.org/altarch/7/updates/ppc64le/"
-        extras: "http://mirror.centos.org/altarch/7/extras/ppc64le/"
-        epel: "http://download.fedoraproject.org/pub/epel/7/ppc64le/"
-update_metapackage:
- push_repo_url:
- push_repo_branch: "master"
+  automated_install_file: host-os.ks
+  base_distro_minimal_install_groups:
+  - core
+  distro_repos_urls:
+    base: http://mirror.centos.org/altarch/7/os/ppc64le/
+    epel: http://download.fedoraproject.org/pub/epel/7/ppc64le/
+    updates: http://mirror.centos.org/altarch/7/updates/ppc64le/
+  hostos_packages_groups:
+    virtualization-hypervisor:
+    - SLOF
+    - docker
+    - ginger
+    - ginger-base
+    - golang
+    - kernel
+    - kimchi
+    - libvirt
+    - libvirt-daemon-kvm
+    - libvirt-daemon-lxc
+    - libvirt-daemon-qemu
+    - libvirt-devel
+    - libvirt-docs
+    - libvirt-lock-sanlock
+    - libvirt-login-shell
+    - libvirt-nss
+    - libvpd
+    - lsvpd
+    - novnc
+    - ppc64-diag
+    - qemu
+    - qemu-guest-agent
+    - qemu-kvm-tools
+    - servicelog
+    - sos
+    - systemtap
+    - wok
+  installable_environments:
+    OpenPOWER Host OS RAS:
+    - open-power-host-os-ras
+    OpenPOWER Host OS all:
+    - open-power-host-os-all
+    OpenPOWER Host OS base:
+    - open-power-host-os-base
+    OpenPOWER Host OS container:
+    - open-power-host-os-container
+    OpenPOWER Host OS virtualization:
+    - open-power-host-os-virt
+    OpenPOWER Host OS virtualization management:
+    - open-power-host-os-virt-management
+  iso_name: OpenPOWER-Host_OS
+  iso_root_fs_packages:
+  - grub2
+  iso_root_fs_packages_groups:
+  - base
+  - core
+  - debugging
+  - virtualization-hypervisor
+  - virtualization-tools
+  - network-file-system-client
+  - remote-system-management
+  - virtualization-platform
+  mock_args: ''
+  mock_iso_repo_dir: /host-os-repo
+  mock_iso_repo_name: hostos
+  packages_dir: result/latest/packages
+build_packages:
+  force_rebuild: false
+  keep_build_dir: false
+  mock_args: --enable-plugin=tmpfs --plugin-option=tmpfs:keep_mounted=True --plugin-option=tmpfs:max_fs_size=32g
+    --plugin-option=tmpfs:required_ram_mb=39800
+  packages: []
+  update_packages_repos_before_build: true
+build_release_notes:
+  push_repo_branch: master
+  push_repo_url: ''
+  release_notes_repo_branch: master
+  release_notes_repo_url: https://github.com/open-power-host-os/open-power-host-os.github.io.git
+common:
+  architecture: ppc64le
+  commit_updates: true
+  distro_name: CentOS
+  distro_version: '7'
+  http_proxy: ''
+  log_size: 2097152
+  mock_binary: /usr/bin/mock
+  packages_metadata_repo_branch: master
+  packages_metadata_repo_url: https://github.com/open-power-host-os/versions.git
+  push_updates: true
+  result_dir: result
+  updater_email: ''
+  updater_name: ''
+  verbose: false
+  work_dir: workspace
+update_metapackage: {}
 update_versions:
- packages:
- push_repo_url:
- push_repo_branch: "master"
+  packages: []
+  push_repo_branch: master
+  push_repo_url: ''
 update_versions_readme:
- push_repo_url:
- push_repo_branch: "master"
+  push_repo_branch: master
+  push_repo_url: ''
