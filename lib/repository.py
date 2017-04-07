@@ -167,7 +167,7 @@ class GitRepository(git.Repo):
                 pass
         else:
             raise exception.RepositoryError(
-                message="Reference not found in repository")
+                message="Reference '%s' not found in repository" % ref_name)
 
     def _update_submodules(self):
         """
