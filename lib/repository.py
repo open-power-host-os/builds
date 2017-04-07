@@ -135,9 +135,11 @@ class GitRepository(git.Repo):
             else:
                 LOG.info("Fetched changes for %s" % remote.name)
 
-        LOG.info("%(name)s: Checking out reference %(ref)s"
-                 % dict(name=self.name, ref=ref_name))
-        self.head.reference = self._get_reference(ref_name)
+        commit_id = self._get_reference(ref_name)
+        LOG.info("%(name)s: Checking out reference %(ref)s pointing to commit "
+                 "%(commit)s"
+                 % dict(name=self.name, ref=ref_name, commit=commit_id))
+        self.head.reference = commit_id
         try:
             self.head.reset(index=True, working_tree=True)
         except git.exc.GitCommandError:
