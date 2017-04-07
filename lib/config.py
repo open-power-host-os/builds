@@ -324,6 +324,7 @@ class ConfigParser(object):
                     args.pop(key)
 
         config['common'].update(args)
+        config['common']['subcommand'] = command_line_args.subcommand
         self._CONF = config
         return config
 
