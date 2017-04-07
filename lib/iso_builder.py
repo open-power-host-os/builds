@@ -24,6 +24,8 @@ from lib import packages_groups_xml_creator
 from lib.constants import LATEST_SYMLINK_NAME
 
 LOG = logging.getLogger(__name__)
+ISO_REPO_MINIMAL_PACKAGES_GROUPS = ["core"]
+ISO_REPO_MINIMAL_PACKAGES = ["authconfig", "chrony", "grub2"]
 
 
 class MockPungiIsoBuilder(object):
@@ -89,8 +91,7 @@ class MockPungiIsoBuilder(object):
 
         LOG.debug("Creating package groups metadata file (comps.xml)")
         comps_xml_str = packages_groups_xml_creator.create_comps_xml(
-            self.config.get('installable_environments'),
-            self.config.get("base_distro_minimal_install_groups"))
+            self.config.get('installable_environments'))
         comps_xml_file = "host-os-comps.xml"
         comps_xml_path = os.path.join(self.work_dir, comps_xml_file)
         try:
@@ -114,31 +115,27 @@ class MockPungiIsoBuilder(object):
         kickstart_path = os.path.join(self.work_dir, kickstart_file)
         LOG.info("Creating ISO kickstart file %s" % kickstart_path)
 
-        with open(kickstart_path, "wt") as f:
-            repo_urls = self.config.get('distro_repos_urls')
-            mock_iso_repo_name = self.config.get('mock_iso_repo_name')
-            mock_iso_repo_dir = self.config.get('mock_iso_repo_dir')
-            repo_urls[mock_iso_repo_name] = "file://%s/" % mock_iso_repo_dir
+        repo_urls = self.config.get('distro_repos_urls')
+        mock_iso_repo_name = self.config.get('mock_iso_repo_name')
+        mock_iso_repo_dir = self.config.get('mock_iso_repo_dir')
+        repo_urls[mock_iso_repo_name] = "file://%s/" % mock_iso_repo_dir
+        iso_repo_packages_groups = (
+            ISO_REPO_MINIMAL_PACKAGES_GROUPS
+            + self.config.get('iso_repo_packages_groups'))
+        iso_repo_packages = (
+            ISO_REPO_MINIMAL_PACKAGES
+            + self.config.get('iso_repo_packages'))
+
+        with open(kickstart_path, "wt") as kickstart_file:
             for name, url in repo_urls.items():
                 repo = ("repo --name=%s --baseurl=%s\n" % (name, url))
-                f.write(repo)
-
-            f.write("%packages\n")
-            iso_root_fs_packages_groups = self.config.get(
-                'iso_root_fs_packages_groups')
-            host_os_groups_ids = [
-                packages_groups_xml_creator.convert_name_to_id(
-                    group_name, "group") for group_name
-                in self.config.get('installable_environments')]
-            for host_os_group_id in host_os_groups_ids:
-                if host_os_group_id not in iso_root_fs_packages_groups:
-                    iso_root_fs_packages_groups.append(host_os_group_id)
-            for group in iso_root_fs_packages_groups:
-                f.write("@{}\n".format(group))
-            for package in self.config.get('iso_root_fs_packages'):
-                f.write("{}\n".format(package))
-
-            f.write("%end\n")
+                kickstart_file.write(repo)
+            kickstart_file.write("%packages\n")
+            for group in iso_repo_packages_groups:
+                kickstart_file.write("@{}\n".format(group))
+            for package in iso_repo_packages:
+                kickstart_file.write("{}\n".format(package))
+            kickstart_file.write("%end\n")
 
         self._run_mock_command("--copyin %s /" % kickstart_path)
 

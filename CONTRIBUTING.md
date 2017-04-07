@@ -51,21 +51,6 @@ $ export PYTHONPATH=$(pwd):$PYTHONPATH
 $ nosetests tests/unit
 ```
 
-## ISO image
-
-* Build Host OS ISO image
-
-```
-$ ./host_os.py --verbose build-iso
-```
-
-Please see `--help` for more options.
-
-```
-$ ./host_os.py build-iso --help
-```
-
 ## Issues
 
 Feel free to open an issue at any moment [here](https://github.com/open-power-host-os/builds/issues).
-
