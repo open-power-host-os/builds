@@ -16,6 +16,7 @@
 from datetime import datetime
 import logging
 import os
+import yaml
 
 import git
 
@@ -35,15 +36,11 @@ LOG = logging.getLogger(__name__)
 RELEASE_FILE_NAME_TEMPLATE = "{date}-release.markdown"
 RELEASE_FILE_CONTENT_TEMPLATE = """\
 ---
-title: OpenPOWER Host OS release
-release_tag: {release_tag}
-layout: release
-builds_commit: {builds_commit}
-versions_commit: {versions_commit}
-packages:
-{packages_info}
+{header_yaml}
 ---
 """
+RELEASE_FILE_TITLE = "OpenPOWER Host OS release"
+RELEASE_FILE_LAYOUT = "release"
 
 
 class PackageReleaseInfo(object):
@@ -51,26 +48,21 @@ class PackageReleaseInfo(object):
     def __init__(self, package):
         self.package = package
 
-    def __str__(self):
-        string = " -\n"
+    def __iter__(self):
+        yield "name", self.package.name
+        yield "version", self.package.version
+        yield "release", self.package.release
 
-        if self.package.sources and "git" in self.package.sources[0]:
-            main_git_source = self.package.sources[0]["git"]
-        else:
-            main_git_source = None
-
-        PACKAGE_ATTRIBUTES = [
-            ("name", self.package.name),
-            ("clone_url", main_git_source["src"] if main_git_source else ""),
-            ("version", self.package.version),
-            ("release", self.package.release),
-            ("branch", main_git_source["branch"] if main_git_source else ""),
-            ("commit_id",
-             main_git_source["commit_id"] if main_git_source else ""),
-        ]
-        for name, value in PACKAGE_ATTRIBUTES:
-            string += "   {name}: {value}\n".format(name=name, value=value)
-        return string
+        sources = []
+        for source in self.package.sources:
+            # Dereference dict with repository type as key
+            source = source.values()[0]
+            sources.append({
+                "src": source.get("src", ""),
+                "branch": source.get("branch", ""),
+                "commit_id": source.get("commit_id", ""),
+            })
+        yield "sources", sources
 
 
 def write_version_info(release_tag, file_path, versions_repo, packages):
@@ -80,22 +72,26 @@ def write_version_info(release_tag, file_path, versions_repo, packages):
     """
     LOG.info("Creating release {release_tag} information".format(**locals()))
 
-    format_dict = {"release_tag": release_tag}
-    format_dict["builds_commit"] = (
-        repository.GitRepository(".").head.commit.hexsha)
-    format_dict["versions_commit"] = versions_repo.head.commit.hexsha
+    release_file_info = {
+        "title": RELEASE_FILE_TITLE,
+        "layout": RELEASE_FILE_LAYOUT,
+        "release_tag": release_tag,
+        "builds_commit": str(repository.GitRepository(".").head.commit.hexsha),
+        "versions_commit": str(versions_repo.head.commit.hexsha),
+    }
 
-    packages_info = ""
+    packages_info = []
     packages.sort()
     for package in packages:
-        packages_info += str(PackageReleaseInfo(package))
-    format_dict["packages_info"] = packages_info
+        packages_info.append(dict(PackageReleaseInfo(package)))
+    release_file_info["packages"] = packages_info
 
-    LOG.info("Writing release {release_tag} information to file: {file_path}".format(
-        **locals()))
+    LOG.info("Writing release {release_tag} information to file: {file_path}"
+             .format(**locals()))
     with open(file_path, "w") as version_info_file:
-        version_info_file.write(RELEASE_FILE_CONTENT_TEMPLATE.format(
-            **format_dict))
+        release_file_content = RELEASE_FILE_CONTENT_TEMPLATE.format(
+            header_yaml=yaml.dump(release_file_info, default_flow_style=False))
+        version_info_file.write(release_file_content)
 
 
 def commit_release_notes(
