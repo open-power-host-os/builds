@@ -56,9 +56,27 @@ def get_git_repository(remote_repo_url, parent_dir_path, name=None):
         name = os.path.basename(os.path.splitext(url_parts.path)[0])
 
     repo_path = os.path.join(parent_dir_path, name)
-    if os.path.exists(repo_path):
-        MAIN_REMOTE_NAME = "origin"
+    try:
         repo = GitRepository(repo_path)
+    except git.exc.InvalidGitRepositoryError:
+        # This exception will be thrown if the Git repository has an
+        # invalid format, which could be due to the repository
+        # changing from SVN to Git, for example.  A way to proceed is
+        # removing the directory and cloning from scratch.
+        message = ("The Git repository at '{repo_path}' has an invalid format. "
+                   "If you are unsure of what to do, remove it and try again."
+                   .format(repo_path=repo_path))
+        LOG.error(message)
+        raise
+    except git.exc.NoSuchPathError:
+        message = ("Repository path '{repo_path}' does not exist."
+                   .format(repo_path=repo_path))
+        LOG.debug(message)
+        CONF = config.get_config().CONF
+        proxy = CONF.get('common').get('http_proxy')
+        return GitRepository.clone_from(remote_repo_url, repo_path, proxy=proxy)
+    else:
+        MAIN_REMOTE_NAME = "origin"
         if any(remote.name == MAIN_REMOTE_NAME for remote in repo.remotes):
             previous_url = repo.remotes[MAIN_REMOTE_NAME].url
             if previous_url != remote_repo_url:
@@ -71,11 +89,6 @@ def get_git_repository(remote_repo_url, parent_dir_path, name=None):
                       .format(name=name, url=remote_repo_url))
             repo.create_remote(MAIN_REMOTE_NAME, remote_repo_url)
         return repo
-    else:
-        CONF = config.get_config().CONF
-        return GitRepository.clone_from(
-            remote_repo_url, repo_path,
-            proxy=CONF.get('common').get('http_proxy'))
 
 
 def get_svn_repository(remote_repo_url, repo_path):
