@@ -35,17 +35,25 @@ class PushError(Exception):
         super(PushError, self).__init__(message)
 
 
-def get_git_repository(remote_repo_url, parent_dir_path):
+def get_git_repository(remote_repo_url, parent_dir_path, name=None):
     """
     Get a local git repository located in a subdirectory of the parent
     directory, named after the file name of the URL path (git default),
     updating the main remote URL, if needed.
     If the local repository does not exist, clone it from the remote
     URL.
+
+    Args:
+        remote_repo_url (str): URL to remote Git repository
+        parent_dir_path (str): path to parent directory of the repository
+            directory
+        name (str): name of the repository directory. Leave empty to infer the
+            name from the URL
     """
     # infer git repository name from its URL
     url_parts = urlparse.urlparse(remote_repo_url)
-    name = os.path.basename(os.path.splitext(url_parts.path)[0])
+    if not name:
+        name = os.path.basename(os.path.splitext(url_parts.path)[0])
 
     repo_path = os.path.join(parent_dir_path, name)
     if os.path.exists(repo_path):
@@ -135,9 +143,11 @@ class GitRepository(git.Repo):
             else:
                 LOG.info("Fetched changes for %s" % remote.name)
 
-        LOG.info("%(name)s: Checking out reference %(ref)s"
-                 % dict(name=self.name, ref=ref_name))
-        self.head.reference = self._get_reference(ref_name)
+        commit_id = self._get_reference(ref_name)
+        LOG.info("%(name)s: Checking out reference %(ref)s pointing to commit "
+                 "%(commit)s"
+                 % dict(name=self.name, ref=ref_name, commit=commit_id))
+        self.head.reference = commit_id
         try:
             self.head.reset(index=True, working_tree=True)
         except git.exc.GitCommandError:
@@ -165,7 +175,7 @@ class GitRepository(git.Repo):
                 pass
         else:
             raise exception.RepositoryError(
-                message="Reference not found in repository")
+                message="Reference '%s' not found in repository" % ref_name)
 
     def _update_submodules(self):
         """

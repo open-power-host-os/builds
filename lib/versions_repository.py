@@ -22,8 +22,10 @@ def setup_versions_repository(config):
                         REPOSITORIES_DIR)
     url = config.get('common').get('packages_metadata_repo_url')
     branch = config.get('common').get('packages_metadata_repo_branch')
+    name = "versions_{subcommand}".format(
+        subcommand=config.get('common').get('subcommand'))
     try:
-        versions_repo = repository.get_git_repository(url, path)
+        versions_repo = repository.get_git_repository(url, path, name)
         versions_repo.checkout(branch)
     except exception.RepositoryError:
         LOG.error("Failed to checkout versions repository")
