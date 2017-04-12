@@ -4,9 +4,9 @@ import re
 
 from lib import exception
 from lib import packages_manager
+from lib import readme
 from lib import rpm_package
 from lib import utils
-from lib.versions_repository import replace_file_section
 
 LOG = logging.getLogger(__name__)
 DIST_MACRO_NAME = "%{dist}"
@@ -106,7 +106,7 @@ def update_metapackage(
     yaml_install_dependencies_string = "{start}\n{contents}".format(
         start=YAML_START_DELIMITER,
         contents=create_yaml_install_dependencies_string(pm.packages))
-    replace_file_section(
+    readme.replace_file_section(
         metapackage_yaml_file_path, yaml_install_dependencies_string,
         YAML_START_DELIMITER)
 
