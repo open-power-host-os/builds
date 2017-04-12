@@ -18,8 +18,8 @@ import logging
 from lib import distro_utils
 from lib import exception
 from lib.packages_manager import discover_packages
+from lib.readme import update_versions_in_readme
 from lib.versions_repository import setup_versions_repository
-from lib.versions_repository import update_versions_in_readme
 
 LOG = logging.getLogger(__name__)
 

@@ -25,6 +25,7 @@ from lib import exception
 from lib import package_source
 from lib import repository
 from lib import utils
+from lib.versions_repository import get_versions_repository
 from lib.constants import REPOSITORIES_DIR
 
 CONF = config.get_config().CONF
@@ -82,14 +83,11 @@ class Package(object):
         # versions of package metadata. This keeps compatibility.
         OLD_DEPENDENCIES_DIRS = ["build_dependencies", "dependencies"]
         PACKAGES_DIRS = [""] + OLD_DEPENDENCIES_DIRS
-        versions_repo_url = CONF.get('common').get('packages_metadata_repo_url')
-        versions_repo_name = os.path.basename(os.path.splitext(versions_repo_url)[0])
-        versions_repo_target_path = os.path.join(
-            PACKAGES_REPOS_TARGET_PATH,
-            versions_repo_name)
+        versions_repo = get_versions_repository(CONF)
+
         for rel_packages_dir in PACKAGES_DIRS:
             packages_dir = os.path.join(
-                versions_repo_target_path, rel_packages_dir)
+                versions_repo.working_tree_dir, rel_packages_dir)
             package_dir = os.path.join(packages_dir, self.name)
             package_file = os.path.join(package_dir, self.name + ".yaml")
             if os.path.isfile(package_file):

@@ -18,8 +18,8 @@ import os
 
 from lib import config
 from lib import exception
-from lib.constants import REPOSITORIES_DIR
 from lib.package import Package
+from lib.versions_repository import get_versions_repository
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
@@ -72,11 +72,7 @@ def discover_packages():
     "kernel" and "libvirt" will be discovered, "not-a-package" and "file"
     will not.
     """
-    config = CONF.get('common')
-    versions_repo_url = config.get('packages_metadata_repo_url')
-    versions_repo_name = os.path.basename(os.path.splitext(versions_repo_url)[0])
-    versions_repo_target_path = os.path.join(config.get('work_dir'),
-        REPOSITORIES_DIR, versions_repo_name)
+    versions_repo_target_path = get_versions_repository(CONF).working_tree_dir
     package_list = []
     try:
         package_list = [
