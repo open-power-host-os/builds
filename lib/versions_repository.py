@@ -9,19 +9,46 @@ from lib.constants import REPOSITORIES_DIR
 LOG = logging.getLogger(__name__)
 
 
-def setup_versions_repository(config):
+def get_versions_repository(config):
     """
-    Clone and checkout the packages metadata git repository and halt execution if
-    anything fails.
+    Get the packages metadata Git repository, cloning it if does not
+    yet exist.
+
+    Args:
+        config (dict): configuration dictionary
+
+    Raises:
+        exception.RepositoryError: if the clone is unsuccessful
     """
     path = os.path.join(config.get('common').get('work_dir'),
                         REPOSITORIES_DIR)
     url = config.get('common').get('packages_metadata_repo_url')
-    branch = config.get('common').get('packages_metadata_repo_branch')
     name = "versions_{subcommand}".format(
         subcommand=config.get('common').get('subcommand'))
     try:
         versions_repo = repository.get_git_repository(url, path, name)
+    except exception.RepositoryError:
+        LOG.error("Failed to clone versions repository")
+        raise
+
+    return versions_repo
+
+
+def setup_versions_repository(config):
+    """
+    Prepare the packages metadata Git repository, cloning it and
+    checking out at the chosen branch.
+
+    Args:
+        config (dict): configuration dictionary
+
+    Raises:
+        exception.RepositoryError: if the clone or checkout are
+            unsuccessful
+    """
+    versions_repo = get_versions_repository(config)
+    branch = config.get('common').get('packages_metadata_repo_branch')
+    try:
         versions_repo.checkout(branch)
     except exception.RepositoryError:
         LOG.error("Failed to checkout versions repository")
