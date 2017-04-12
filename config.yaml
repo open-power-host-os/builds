@@ -10,6 +10,7 @@ common:
  distro_version: '7'
  architecture: 'ppc64le'
  mock_binary: "/usr/bin/mock"
+ pungi_binary: "/usr/bin/pungi"
  commit_updates: True
  push_updates: True
  updater_name:
@@ -46,6 +47,7 @@ build_iso:
       --plugin-option=tmpfs:max_fs_size=32g
       --plugin-option=tmpfs:required_ram_mb=39800
       --verbose"
+    pungi_args: "--isfinal --nosource --nodebuginfo"
     packages_dir: "result/packages/latest"
     automated_install_file: "host-os.ks"
     installable_environments:

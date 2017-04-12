@@ -72,6 +72,10 @@ MOCK_ARGS = {
     ('--mock-args',):
         dict(help='Arguments passed to mock command', default=''),
 }
+PUNGI_ARGS = {
+    ('--pungi-binary',): dict(help='Pungi binary path'),
+    ('--pungi-args',): dict(help='Arguments passed to pungi command'),
+}
 RELEASE_NOTES_ARGS = {
     ('--release-notes-repo-url',):
         dict(help='Release notes repository URL'),
@@ -149,7 +153,7 @@ SUBCOMMANDS = [
     ('update-versions-readme', 'Update the supported software versions table',
         [PUSH_REPO_ARGS, DISTRO_ARGS, BUILD_REPO_ARGS]),
     ('build-iso', 'Build ISO image',
-        [ISO_ARGS, MOCK_ARGS, BUILD_ARGS]),
+        [ISO_ARGS, MOCK_ARGS, PUNGI_ARGS, BUILD_ARGS]),
 ]
 
 

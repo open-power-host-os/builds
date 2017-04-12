@@ -42,6 +42,8 @@ class MockPungiIsoBuilder(object):
         (_, _, self.arch) = distro_utils.detect_distribution()
         self.mock_binary = self.common_config.get('mock_binary')
         self.mock_args = self.config.get('mock_args') or ""
+        self.pungi_binary = self.common_config.get('pungi_binary') or "pungi"
+        self.pungi_args = self.config.get('pungi_args') or ""
 
     def _run_mock_command(self, cmd):
         distro = distro_utils.get_distro(
@@ -141,8 +143,9 @@ class MockPungiIsoBuilder(object):
 
     def _build(self):
         LOG.info("Building ISO")
-        build_cmd = ("pungi -c %s --nosource --nodebuginfo --name %s --ver %s" %
-                    (self.config.get('automated_install_file'),
+        build_cmd = ("%s %s -c %s --name %s --ver %s" %
+                    (self.pungi_binary, self.pungi_args,
+                     self.config.get('automated_install_file'),
                      self.distro, self.version))
         self._run_mock_command("--shell '%s'" % build_cmd)
 
