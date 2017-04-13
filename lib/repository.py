@@ -24,6 +24,7 @@ import gitdb
 from lib import config
 from lib import exception
 
+CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 
 
@@ -72,7 +73,6 @@ def get_git_repository(remote_repo_url, parent_dir_path, name=None):
         message = ("Repository path '{repo_path}' does not exist."
                    .format(repo_path=repo_path))
         LOG.debug(message)
-        CONF = config.get_config().CONF
         proxy = CONF.get('common').get('http_proxy')
         return GitRepository.clone_from(remote_repo_url, repo_path, proxy=proxy)
     else:
@@ -292,7 +292,6 @@ class SvnRepository():
 
         command = 'svn checkout '
 
-        CONF = config.get_config().CONF
         proxy = CONF.get('common').get('http_proxy')
 
         if proxy:
