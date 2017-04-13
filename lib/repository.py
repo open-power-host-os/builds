@@ -248,9 +248,7 @@ class GitRepository(git.Repo):
             repository.PushError: if push fails
         """
         REPO_REMOTE_NAME = "push-remote"
-        LOG.info("Creating remote named '{name}' for URL '{url}'"
-                 .format(name=REPO_REMOTE_NAME, url=remote_repo_url))
-        self.create_remote(REPO_REMOTE_NAME, remote_repo_url)
+        self.force_create_remote(REPO_REMOTE_NAME, remote_repo_url)
 
         LOG.info("Pushing changes to remote repository branch '{}'"
                  .format(remote_repo_branch))
