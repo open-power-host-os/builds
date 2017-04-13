@@ -103,7 +103,7 @@ To install them, follow the instructions [here](INSTALLING_PACKAGES.md).
 ## Building an ISO
 
 To build an ISO with the built packages, follow those
-[instructions](BUILDING_AN_ISO).
+[instructions](BUILDING_AN_ISO.md).
 
 
 ## Contact us
