@@ -77,17 +77,7 @@ def get_git_repository(remote_repo_url, parent_dir_path, name=None):
         return GitRepository.clone_from(remote_repo_url, repo_path, proxy=proxy)
     else:
         MAIN_REMOTE_NAME = "origin"
-        if any(remote.name == MAIN_REMOTE_NAME for remote in repo.remotes):
-            previous_url = repo.remotes[MAIN_REMOTE_NAME].url
-            if previous_url != remote_repo_url:
-                LOG.debug("Removing previous {name}'s repository remote with "
-                          "URL '{previous_url}'"
-                          .format(name=name, previous_url=previous_url))
-                repo.delete_remote(MAIN_REMOTE_NAME)
-        if not any(remote.name == MAIN_REMOTE_NAME for remote in repo.remotes):
-            LOG.debug("Creating {name}'s repository remote with URL '{url}'"
-                      .format(name=name, url=remote_repo_url))
-            repo.create_remote(MAIN_REMOTE_NAME, remote_repo_url)
+        repo.force_create_remote(MAIN_REMOTE_NAME, remote_repo_url)
         return repo
 
 
@@ -270,6 +260,26 @@ class GitRepository(git.Repo):
         LOG.debug("Push result: {}".format(push_info.summary))
         if git.PushInfo.ERROR & push_info.flags:
             raise PushError(push_info)
+
+    def force_create_remote(self, name, url):
+        """
+        Create a remote, replacing a previous one with the same name.
+
+        Args:
+            name (str): remote name
+            url (str): remote URL
+        """
+        if any(remote.name == name for remote in self.remotes):
+            previous_url = self.remotes[name].url
+            if previous_url != url:
+                LOG.debug("Removing previous {name}'s repository remote with "
+                          "URL '{previous_url}'"
+                          .format(name=name, previous_url=previous_url))
+                self.delete_remote(name)
+        if not any(remote.name == name for remote in self.remotes):
+            LOG.debug("Creating {name}'s repository remote with URL '{url}'"
+                      .format(name=name, url=url))
+            self.create_remote(name, url)
 
 
 class SvnRepository():
