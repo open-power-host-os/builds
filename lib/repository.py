@@ -129,16 +129,25 @@ class GitRepository(git.Repo):
     def name(self):
         return os.path.basename(self.working_tree_dir)
 
-    def checkout(self, ref_name):
+    def checkout(self, ref_name, refspecs=None):
         """
         Check out the reference name, resetting the index state.
         The reference may be a branch, tag or commit.
+
+        Args:
+            ref_name (str): name of the reference. May be a branch, tag,
+                commit ID, etc.
+            refspecs ([str]): pattern mappings from remote references to
+                local references. Refer to Git documentation at
+                https://git-scm.com/book/id/v2/Git-Internals-The-Refspec
         """
         LOG.info("%(name)s: Fetching repository remote %(remote)s"
                  % dict(name=self.name, remote=MAIN_REMOTE_NAME))
+        if refspecs is not None:
+            LOG.debug("Using custom ref specs %s" % refspecs)
         main_remote = self.remote(MAIN_REMOTE_NAME)
         try:
-            main_remote.fetch()
+            main_remote.fetch(refspecs)
         except git.exc.GitCommandError:
             LOG.error("Failed to fetch %s remote for %s"
                       % (MAIN_REMOTE_NAME, self.name))
