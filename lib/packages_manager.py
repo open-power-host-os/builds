@@ -85,4 +85,7 @@ def discover_packages():
         LOG.error("No packages found in versions repository directory")
         raise
 
+    if not package_list:
+    	raise exception.PackageDirectoryIsEmpty()
+
     return package_list
