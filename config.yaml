@@ -5,6 +5,9 @@ common:
  log_size: 2097152
  packages_metadata_repo_url: "https://github.com/open-power-host-os/versions.git"
  packages_metadata_repo_branch: 'master'
+ packages_metadata_repo_refspecs:
+   - '+refs/heads/*:refs/remotes/origin/*'
+   - '+refs/pull/*:refs/remotes/origin/pr/*'
  http_proxy: ''
  distro_name: 'CentOS'
  distro_version: '7'

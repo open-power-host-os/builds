@@ -18,8 +18,6 @@ import logging
 import os
 import yaml
 
-import git
-
 from lib import config
 from lib import distro_utils
 from lib import exception
@@ -94,52 +92,6 @@ def write_version_info(release_tag, file_path, versions_repo, packages):
         version_info_file.write(release_file_content)
 
 
-def commit_release_notes(
-        website_repo, release_date, updater_name, updater_email):
-    """
-    Commit release notes page to the Host OS website repository.
-
-    Args:
-        website_repo (GitRepository): Host OS website git repository
-        release_date (str): release date
-        updater_name (str): updater name
-        updater_email (str): updater email
-    """
-    LOG.info("Adding files to repository index")
-    website_repo.index.add(["*"])
-
-    LOG.info("Committing changes to local repository")
-    commit_message = "Host OS release of {date}".format(date=release_date)
-    actor = git.Actor(updater_name, updater_email)
-    website_repo.index.commit(commit_message, author=actor, committer=actor)
-
-
-def push_website_head_commit(
-        website_repo, website_push_repo_url, website_push_repo_branch):
-    """
-    Push Host OS website changes in local Git repository to the remote
-    Git repository, using the system's configured SSH credentials.
-
-    Args:
-        website_repo (GitRepository): Host OS website git repository
-        versions_repo_push_url (str): remote git repository URL
-        versions_repo_push_branch (str): remote git repository branch
-
-    Raises:
-        repository.PushError: if push fails
-    """
-    WEBSITE_REPO_PUSH_REMOTE = "push-remote"
-
-    LOG.info("Pushing changes to remote repository")
-    remote = website_repo.create_remote(
-        WEBSITE_REPO_PUSH_REMOTE, website_push_repo_url)
-    refspec = "HEAD:refs/heads/{}".format(website_push_repo_branch)
-    push_info = remote.push(refspec=refspec)[0]
-    LOG.debug("Push result: {}".format(push_info.summary))
-    if git.PushInfo.ERROR & push_info.flags:
-        raise repository.PushError(push_info)
-
-
 def run(CONF):
     versions_repo = setup_versions_repository(CONF)
 
@@ -190,8 +142,7 @@ def run(CONF):
                        package_manager.packages)
 
     if commit_updates:
-        commit_release_notes(
-            website_repo, release_date, updater_name, updater_email)
+        commit_message = "Host OS release of {date}".format(date=release_date)
+        website_repo.commit_changes(commit_message, updater_name, updater_email)
         if push_updates:
-            push_website_head_commit(
-                website_repo, push_repo_url, push_repo_branch)
+            website_repo.push_head_commits(push_repo_url, push_repo_branch)

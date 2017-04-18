@@ -24,7 +24,9 @@ import gitdb
 from lib import config
 from lib import exception
 
+CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
+MAIN_REMOTE_NAME = "origin"
 
 
 class PushError(Exception):
@@ -72,11 +74,9 @@ def get_git_repository(remote_repo_url, parent_dir_path, name=None):
         message = ("Repository path '{repo_path}' does not exist."
                    .format(repo_path=repo_path))
         LOG.debug(message)
-        CONF = config.get_config().CONF
         proxy = CONF.get('common').get('http_proxy')
         return GitRepository.clone_from(remote_repo_url, repo_path, proxy=proxy)
     else:
-        MAIN_REMOTE_NAME = "origin"
         repo.force_create_remote(MAIN_REMOTE_NAME, remote_repo_url)
         return repo
 
@@ -129,22 +129,29 @@ class GitRepository(git.Repo):
     def name(self):
         return os.path.basename(self.working_tree_dir)
 
-    def checkout(self, ref_name):
+    def checkout(self, ref_name, refspecs=None):
         """
         Check out the reference name, resetting the index state.
         The reference may be a branch, tag or commit.
+
+        Args:
+            ref_name (str): name of the reference. May be a branch, tag,
+                commit ID, etc.
+            refspecs ([str]): pattern mappings from remote references to
+                local references. Refer to Git documentation at
+                https://git-scm.com/book/id/v2/Git-Internals-The-Refspec
         """
-        LOG.info("%(name)s: Fetching repository remotes"
-                 % dict(name=self.name))
-        for remote in self.remotes:
-            try:
-                remote.fetch()
-            except git.exc.GitCommandError:
-                LOG.debug("Failed to fetch %s remote for %s"
-                          % (remote.name, self.name))
-                pass
-            else:
-                LOG.info("Fetched changes for %s" % remote.name)
+        LOG.info("%(name)s: Fetching repository remote %(remote)s"
+                 % dict(name=self.name, remote=MAIN_REMOTE_NAME))
+        if refspecs is not None:
+            LOG.debug("Using custom ref specs %s" % refspecs)
+        main_remote = self.remote(MAIN_REMOTE_NAME)
+        try:
+            main_remote.fetch(refspecs)
+        except git.exc.GitCommandError:
+            LOG.error("Failed to fetch %s remote for %s"
+                      % (MAIN_REMOTE_NAME, self.name))
+            raise
 
         commit_id = self._get_reference(ref_name)
         LOG.info("%(name)s: Checking out reference %(ref)s pointing to commit "
@@ -292,7 +299,6 @@ class SvnRepository():
 
         command = 'svn checkout '
 
-        CONF = config.get_config().CONF
         proxy = CONF.get('common').get('http_proxy')
 
         if proxy:
