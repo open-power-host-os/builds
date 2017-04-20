@@ -70,6 +70,11 @@ class PackageDescriptorError(PackageError):
     error_code = 18
 
 
+class PackageDirectoryIsEmpty(PackageError):
+    DEFAULT_MESSAGE = "No packages to build. Packages directory is empty."
+    error_code =  19
+
+
 class RepositoryError(BaseException):
     DEFAULT_MESSAGE = (
         "Failed to setup %(repo_name)s's repository at %(repo_path)s.")
