@@ -20,11 +20,15 @@ import os
 import subprocess
 import time
 
-
 from lib import exception
 
 LOG = logging.getLogger(__name__)
 
+def base_directory_not_found_error(err):
+    if err.errno == errno.ENOENT:
+        raise exception.FilesToValidateNotFound()
+    else:
+        raise err
 
 def retry_on_error(f, error=Exception, failure_handler=None,
                    max_retries=2, seconds_between_retries=5):
@@ -177,11 +181,12 @@ def recursive_glob(directory, pattern):
     """
 
     matches = []
-    for root, _, filenames in os.walk(directory):
+
+    for root, _, filenames in os.walk(directory, onerror=base_directory_not_found_error):
         for filename in fnmatch.filter(filenames, pattern):
             matches.append(os.path.join(root, filename))
-    return matches
 
+    return matches
 
 def replace_str_in_file(file_path, search, replacement):
 

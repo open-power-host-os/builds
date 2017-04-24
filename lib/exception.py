@@ -95,4 +95,12 @@ class TimeoutError(BaseException):
         "Timeout failure on %(func_name)s after %(num_attempts)s attempts. "
         "Initial timeout: %(initial_timeout)s, final timeout: "
         "%(final_timeout)s.")
+    # Subclass errors are in the form 0b0101xxx
     error_code = 40
+
+class FilesToValidateNotFound(BaseException):
+    DEFAULT_MESSAGE = (
+        "Files to be validated not found in base directory.")
+    # Subclass errors are in the form 0b0110xxx
+    error_code = 48
+
