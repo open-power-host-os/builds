@@ -22,12 +22,12 @@ from lib import config
 from lib import exception
 from lib.utils import create_directory
 from lib.utils import is_package_installed
-from tools import build_iso
-from tools import build_packages
-from tools import build_release_notes
-from tools import update_metapackage
-from tools import update_versions
-from tools import update_versions_in_readme
+from lib.subcommands import build_iso
+from lib.subcommands import build_packages
+from lib.subcommands import build_release_notes
+from lib.subcommands import update_metapackage
+from lib.subcommands import update_versions
+from lib.subcommands import update_versions_in_readme
 
 INSUFFICIENT_PRIVILEGE_ERROR = 3
 TOO_MUCH_PRIVILEGE_ERROR = 4

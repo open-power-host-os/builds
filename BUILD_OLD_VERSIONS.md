@@ -7,20 +7,21 @@ before building:
 Update yum repository to CentOS 7.2:
 
 ```
-$ sed -i 's|http://mirror.centos.org/altarch/|http://vault.centos.org/altarch/7.2.1511/|' mock_configs/CentOS/7/CentOS-7-ppc64le.cfg
+$ sed -i 's|http://mirror.centos.org/altarch/|http://vault.centos.org/altarch/7.2.1511/|' config/mock/CentOS/7/CentOS-7-ppc64le.cfg
 ```
 
 Update distro version to 7.2:
 
 ```
-$ sed -i "s|distro_version:.*|distro_version: \"7.2\"|" config.yaml
-$ sed -i -E "s|  '7': (\"\./mock_configs.*)|  '7.2': \1|" config.yaml
+$ sed -i "s|distro_version:.*|distro_version: \"7.2\"|" config/host_os.yaml
+$ sed -i -E "s|  '7': (\"\./config/mock.*)|  '7.2': \1|" config/host_os.yaml
+
 ```
 
 Update build version to v1.5.0 or v1.0.0:
 
 ```
-$ sed -i "s|build_version:.*|build_version: \"v1.5.0\"|" config.yaml  # use v1.5.0 or v1.0.0
+$ sed -i "s|build_version:.*|build_version: \"v1.5.0\"|" config/host_os.yaml  # use v1.5.0 or v1.0.0
 ```
 
 Install rpm packages which were used in older build code, but are not anymore:

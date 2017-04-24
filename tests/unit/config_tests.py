@@ -38,7 +38,7 @@ class TestConfigParser(unittest.TestCase):
         eq_(value, expected)
 
     @parameterized.expand([
-        (['build-packages'], 'config_file', './config.yaml'),
+        (['build-packages'], 'config_file', 'config/host_os.yaml'),
         (['build-packages'], 'verbose', False),
         (['build-packages'], 'work_dir', 'workspace'),
         (['build-packages'], 'keep_build_dir', False),
