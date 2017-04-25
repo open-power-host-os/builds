@@ -207,34 +207,35 @@ class GitRepository(git.Repo):
             build_dir (str): path to the directory to place the archive
                 file
         """
-        # TODO(olavph): use git.Repo.archive instead of run_command
-        archive_file = os.path.join(build_dir, archive_name + ".tar")
+        archive_file_path = os.path.join(build_dir, archive_name + ".tar")
 
-        # Generates one tar file for each submodule.
-        cmd = ("git submodule foreach 'git archive --prefix=%s/$path/ "
-               "--format tar --output %s HEAD'" % (
-                   archive_name,
-                   os.path.join(build_dir, "$sha1-%s.tar" % archive_name)))
-        utils.run_command(cmd, cwd=self.working_tree_dir)
+        # Generate project's archive
+        with open(archive_file_path, "wb") as archive_file:
+            super(GitRepository, self).archive(
+                archive_file, prefix=archive_name + "/", format="tar")
 
-        # Generates project's archive.
-        cmd = "git archive --prefix=%s/ --format tar --output %s HEAD" % (
-            archive_name, archive_file)
-        utils.run_command(cmd, cwd=self.working_tree_dir)
+        # Generate one tar file for each submodule
+        for submodule in self.submodules:
+            submodule_archive_file_path = os.path.join(
+                build_dir, "%s-%s.tar" % (
+                    submodule.head.commit.hexsha, archive_name))
+            with open(submodule_archive_file_path, "wb") as archive_file:
+                submodule.module().archive(archive_file, prefix=os.path.join(
+                    archive_name, submodule.path) + "/", format="tar")
 
         # Concatenate tar files. It's fine to fail when we don't have a
         # submodule and thus no <submodule>-kernel-<version>.tar
         cmd = "tar --concatenate --file %s %s" % (
-            archive_file,
+            archive_file_path,
             build_dir + "/*-" + archive_name + ".tar")
         try:
             utils.run_command(cmd)
         except exception.SubprocessError:
             pass
 
-        cmd = "gzip %s" % archive_file
+        cmd = "gzip %s" % archive_file_path
         utils.run_command(cmd)
-        return archive_file + ".gz"
+        return archive_file_path + ".gz"
 
     def commit_changes(self, commit_message, committer_name, committer_email):
         """
