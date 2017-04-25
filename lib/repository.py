@@ -215,6 +215,7 @@ class GitRepository(git.Repo):
                 archive_file, prefix=archive_name + "/", format="tar")
 
         # Generate one tar file for each submodule
+        submodules_archives_paths = []
         for submodule in self.submodules:
             submodule_archive_file_path = os.path.join(
                 build_dir, "%s-%s.tar" % (
@@ -222,17 +223,13 @@ class GitRepository(git.Repo):
             with open(submodule_archive_file_path, "wb") as archive_file:
                 submodule.module().archive(archive_file, prefix=os.path.join(
                     archive_name, submodule.path) + "/", format="tar")
+            submodules_archives_paths.append(submodule_archive_file_path)
 
-        # Concatenate tar files. It's fine to fail when we don't have a
-        # submodule and thus no <repository>-<submodule>.tar
-        submodule_archives_patterns = os.path.join(
-            build_dir, archive_name + "-*.tar")
-        cmd = "tar --concatenate --file %s %s" % (
-            archive_file_path, submodule_archives_patterns)
-        try:
+        # Concatenate tar files
+        if submodules_archives_paths:
+            cmd = "tar --concatenate --file %s %s" % (
+                archive_file_path, " ".join(submodules_archives_paths))
             utils.run_command(cmd)
-        except exception.SubprocessError:
-            pass
 
         cmd = "gzip %s" % archive_file_path
         utils.run_command(cmd)
