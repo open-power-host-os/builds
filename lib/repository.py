@@ -231,9 +231,14 @@ class GitRepository(git.Repo):
         if submodules_archives_paths:
             LOG.info("Concatenating {name} archive with submodules"
                      .format(name=self.name))
-            cmd = "tar --concatenate --file %s %s" % (
-                archive_file_path, " ".join(submodules_archives_paths))
-            utils.run_command(cmd)
+            for submodule_archive_path in submodules_archives_paths:
+                # The tar --concatenate option has a bug, producing an
+                # undesired result when more than two files are
+                # concatenated:
+                # https://lists.gnu.org/archive/html/bug-tar/2008-08/msg00002.html
+                cmd = "tar --concatenate --file %s %s" % (
+                    archive_file_path, submodule_archive_path)
+                utils.run_command(cmd)
 
         compressed_archive_file_path = archive_file_path + ".gz"
         LOG.info("Compressing {name} archive into {file}"
