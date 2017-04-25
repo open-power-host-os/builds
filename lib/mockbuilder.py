@@ -161,9 +161,8 @@ class Mock(package_builder.PackageBuilder):
             package.sources = archived_sources
             self.archive = self.build_dir
         elif package.repository:
-            file_path = package.repository.archive(package.expects_source,
-                                                   package.commit_id,
-                                                   self.build_dir)
+            file_path = package.repository.archive(
+                package.expects_source, self.build_dir)
             self.archive = os.path.dirname(file_path)
         elif package.download_source:
             file_path = package._download_source(self.build_dir)

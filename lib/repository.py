@@ -196,7 +196,17 @@ class GitRepository(git.Repo):
                      % dict(name=submodule.name, url=submodule.url))
             submodule.update(init=True)
 
-    def archive(self, archive_name, commit_id, build_dir):
+    def archive(self, archive_name, build_dir):
+        """
+        Archive repository and its submodules into a single compressed
+        file.
+
+        Args:
+            archive_name (str): prefix of the resulting archive file
+                name
+            build_dir (str): path to the directory to place the archive
+                file
+        """
         # TODO(olavph): use git.Repo.archive instead of run_command
         archive_file = os.path.join(build_dir, archive_name + ".tar")
 
