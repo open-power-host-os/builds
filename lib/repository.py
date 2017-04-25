@@ -218,16 +218,17 @@ class GitRepository(git.Repo):
         for submodule in self.submodules:
             submodule_archive_file_path = os.path.join(
                 build_dir, "%s-%s.tar" % (
-                    submodule.head.commit.hexsha, archive_name))
+                    archive_name, submodule.name.replace("/", "_")))
             with open(submodule_archive_file_path, "wb") as archive_file:
                 submodule.module().archive(archive_file, prefix=os.path.join(
                     archive_name, submodule.path) + "/", format="tar")
 
         # Concatenate tar files. It's fine to fail when we don't have a
-        # submodule and thus no <submodule>-kernel-<version>.tar
+        # submodule and thus no <repository>-<submodule>.tar
+        submodule_archives_patterns = os.path.join(
+            build_dir, archive_name + "-*.tar")
         cmd = "tar --concatenate --file %s %s" % (
-            archive_file_path,
-            build_dir + "/*-" + archive_name + ".tar")
+            archive_file_path, submodule_archives_patterns)
         try:
             utils.run_command(cmd)
         except exception.SubprocessError:
