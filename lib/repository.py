@@ -209,7 +209,8 @@ class GitRepository(git.Repo):
         """
         archive_file_path = os.path.join(build_dir, archive_name + ".tar")
 
-        # Generate project's archive
+        LOG.info("Archiving {name} into {file}"
+                 .format(name=self.name, file=archive_file_path))
         with open(archive_file_path, "wb") as archive_file:
             super(GitRepository, self).archive(
                 archive_file, prefix=archive_name + "/", format="tar")
@@ -220,20 +221,26 @@ class GitRepository(git.Repo):
             submodule_archive_file_path = os.path.join(
                 build_dir, "%s-%s.tar" % (
                     archive_name, submodule.name.replace("/", "_")))
+            LOG.info("Archiving submodule {name} into {file}".format(
+                name=submodule.name, file=submodule_archive_file_path))
             with open(submodule_archive_file_path, "wb") as archive_file:
                 submodule.module().archive(archive_file, prefix=os.path.join(
                     archive_name, submodule.path) + "/", format="tar")
             submodules_archives_paths.append(submodule_archive_file_path)
 
-        # Concatenate tar files
         if submodules_archives_paths:
+            LOG.info("Concatenating {name} archive with submodules"
+                     .format(name=self.name))
             cmd = "tar --concatenate --file %s %s" % (
                 archive_file_path, " ".join(submodules_archives_paths))
             utils.run_command(cmd)
 
+        compressed_archive_file_path = archive_file_path + ".gz"
+        LOG.info("Compressing {name} archive into {file}"
+                 .format(name=self.name, file=compressed_archive_file_path))
         cmd = "gzip %s" % archive_file_path
         utils.run_command(cmd)
-        return archive_file_path + ".gz"
+        return compressed_archive_file_path
 
     def commit_changes(self, commit_message, committer_name, committer_email):
         """
