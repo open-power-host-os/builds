@@ -196,35 +196,56 @@ class GitRepository(git.Repo):
                      % dict(name=submodule.name, url=submodule.url))
             submodule.update(init=True)
 
-    def archive(self, archive_name, commit_id, build_dir):
-        # TODO(olavph): use git.Repo.archive instead of run_command
-        archive_file = os.path.join(build_dir, archive_name + ".tar")
+    def archive(self, archive_name, build_dir):
+        """
+        Archive repository and its submodules into a single compressed
+        file.
 
-        # Generates one tar file for each submodule.
-        cmd = ("git submodule foreach 'git archive --prefix=%s/$path/ "
-               "--format tar --output %s HEAD'" % (
-                   archive_name,
-                   os.path.join(build_dir, "$sha1-%s.tar" % archive_name)))
-        utils.run_command(cmd, cwd=self.working_tree_dir)
+        Args:
+            archive_name (str): prefix of the resulting archive file
+                name
+            build_dir (str): path to the directory to place the archive
+                file
+        """
+        archive_file_path = os.path.join(build_dir, archive_name + ".tar")
 
-        # Generates project's archive.
-        cmd = "git archive --prefix=%s/ --format tar --output %s HEAD" % (
-            archive_name, archive_file)
-        utils.run_command(cmd, cwd=self.working_tree_dir)
+        LOG.info("Archiving {name} into {file}"
+                 .format(name=self.name, file=archive_file_path))
+        with open(archive_file_path, "wb") as archive_file:
+            super(GitRepository, self).archive(
+                archive_file, prefix=archive_name + "/", format="tar")
 
-        # Concatenate tar files. It's fine to fail when we don't have a
-        # submodule and thus no <submodule>-kernel-<version>.tar
-        cmd = "tar --concatenate --file %s %s" % (
-            archive_file,
-            build_dir + "/*-" + archive_name + ".tar")
-        try:
-            utils.run_command(cmd)
-        except exception.SubprocessError:
-            pass
+        # Generate one tar file for each submodule
+        submodules_archives_paths = []
+        for submodule in self.submodules:
+            submodule_archive_file_path = os.path.join(
+                build_dir, "%s-%s.tar" % (
+                    archive_name, submodule.name.replace("/", "_")))
+            LOG.info("Archiving submodule {name} into {file}".format(
+                name=submodule.name, file=submodule_archive_file_path))
+            with open(submodule_archive_file_path, "wb") as archive_file:
+                submodule.module().archive(archive_file, prefix=os.path.join(
+                    archive_name, submodule.path) + "/", format="tar")
+            submodules_archives_paths.append(submodule_archive_file_path)
 
-        cmd = "gzip %s" % archive_file
+        if submodules_archives_paths:
+            LOG.info("Concatenating {name} archive with submodules"
+                     .format(name=self.name))
+            for submodule_archive_path in submodules_archives_paths:
+                # The tar --concatenate option has a bug, producing an
+                # undesired result when more than two files are
+                # concatenated:
+                # https://lists.gnu.org/archive/html/bug-tar/2008-08/msg00002.html
+                cmd = "tar --concatenate --file %s %s" % (
+                    archive_file_path, submodule_archive_path)
+                utils.run_command(cmd)
+
+        compressed_archive_file_path = archive_file_path + ".gz"
+        LOG.info("Compressing {name} archive into {file}"
+                 .format(name=self.name, file=compressed_archive_file_path))
+        cmd = "gzip --fast %s" % archive_file_path
         utils.run_command(cmd)
-        return archive_file + ".gz"
+        return compressed_archive_file_path
 
     def commit_changes(self, commit_message, committer_name, committer_email):
         """
