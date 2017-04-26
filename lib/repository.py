@@ -243,7 +243,7 @@ class GitRepository(git.Repo):
         compressed_archive_file_path = archive_file_path + ".gz"
         LOG.info("Compressing {name} archive into {file}"
                  .format(name=self.name, file=compressed_archive_file_path))
-        cmd = "gzip %s" % archive_file_path
+        cmd = "gzip --fast %s" % archive_file_path
         utils.run_command(cmd)
         return compressed_archive_file_path
 
