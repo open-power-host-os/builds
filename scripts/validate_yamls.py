@@ -17,6 +17,8 @@
 import argparse
 import sys
 
+sys.path.insert(0, '..')
+
 from lib import exception
 from lib.utils import is_package_installed
 from lib.utils import recursive_glob

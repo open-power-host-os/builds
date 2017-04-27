@@ -87,7 +87,7 @@ repositories so that they do not need to be downloaded on every build. If it is
 desired to change the source code of a package, you may edit the package local
 repository content. To build the package from this modified local repository,
 either use a file:// URL pointing to it in the package metadata (YAML)
-file or disable package repositories update in config.yaml.
+file or disable package repositories update in config/host_os.yaml.
 
 
 ## Using the RPMs

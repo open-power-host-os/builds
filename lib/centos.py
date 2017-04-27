@@ -18,7 +18,7 @@ from lib import distro
 # The old versions contains directories erroneously named "7.2" instead
 # of just "7". To keep backwards compatibility, we have to list "7.2" as
 # a supported version in addition to "7". To build those versions,
-# you'll have to edit the version in your "config.yaml" file to "7.2".
+# you'll have to edit the version in your "config/host_os.yaml" file to "7.2".
 CENTOS_VERSIONS = ["7.2", "7", ]
 
 
