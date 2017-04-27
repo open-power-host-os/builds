@@ -172,20 +172,10 @@ class Package(object):
             package_source.set_dest_dir(source, directory=PACKAGES_REPOS_TARGET_PATH,
                                         local_copy_subdir_name=self.name)
 
-        # This is kept for backwards compatibility with older
-        # 'versions' repositories.
-        if self.clone_url:
-            self._download_source_code()
-
         self._download_build_files()
         if recurse:
             for dep in (self.install_dependencies + self.build_dependencies):
                 dep.download_files()
-
-    def _download_source_code(self):
-        LOG.info("%s: Downloading source code from '%s'." %
-                 (self.name, self.clone_url))
-        self._setup_repository(dest=PACKAGES_REPOS_TARGET_PATH)
 
 
     def _load(self):
@@ -210,18 +200,6 @@ class Package(object):
         self.version_file_regex = (version.get('file'),
                                    version.get('regex'))
 
-        # These are all being kept for compatibility reasons. They are
-        # required in order to build old 'versions' repositories.
-        #
-        # This should be removed when backwards compatibility is no longer a
-        # requirement. {{{
-        self.clone_url = self.package_data.get('clone_url', None)
-        self.download_source = self.package_data.get('download_source', None)
-        self.expects_source = self.package_data.get('expects_source', self.name)
-        self.branch = self.package_data.get('branch', None)
-        self.commit_id = self.package_data.get('commit_id', None)
-        # }}}
-
         LOG.info("%s: Loaded package metadata successfully" % self.name)
 
         # Check if this package has shared resources that need to be
@@ -236,20 +214,13 @@ class Package(object):
             # Old sources format is used, it's better to enable locking
             self.locking_enabled = True
 
-    def _setup_repository(self, dest=None, branch=None):
-        self.repository = repository.get_git_repository(
-            self.clone_url, dest)
-        self.repository.checkout(self.commit_id or self.branch or branch)
-
     def _download_source(self, build_dir):
         """
         An alternative to just execute a given command to obtain sources.
         """
         utils.run_command(self.download_source, cwd=build_dir)
-        # automatically append tar.gz if expects_source has no extension
-        if self.expects_source == self.name:
-            self.expects_source = "%s.tar.gz" % self.name
-        return os.path.join(build_dir, self.expects_source)
+        source_file_name = "%s.tar.gz" % self.name
+        return os.path.join(build_dir, source_file_name)
 
     def _download_build_files(self):
         for url in self.download_build_files:
