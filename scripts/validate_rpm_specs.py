@@ -15,9 +15,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import argparse
+import os
 import sys
 
-sys.path.insert(0, '..')
+repo_root_dir = os.path.realpath(os.path.join(
+    os.path.dirname(__file__), os.pardir))
+sys.path.insert(0, repo_root_dir)
 
 from lib import exception
 from lib.utils import is_package_installed
