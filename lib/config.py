@@ -117,9 +117,6 @@ ISO_ARGS = {
     ('--iso-name',):
         dict(help='ISO name.',
              default='OpenPOWER-Host_OS'),
-    ('--log-file',):
-        dict(help='ISO creation log file path.',
-             default='/var/log/host-os/iso.log'),
     ('--automated-install-file',):
         dict(help='Path of a kickstart file, used to automate the installation of a RPM-based Linux distribution',
              default='host-os.ks'),
