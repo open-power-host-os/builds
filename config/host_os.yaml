@@ -16,10 +16,10 @@ common:
  pungi_binary: "/usr/bin/pungi"
  commit_updates: True
  push_updates: True
- updater_name:
- updater_email:
+ updater_name: ''
+ updater_email: ''
 build_packages:
- packages:
+ packages: []
  keep_build_dir: False
  force_rebuild: False
  mock_config:
@@ -36,7 +36,7 @@ build_packages:
 build_release_notes:
  release_notes_repo_url: "https://github.com/open-power-host-os/open-power-host-os.github.io.git"
  release_notes_repo_branch: "master"
- push_repo_url:
+ push_repo_url: ''
  push_repo_branch: "master"
 build_iso:
     iso_name: "OpenPOWER-Host_OS"
@@ -82,12 +82,12 @@ build_iso:
         extras: "http://mirror.centos.org/altarch/7/extras/ppc64le/"
         epel: "http://download.fedoraproject.org/pub/epel/7/ppc64le/"
 update_metapackage:
- push_repo_url:
+ push_repo_url: ''
  push_repo_branch: "master"
 update_versions:
- packages:
- push_repo_url:
+ packages: []
+ push_repo_url: ''
  push_repo_branch: "master"
 update_versions_readme:
- push_repo_url:
+ push_repo_url: ''
  push_repo_branch: "master"

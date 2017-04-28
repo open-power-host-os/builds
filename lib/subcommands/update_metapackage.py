@@ -45,7 +45,7 @@ def run(CONF):
     if push_updates:
         REQUIRED_PARAMETERS += ["push_repo_url", "push_repo_branch" ]
     for parameter in REQUIRED_PARAMETERS:
-        if CONF.get(parameter) is None:
+        if CONF.get(parameter):
             raise exception.RequiredParameterMissing(parameter=parameter)
 
     METAPACKAGE_NAME = "open-power-host-os"
