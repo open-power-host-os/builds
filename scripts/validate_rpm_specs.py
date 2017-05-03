@@ -17,12 +17,14 @@
 import argparse
 import os
 import sys
+import logging
 
 repo_root_dir = os.path.realpath(os.path.join(
     os.path.dirname(__file__), os.pardir))
 sys.path.insert(0, repo_root_dir)
 
 from lib import exception
+from lib import log_helper
 from lib.utils import is_package_installed
 from lib.utils import recursive_glob
 from lib.utils import run_command
@@ -39,12 +41,12 @@ def validate_rpm_spec(spec_file_path):
     """
 
     try:
+        LOG.info("Verifying file %s" % spec_file_path)
         run_command("rpmlint -f .rpmlint -v %s" % spec_file_path)
     except exception.SubprocessError as e:
         #pylint: disable=no-member
-        print("validation of RPM specification file %s failed, output: %s" % (spec_file_path, e.stdout))
+        LOG.exception("validation of RPM specification file %s failed, output: %s" % (spec_file_path, e.stdout))
         return False
-
     return True
 
 
@@ -65,6 +67,11 @@ def validate_rpm_specs(base_dir):
         if not validate_rpm_spec(_file):
             valid = False
 
+    if valid:
+        LOG.info("Validation completed successfully.")
+    else:
+        LOG.info("Validation failed.")
+
     return valid
 
 
@@ -84,9 +91,12 @@ def parse_cli_options():
 
 
 if __name__ == '__main__':
+    log_helper.LogHelper()
+    LOG = logging.getLogger(__name__)
     if not is_package_installed('rpmlint'):
-        print("rpmlint package should be installed before running this script")
+        LOG.error("rpmlint package should be installed before running this script")
         sys.exit(1)
     args = parse_cli_options()
     if not validate_rpm_specs(args.rpm_specs_base_dir):
+        LOG.error("RPM spec files contain errors.")
         sys.exit(2)
