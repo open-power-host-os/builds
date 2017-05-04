@@ -29,49 +29,83 @@ build_iso:
   - OpenPOWER Host OS RAS
   mock_args: --enable-plugin=tmpfs --plugin-option=tmpfs:keep_mounted=True --plugin-option=tmpfs:max_fs_size=32g
     --plugin-option=tmpfs:required_ram_mb=39800 --verbose
+  mock_binary: /usr/bin/mock
   mock_iso_repo_dir: /host-os-repo
   mock_iso_repo_name: host_os
   packages_dir: result/packages/latest
   pungi_args: --isfinal --nosource --nodebuginfo
+  pungi_binary: /usr/bin/pungi
+  result_dir: result
 build_packages:
   force_rebuild: false
   keep_build_dir: false
   mock_args: --enable-plugin=tmpfs --plugin-option=tmpfs:keep_mounted=True --plugin-option=tmpfs:max_fs_size=32g
     --plugin-option=tmpfs:required_ram_mb=39800 --verbose
-  packages: []
-  update_packages_repos_before_build: true
-build_release_notes:
-  push_repo_branch: master
-  push_repo_url: ''
-  release_notes_repo_branch: master
-  release_notes_repo_url: https://github.com/open-power-host-os/open-power-host-os.github.io.git
-common:
-  architecture: ppc64le
-  commit_updates: true
-  distro_name: CentOS
-  distro_version: '7'
-  http_proxy: ''
-  log_size: 2097152
   mock_binary: /usr/bin/mock
+  packages: []
   packages_metadata_repo_branch: master
   packages_metadata_repo_refspecs:
   - +refs/heads/*:refs/remotes/origin/*
   - +refs/pull/*:refs/remotes/origin/pr/*
   packages_metadata_repo_url: https://github.com/open-power-host-os/versions.git
-  pungi_binary: /usr/bin/pungi
-  push_updates: true
   result_dir: result
+  update_packages_repos_before_build: true
+build_release_notes:
+  commit_updates: true
+  packages_metadata_repo_branch: master
+  packages_metadata_repo_refspecs:
+  - +refs/heads/*:refs/remotes/origin/*
+  - +refs/pull/*:refs/remotes/origin/pr/*
+  packages_metadata_repo_url: https://github.com/open-power-host-os/versions.git
+  push_repo_branch: master
+  push_repo_url: ''
+  push_updates: true
+  release_notes_repo_branch: master
+  release_notes_repo_url: https://github.com/open-power-host-os/open-power-host-os.github.io.git
   updater_email: ''
   updater_name: ''
+common:
+  architecture: ppc64le
+  distro_name: CentOS
+  distro_version: '7'
+  http_proxy: ''
+  log_size: 2097152
   verbose: false
   work_dir: workspace
 update_metapackage:
+  commit_updates: true
+  packages_metadata_repo_branch: master
+  packages_metadata_repo_refspecs:
+  - +refs/heads/*:refs/remotes/origin/*
+  - +refs/pull/*:refs/remotes/origin/pr/*
+  packages_metadata_repo_url: https://github.com/open-power-host-os/versions.git
   push_repo_branch: master
   push_repo_url: ''
+  push_updates: true
+  updater_email: ''
+  updater_name: ''
 update_versions:
+  commit_updates: true
   packages: []
+  packages_metadata_repo_branch: master
+  packages_metadata_repo_refspecs:
+  - +refs/heads/*:refs/remotes/origin/*
+  - +refs/pull/*:refs/remotes/origin/pr/*
+  packages_metadata_repo_url: https://github.com/open-power-host-os/versions.git
   push_repo_branch: master
   push_repo_url: ''
+  push_updates: true
+  updater_email: ''
+  updater_name: ''
 update_versions_readme:
+  commit_updates: true
+  packages_metadata_repo_branch: master
+  packages_metadata_repo_refspecs:
+  - +refs/heads/*:refs/remotes/origin/*
+  - +refs/pull/*:refs/remotes/origin/pr/*
+  packages_metadata_repo_url: https://github.com/open-power-host-os/versions.git
   push_repo_branch: master
   push_repo_url: ''
+  push_updates: true
+  updater_email: ''
+  updater_name: ''
