@@ -21,7 +21,7 @@ $ sed -i -E "s|  '7': (\"\./config/mock.*)|  '7.2': \1|" config/host_os.yaml
 Update build version to v1.5.0 or v1.0.0:
 
 ```
-$ sed -i "s|build_version:.*|build_version: \"v1.5.0\"|" config/host_os.yaml  # use v1.5.0 or v1.0.0
+$ sed -i "s|packages_metadata_repo_branch:.*|packages_metadata_repo_branch: \"v1.5.0\"|" config/host_os.yaml  # use v1.5.0 or v1.0.0
 ```
 
 Install rpm packages which were used in older build code, but are not anymore:
