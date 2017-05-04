@@ -1,4 +1,4 @@
-build_iso:
+build-iso:
   automated_install_file: host-os.ks
   distro_repos_urls:
     base: http://mirror.centos.org/altarch/7/os/ppc64le/
@@ -36,7 +36,7 @@ build_iso:
   pungi_args: --isfinal --nosource --nodebuginfo
   pungi_binary: /usr/bin/pungi
   result_dir: result
-build_packages:
+build-packages:
   force_rebuild: false
   keep_build_dir: false
   mock_args: --enable-plugin=tmpfs --plugin-option=tmpfs:keep_mounted=True --plugin-option=tmpfs:max_fs_size=32g
@@ -50,7 +50,7 @@ build_packages:
   packages_metadata_repo_url: https://github.com/open-power-host-os/versions.git
   result_dir: result
   update_packages_repos_before_build: true
-build_release_notes:
+build-release-notes:
   commit_updates: true
   packages_metadata_repo_branch: master
   packages_metadata_repo_refspecs:
@@ -64,7 +64,7 @@ build_release_notes:
   release_notes_repo_url: https://github.com/open-power-host-os/open-power-host-os.github.io.git
   updater_email: ''
   updater_name: ''
-common:
+host_os:
   architecture: ppc64le
   distro_name: CentOS
   distro_version: '7'
@@ -72,7 +72,7 @@ common:
   log_size: 2097152
   verbose: false
   work_dir: workspace
-update_metapackage:
+update-metapackage:
   commit_updates: true
   packages_metadata_repo_branch: master
   packages_metadata_repo_refspecs:
@@ -84,7 +84,7 @@ update_metapackage:
   push_updates: true
   updater_email: ''
   updater_name: ''
-update_versions:
+update-versions:
   commit_updates: true
   packages: []
   packages_metadata_repo_branch: master
@@ -97,7 +97,7 @@ update_versions:
   push_updates: true
   updater_email: ''
   updater_name: ''
-update_versions_readme:
+update-versions-readme:
   commit_updates: true
   packages_metadata_repo_branch: master
   packages_metadata_repo_refspecs:

@@ -294,8 +294,8 @@ class ConfigParser(object):
         subcommand = command_line_args.pop("subcommand")
 
         # Create config with options that apply to the subcommand only
-        config = config_file_options["common"]
-        config.update(config_file_options[subcommand.replace("-", "_")])
+        config = config_file_options["host_os"]
+        config.update(config_file_options[subcommand])
 
         # Add options not present in the config file to the config dict
         config["config_file"] = config_file
