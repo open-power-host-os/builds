@@ -11,7 +11,6 @@ import unittest
 class TestConfigParser(unittest.TestCase):
 
     @parameterized.expand([
-        (['--config-file=foo', 'build-packages'], 'config_file', 'foo'),
         (['--verbose', 'build-packages'], 'verbose', True),
         (['--work-dir=foo', 'build-packages'], 'work_dir', 'foo'),
         (['build-packages', '--packages=foo'], 'packages', ['foo']),
@@ -32,7 +31,7 @@ class TestConfigParser(unittest.TestCase):
     def test_parse_arguments_list_WithLongArgument_ShouldParseArgumentValue(self, arguments, key, expected):
         cfg = ConfigParser()
 
-        result_dict = cfg.parse_command_line_arguments(arguments)
+        result_dict = cfg.parse(arguments)
         value = result_dict.get(key)
 
         eq_(value, expected)
@@ -44,8 +43,9 @@ class TestConfigParser(unittest.TestCase):
         (['build-packages'], 'keep_build_dir', False),
         (['build-packages'], 'packages', None),
         (['build-packages'], 'result_dir', 'result'),
-        (['build-packages'], 'packages_metadata_repo_url', None),
-        (['build-packages'], 'packages_metadata_repo_branch', None),
+        (['build-packages'], 'packages_metadata_repo_url',
+         'https://github.com/open-power-host-os/versions.git'),
+        (['build-packages'], 'packages_metadata_repo_branch', 'master'),
         (['build-packages'], 'mock_args', ''),
         (['build-release-notes'], 'push_repo_url', None),
         (['build-release-notes'], 'push_repo_branch', 'master'),
@@ -59,7 +59,7 @@ class TestConfigParser(unittest.TestCase):
     def test_parse_arguments_list_WithoutArgument_ShouldUseDefaultValue(self, arguments, key, expected):
         cfg = ConfigParser()
 
-        result_dict = cfg.parse_command_line_arguments(arguments)
+        result_dict = cfg.parse(arguments)
         value = result_dict.get(key)
 
         eq_(value, expected)
