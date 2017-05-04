@@ -296,23 +296,24 @@ class ConfigParser(object):
         # Parse command line first so we can get config file path
         command_line_args = self.parse_command_line_arguments(command_line_args)
         config_file = command_line_args.pop("config_file")
-        config = self.parse_config_file(config_file)
+        config_file_options = self.parse_config_file(config_file)
         subcommand = command_line_args.pop("subcommand")
 
+        # Create config with options that apply to the subcommand only
+        config = config_file_options["common"]
+        config.update(config_file_options[subcommand.replace("-", "_")])
+
         # Add options not present in the config file to the config dict
-        config["common"]["config_file"] = config_file
-        config["common"]["subcommand"] = subcommand
+        config["config_file"] = config_file
+        config["subcommand"] = subcommand
 
         # Update config node with command line arguments applicable to
         # the subcommand
-        subcommand_node_name = subcommand.replace("-", "_")
         for key, value in command_line_args.items():
             if value is None:
                 continue
-            for node_name in ["common", subcommand_node_name]:
-                if key in config[node_name]:
-                    config[node_name][key] = value
-                    break
+            if key in config:
+                config[key] = value
             else:
                 raise Exception("Option {} not applicable to subcommand {}"
                                 .format(key, subcommand))
@@ -332,13 +333,12 @@ def setup_default_config():
         print("Failed to parse settings")
         sys.exit(2)
 
-    log_file_path = os.path.join(CONF.get('common').get('work_dir'),
-                                 LOG_FILE_NAME)
+    log_file_path = os.path.join(CONF.get('work_dir'), LOG_FILE_NAME)
     log_helper.LogHelper(log_file_path=log_file_path,
-                         verbose=CONF.get('common').get('verbose'),
-                         rotate_size=CONF.get('common').get('log_size'))
+                         verbose=CONF.get('verbose'),
+                         rotate_size=CONF.get('log_size'))
 
-    proxy = CONF.get('common').get('http_proxy')
+    proxy = CONF.get('http_proxy')
     if proxy:
         utils.set_http_proxy_env(proxy)
 

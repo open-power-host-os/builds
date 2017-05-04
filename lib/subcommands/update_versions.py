@@ -193,24 +193,23 @@ class Version(object):
 
 def run(CONF):
     versions_repo = setup_versions_repository(CONF)
-    packages_to_update = CONF.get('update_versions').get('packages') or PACKAGES
+    packages_to_update = CONF.get('packages') or PACKAGES
     distro = distro_utils.get_distro(
-        CONF.get('common').get('distro_name'),
-        CONF.get('common').get('distro_version'),
-        CONF.get('common').get('architecture'))
-    commit_updates = CONF.get('common').get('commit_updates')
-    push_updates = CONF.get('common').get('push_updates')
-    push_repo_url = CONF.get('update_versions').get('push_repo_url')
-    push_repo_branch = CONF.get('update_versions').get('push_repo_branch')
-    updater_name = CONF.get('common').get('updater_name')
-    updater_email = CONF.get('common').get('updater_email')
+        CONF.get('distro_name'),
+        CONF.get('distro_version'),
+        CONF.get('architecture'))
+    commit_updates = CONF.get('commit_updates')
+    push_updates = CONF.get('push_updates')
+    push_repo_url = CONF.get('push_repo_url')
+    push_repo_branch = CONF.get('push_repo_branch')
+    updater_name = CONF.get('updater_name')
+    updater_email = CONF.get('updater_email')
 
-    REQUIRED_PARAMETERS = [("common", "updater_name"), ("common", "updater_email")]
+    REQUIRED_PARAMETERS = ["updater_name", "updater_email"]
     if push_updates:
-        REQUIRED_PARAMETERS += [("update_versions", "push_repo_url"),
-                                ("update_versions", "push_repo_branch")]
-    for section, parameter in REQUIRED_PARAMETERS:
-        if CONF.get(section).get(parameter) is None:
+        REQUIRED_PARAMETERS += ["push_repo_url", "push_repo_branch" ]
+    for parameter in REQUIRED_PARAMETERS:
+        if CONF.get(parameter) is None:
             raise exception.RequiredParameterMissing(parameter=parameter)
 
     # get packages names

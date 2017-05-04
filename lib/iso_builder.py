@@ -31,25 +31,24 @@ ISO_REPO_MINIMAL_PACKAGES = ["authconfig", "chrony", "grub2"]
 class MockPungiIsoBuilder(object):
 
     def __init__(self, config):
-        self.common_config = config.get('common')
-        self.config = config.get("build_iso")
-        self.work_dir = self.common_config.get('work_dir')
+        self.config = config
+        self.work_dir = self.config.get('work_dir')
         self.timestamp = datetime.datetime.now().isoformat()
-        self.result_dir = os.path.join(self.common_config.get('result_dir'),
+        self.result_dir = os.path.join(self.config.get('result_dir'),
             'iso', self.timestamp)
         self.distro = self.config.get("iso_name")
         self.version = datetime.date.today().strftime("%y%m%d")
         (_, _, self.arch) = distro_utils.detect_distribution()
-        self.mock_binary = self.common_config.get('mock_binary')
+        self.mock_binary = self.config.get('mock_binary')
         self.mock_args = self.config.get('mock_args') or ""
-        self.pungi_binary = self.common_config.get('pungi_binary') or "pungi"
+        self.pungi_binary = self.config.get('pungi_binary') or "pungi"
         self.pungi_args = self.config.get('pungi_args') or ""
 
     def _run_mock_command(self, cmd):
         distro = distro_utils.get_distro(
-            self.common_config.get('distro_name'),
-            self.common_config.get('distro_version'),
-            self.common_config.get('architecture'))
+            self.config.get('distro_name'),
+            self.config.get('distro_version'),
+            self.config.get('architecture'))
         mock_config_file = self.config.get('mock_config').get(distro.name).get(
             distro.version)
         try:

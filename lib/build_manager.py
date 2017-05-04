@@ -44,7 +44,7 @@ class BuildManager(object):
 
         # create package builder based on distro
         if distro.name == "CentOS":
-            mock_config_file = CONF.get('build_packages').get(
+            mock_config_file = CONF.get(
                 'mock_config').get(distro.name).get(distro.version)
             package_builder = mockbuilder.Mock(mock_config_file)
         else:
@@ -78,7 +78,7 @@ class BuildManager(object):
         Schedule package build order and build
         """
 
-        force_rebuild = CONF.get('build_packages').get('force_rebuild')
+        force_rebuild = CONF.get('force_rebuild')
         try:
             # TODO: should not restrict building to RPM packages
             self.packages_manager.prepare_packages(

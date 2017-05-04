@@ -49,10 +49,10 @@ class Mock(package_builder.PackageBuilder):
             config_file (str): config file path
         """
         super(Mock, self).__init__()
-        binary_file = CONF.get('common').get('mock_binary')
-        extra_args = CONF.get('build_packages').get('mock_args') or ""
+        binary_file = CONF.get('mock_binary')
+        extra_args = CONF.get('mock_args') or ""
         self.build_dir = None
-        self.build_results_dir = CONF.get('build_packages').get('result_dir')
+        self.build_results_dir = CONF.get('result_dir')
         self.archive = None
         self.timestamp = datetime.datetime.now().isoformat()
         self.common_mock_args = (
@@ -83,7 +83,7 @@ class Mock(package_builder.PackageBuilder):
         self._install_external_dependencies(package)
         self._build_rpm(package)
         self._copy_rpms(self.build_dir, package.build_cache_dir)
-        if not CONF.get('build_packages').get('keep_build_dir'):
+        if not CONF.get('keep_build_dir'):
             self._destroy_build_directory()
 
     def _build_srpm(self, package):
@@ -226,7 +226,7 @@ class Mock(package_builder.PackageBuilder):
             package (RPM_Package): package
         """
         self.build_dir = os.path.join(
-            os.path.abspath(CONF.get('common').get('work_dir')), 'mock_build',
+            os.path.abspath(CONF.get('work_dir')), 'mock_build',
             self.timestamp, package.name)
         os.makedirs(self.build_dir)
 
@@ -266,7 +266,7 @@ class Mock(package_builder.PackageBuilder):
             package(Package): package whose result files will be copied
         """
         package_build_results_dir = os.path.join(
-            CONF.get('common').get('result_dir'), 'packages',
+            CONF.get('result_dir'), 'packages',
             self.timestamp, package.name)
         self._copy_rpms(package.build_cache_dir, package_build_results_dir)
 
@@ -274,7 +274,7 @@ class Mock(package_builder.PackageBuilder):
         """
         Create yum repository in build results directory.
         """
-        result_dir = CONF.get('common').get('result_dir')
+        result_dir = CONF.get('result_dir')
         build_results_dir = os.path.join(
             result_dir, 'packages', self.timestamp)
         utils.run_command("createrepo %s" % build_results_dir)
@@ -292,7 +292,7 @@ class Mock(package_builder.PackageBuilder):
         """
         Create latest symlink pointing to the current result directory.
         """
-        result_dir = CONF.get('common').get('result_dir')
+        result_dir = CONF.get('result_dir')
         latest_package_build_results_dir = os.path.join(
             result_dir, 'packages', LATEST_SYMLINK_NAME)
         utils.force_symlink(self.timestamp, latest_package_build_results_dir)

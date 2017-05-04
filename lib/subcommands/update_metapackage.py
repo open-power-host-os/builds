@@ -29,23 +29,23 @@ def run(CONF):
     versions_repo = setup_versions_repository(CONF)
     package_names = discover_packages()
 
-    architecture = CONF.get('common').get('architecture')
-    distro = distro_utils.get_distro(CONF.get('common').get('distro_name'),
-                                     CONF.get('common').get('distro_version'),
+    architecture = CONF.get('architecture')
+    distro = distro_utils.get_distro(CONF.get('distro_name'),
+                                     CONF.get('distro_version'),
                                      architecture)
 
-    commit_updates = CONF.get('common').get('commit_updates')
-    push_updates = CONF.get('common').get('push_updates')
-    push_repo_url = CONF.get('common').get('push_repo_url')
-    push_repo_branch = CONF.get('common').get('push_repo_branch')
-    updater_name = CONF.get('common').get('updater_name')
-    updater_email = CONF.get('common').get('updater_email')
+    commit_updates = CONF.get('commit_updates')
+    push_updates = CONF.get('push_updates')
+    push_repo_url = CONF.get('push_repo_url')
+    push_repo_branch = CONF.get('push_repo_branch')
+    updater_name = CONF.get('updater_name')
+    updater_email = CONF.get('updater_email')
 
     REQUIRED_PARAMETERS = ["updater_name", "updater_email"]
     if push_updates:
-        REQUIRED_PARAMETERS += ["push_repo_url", "push_repo_branch"]
+        REQUIRED_PARAMETERS += ["push_repo_url", "push_repo_branch" ]
     for parameter in REQUIRED_PARAMETERS:
-        if CONF.get('common').get(parameter) is None:
+        if CONF.get(parameter) is None:
             raise exception.RequiredParameterMissing(parameter=parameter)
 
     METAPACKAGE_NAME = "open-power-host-os"
