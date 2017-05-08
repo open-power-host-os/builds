@@ -8,10 +8,11 @@ script that provides software well packaged and designed for the
 For more information about Host OS check: https://open-power-host-os.github.io/
 
 * [Quick Start](#quick-start)
-* [Building](docs/build.md#building)
+* [Building](docs/build.md#building-process)
   * [ISO](docs/building_an_iso.md)
-  * [Custom software](docs/build.md#build-custom-software)
-  * [Previous Host OS versions](docs/build_old_versions.md)
+  * [Custom software](docs/build.md#building-packages-with-locally-modified-sources)
+  * [Stable version](docs/build.md#host-os-stable)
+  * [Pre 2.0 versions](docs/build_old_versions.md)
 * [Installing packages](docs/installing_packages.md)
 * [Supported distributions](#supported-gnulinux-distributions)
 * [Contact us](#contact-us)
