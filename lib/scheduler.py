@@ -71,7 +71,7 @@ class Scheduler(object):
         """
 
         self.packages = packages
-        LOG.info("Scheduling packages and their dependecies: %s" % packages)
+        LOG.info("Scheduling packages and their dependencies: %s" % packages)
         ordered_packages = self._dfs(packages, [])
         LOG.debug("Scheduled order: %s" % ordered_packages)
         return tuple(ordered_packages)
