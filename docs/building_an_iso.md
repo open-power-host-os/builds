@@ -13,7 +13,7 @@ groups available during the installation, just execute:
 This assumes the packages are at their default location at
 `result/repository_config/latest`. The created ISO will be available in the
 result directory, and may be installed using those
-[instructions](INSTALLING_PACKAGES#installation-using-iso-file).
+[instructions](installing_packages.md#installation-using-iso-file).
 
 See `--help` for more options.
 

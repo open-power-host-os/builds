@@ -78,7 +78,7 @@ or
 
 * Build old versions
 
-For details on building OpenPOWER Host OS old versions, refer to the documentation at https://github.com/open-power-host-os/builds/blob/master/BUILD_OLD_VERSIONS.md.
+For details on building OpenPOWER Host OS old versions, refer to the documentation at https://github.com/open-power-host-os/builds/blob/master/docs/build_old_versions.md.
 
 * Build custom software
 
@@ -97,13 +97,13 @@ this project's root. It contains the built packages repositories under
 ``packages`` and a yum repository config under ``repository_config``, to
 simplify using those repositories.
 
-To install them, follow the instructions [here](INSTALLING_PACKAGES.md).
+To install them, follow the instructions [here](docs/installing_packages.md).
 
 
 ## Building an ISO
 
 To build an ISO with the built packages, follow those
-[instructions](BUILDING_AN_ISO.md).
+[instructions](docs/building_an_iso.md).
 
 
 ## Contact us
