@@ -7,12 +7,15 @@ script that provides software well packaged and designed for the
 
 For more information about Host OS check: https://open-power-host-os.github.io/
 
-## Supported GNU/Linux distributions
+* [Quick Start](#quick-start)
+* [Building](docs/build.md#building)
+  * [ISO](docs/building_an_iso.md)
+  * [Custom software](docs/build.md#build-custom-software)
+  * [Previous Host OS versions](docs/build_old_versions.md)
+* [Installing packages](docs/installing_packages.md)
+* [Supported distributions](#supported-gnulinux-distributions)
+* [Contact us](#contact-us)
 
-* CentOS 7.3 PPC64LE
-
-
-Refer to [30. How does CentOS versioning work?](https://wiki.centos.org/FAQ/General#head-dcca41e9a3d5ac4c6d900a991990fd11930867d6).
 
 ## Quick start
 
@@ -50,26 +53,13 @@ Refer to [30. How does CentOS versioning work?](https://wiki.centos.org/FAQ/Gene
   ./host_os.py build-packages --packages kernel libvirt
   ```
 
-* Build old versions
+### Supported GNU/Linux distributions
 
-For details on building OpenPOWER Host OS old versions, refer to the documentation at https://github.com/open-power-host-os/builds/blob/master/docs/build_old_versions.md.
+* CentOS 7.3 PPC64LE
 
-* Build custom software
-
-The build code keeps a cache of all packages source code (Git/Mercurial/SVN)
-repositories so that they do not need to be downloaded on every build. If it is
-desired to change the source code of a package, you may edit the package local
-repository content. To build the package from this modified local repository,
-either use a file:// URL pointing to it in the package metadata (YAML)
-file or disable package repositories update in config/host_os.yaml.
+  Refer to [30. How does CentOS versioning work?](https://wiki.centos.org/FAQ/General#head-dcca41e9a3d5ac4c6d900a991990fd11930867d6).
 
 
-## Building an ISO
-
-To build an ISO with the built packages, follow those
-[instructions](docs/building_an_iso.md).
-
-
-## Contact us
-
-If you are interested, you might always stop by in `#hostos` on irc.freenode.net.
+---
+<a name="contact-us"></a>
+Contact us via IRC on #hostos at irc.freenode.net
