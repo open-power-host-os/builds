@@ -156,7 +156,8 @@ class MockPungiIsoBuilder(object):
         utils.force_symlink(self.timestamp, latest_dir)
 
         iso_file = "%s-DVD-%s-%s.iso" % (self.distro, self.arch, self.version)
-        checksum_file = "%s.sha256" % iso_file
+        checksum_file = ("%s-%s-%s-CHECKSUM" %
+                         (self.distro, self.version, self.arch))
         iso_dir = "/%s/%s/iso" % (self.version, self.arch)
         iso_path = os.path.join(iso_dir, iso_file)
         checksum_path = os.path.join(iso_dir, checksum_file)
