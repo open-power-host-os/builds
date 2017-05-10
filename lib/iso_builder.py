@@ -155,18 +155,12 @@ class MockPungiIsoBuilder(object):
                                   LATEST_SYMLINK_NAME)
         utils.force_symlink(self.timestamp, latest_dir)
 
-        iso_file = "%s-DVD-%s-%s.iso" % (self.distro, self.arch, self.version)
-        checksum_file = ("%s-%s-%s-CHECKSUM" %
-                         (self.distro, self.version, self.arch))
         iso_dir = "/%s/%s/iso" % (self.version, self.arch)
-        iso_path = os.path.join(iso_dir, iso_file)
-        checksum_path = os.path.join(iso_dir, checksum_file)
-        chroot_files = "%s %s" % (iso_path, checksum_path)
+        iso_files = "%s/*" % iso_dir
 
-        LOG.info("Saving ISO %s and checksum %s at %s" %
-                 (iso_file, checksum_file, self.result_dir))
+        LOG.info("Saving ISO files %s at %s" % (iso_files, self.result_dir))
         self._run_mock_command("--copyout %s %s" %
-                               (chroot_files, self.result_dir))
+                               (iso_files, self.result_dir))
 
     def clean(self):
         self._run_mock_command("--clean")
