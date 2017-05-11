@@ -24,7 +24,6 @@ from lib import packages_manager
 from lib import rpm_package
 from lib.utils import replace_str_in_file
 from lib.packages_manager import discover_packages
-from lib.readme import update_versions_in_readme
 from lib.versions_repository import setup_versions_repository
 from lib.metapackage import update_metapackage
 
@@ -236,7 +235,6 @@ def run(CONF):
     update_metapackage(
         versions_repo, distro, METAPACKAGE_NAME, packages_names,
         updater_name, updater_email)
-    update_versions_in_readme(versions_repo, distro, packages_names)
 
     release_date = datetime.today().date().isoformat()
     if commit_updates:
