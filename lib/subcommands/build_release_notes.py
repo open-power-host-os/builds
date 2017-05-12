@@ -99,24 +99,23 @@ def run(CONF):
 
     packages_names = packages_manager.discover_packages()
     distro = distro_utils.get_distro(
-        CONF.get('common').get('distro_name'),
-        CONF.get('common').get('distro_version'),
-        CONF.get('common').get('architecture'))
-    release_notes_repo_url = CONF.get('build_release_notes').get('release_notes_repo_url')
-    release_notes_repo_branch = CONF.get('build_release_notes').get('release_notes_repo_branch')
-    commit_updates = CONF.get('common').get('commit_updates')
-    push_updates = CONF.get('common').get('push_updates')
-    push_repo_url = CONF.get('build_release_notes').get('push_repo_url')
-    push_repo_branch = CONF.get('build_release_notes').get('push_repo_branch')
-    updater_name = CONF.get('common').get('updater_name')
-    updater_email = CONF.get('common').get('updater_email')
+        CONF.get('distro_name'),
+        CONF.get('distro_version'),
+        CONF.get('architecture'))
+    release_notes_repo_url = CONF.get('release_notes_repo_url')
+    release_notes_repo_branch = CONF.get('release_notes_repo_branch')
+    commit_updates = CONF.get('commit_updates')
+    push_updates = CONF.get('push_updates')
+    push_repo_url = CONF.get('push_repo_url')
+    push_repo_branch = CONF.get('push_repo_branch')
+    updater_name = CONF.get('updater_name')
+    updater_email = CONF.get('updater_email')
 
-    REQUIRED_PARAMETERS = [("common", "updater_name"), ("common", "updater_email")]
+    REQUIRED_PARAMETERS = ["updater_name", "updater_email"]
     if push_updates:
-        REQUIRED_PARAMETERS += [("build_release_notes", "push_repo_url"),
-                                ("build_release_notes", "push_repo_branch")]
-    for section, parameter in REQUIRED_PARAMETERS:
-        if CONF.get(section).get(parameter) is None:
+        REQUIRED_PARAMETERS += ["push_repo_url", "push_repo_branch" ]
+    for parameter in REQUIRED_PARAMETERS:
+        if CONF.get(parameter):
             raise exception.RequiredParameterMissing(parameter=parameter)
 
     LOG.info("Creating release notes with packages: {}".format(
@@ -126,7 +125,7 @@ def run(CONF):
                                      download_source_code=False, distro=distro)
 
     repositories_dir_path = os.path.join(
-        CONF.get('common').get('work_dir'), REPOSITORIES_DIR)
+        CONF.get('work_dir'), REPOSITORIES_DIR)
     website_repo = repository.get_git_repository(
         release_notes_repo_url, repositories_dir_path)
     website_repo.checkout(release_notes_repo_branch)

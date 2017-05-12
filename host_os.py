@@ -50,7 +50,7 @@ MOCK_REQUIRED_SUBCOMANDS = [
 
 if __name__ == '__main__':
     CONF = config.setup_default_config()
-    subcommand = CONF.get('common').get('subcommand')
+    subcommand = CONF.get('subcommand')
 
     # validate if all required packages are installed
     with open(REQUIRED_PACKAGES_FILE_PATH) as f:
@@ -74,7 +74,7 @@ if __name__ == '__main__':
                   "'sudo usermod -a -G mock $(whoami)'")
             sys.exit(INSUFFICIENT_PRIVILEGE_ERROR)
 
-    create_directory(CONF.get('common').get('work_dir'))
+    create_directory(CONF.get('work_dir'))
 
     return_code = 0
     try:

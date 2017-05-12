@@ -20,11 +20,11 @@ def get_versions_repository(config):
     Raises:
         exception.RepositoryError: if the clone is unsuccessful
     """
-    path = os.path.join(config.get('common').get('work_dir'),
+    path = os.path.join(config.get('work_dir'),
                         REPOSITORIES_DIR)
-    url = config.get('common').get('packages_metadata_repo_url')
+    url = config.get('packages_metadata_repo_url')
     name = "versions_{subcommand}".format(
-        subcommand=config.get('common').get('subcommand'))
+        subcommand=config.get('subcommand'))
     try:
         versions_repo = repository.get_git_repository(url, path, name)
     except exception.RepositoryError:
@@ -47,8 +47,8 @@ def setup_versions_repository(config):
             unsuccessful
     """
     versions_repo = get_versions_repository(config)
-    branch = config.get('common').get('packages_metadata_repo_branch')
-    refspecs = config.get('common').get('packages_metadata_repo_refspecs')
+    branch = config.get('packages_metadata_repo_branch')
+    refspecs = config.get('packages_metadata_repo_refspecs')
     try:
         versions_repo.checkout(branch, refspecs)
     except exception.RepositoryError:

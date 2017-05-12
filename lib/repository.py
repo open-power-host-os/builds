@@ -74,7 +74,7 @@ def get_git_repository(remote_repo_url, parent_dir_path, name=None):
         message = ("Repository path '{repo_path}' does not exist."
                    .format(repo_path=repo_path))
         LOG.debug(message)
-        proxy = CONF.get('common').get('http_proxy')
+        proxy = CONF.get('http_proxy')
         return GitRepository.clone_from(remote_repo_url, repo_path, proxy=proxy)
     else:
         repo.force_create_remote(MAIN_REMOTE_NAME, remote_repo_url)
@@ -320,7 +320,7 @@ class SvnRepository():
 
         command = 'svn checkout '
 
-        proxy = CONF.get('common').get('http_proxy')
+        proxy = CONF.get('http_proxy')
 
         if proxy:
             url = urlparse.urlparse(proxy)

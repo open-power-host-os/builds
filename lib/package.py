@@ -31,8 +31,8 @@ from lib.constants import REPOSITORIES_DIR
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 
-BUILD_CACHE_DIR = os.path.join(CONF.get('common').get('work_dir'), "cache")
-PACKAGES_REPOS_TARGET_PATH = os.path.join(CONF.get('common').get('work_dir'),
+BUILD_CACHE_DIR = os.path.join(CONF.get('work_dir'), "cache")
+PACKAGES_REPOS_TARGET_PATH = os.path.join(CONF.get('work_dir'),
                                           REPOSITORIES_DIR)
 
 
@@ -109,7 +109,7 @@ class Package(object):
         #   package_name#repo_url#reference
         #   package_name##reference
         #   package_name
-        packages_options = CONF.get('build_packages').get('packages') or []
+        packages_options = CONF.get('packages') or []
         for package_option in packages_options:
             package_parts = package_option.split("#")
             if package_parts[0] == name:
@@ -157,7 +157,7 @@ class Package(object):
         Download package source code and build files.
         Optionally, do the same for its dependencies, recursively.
         """
-        update_packages_repos = CONF.get('build_packages').get('update_packages_repos_before_build')
+        update_packages_repos = CONF.get('update_packages_repos_before_build')
         for source in self.sources:
             source_type = source.keys()[0]
             if source_type == 'url' or update_packages_repos:

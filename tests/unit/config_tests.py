@@ -11,7 +11,6 @@ import unittest
 class TestConfigParser(unittest.TestCase):
 
     @parameterized.expand([
-        (['--config-file=foo', 'build-packages'], 'config_file', 'foo'),
         (['--verbose', 'build-packages'], 'verbose', True),
         (['--work-dir=foo', 'build-packages'], 'work_dir', 'foo'),
         (['build-packages', '--packages=foo'], 'packages', ['foo']),
@@ -32,7 +31,7 @@ class TestConfigParser(unittest.TestCase):
     def test_parse_arguments_list_WithLongArgument_ShouldParseArgumentValue(self, arguments, key, expected):
         cfg = ConfigParser()
 
-        result_dict = cfg.parse_command_line_arguments(arguments)
+        result_dict = cfg.parse(arguments)
         value = result_dict.get(key)
 
         eq_(value, expected)
@@ -42,24 +41,31 @@ class TestConfigParser(unittest.TestCase):
         (['build-packages'], 'verbose', False),
         (['build-packages'], 'work_dir', 'workspace'),
         (['build-packages'], 'keep_build_dir', False),
-        (['build-packages'], 'packages', None),
+        (['build-packages'], 'packages', []),
         (['build-packages'], 'result_dir', 'result'),
-        (['build-packages'], 'packages_metadata_repo_url', None),
-        (['build-packages'], 'packages_metadata_repo_branch', None),
-        (['build-packages'], 'mock_args', ''),
-        (['build-release-notes'], 'push_repo_url', None),
+        (['build-packages'], 'packages_metadata_repo_url',
+         'https://github.com/open-power-host-os/versions.git'),
+        (['build-packages'], 'packages_metadata_repo_branch', 'master'),
+        (['build-packages'], 'mock_args', '--enable-plugin=tmpfs '
+         '--plugin-option=tmpfs:keep_mounted=True --plugin-option='
+         'tmpfs:max_fs_size=32g --plugin-option=tmpfs:required_ram_mb=39800 '
+         '--verbose'),
+        (['build-release-notes'], 'push_repo_url', ''),
         (['build-release-notes'], 'push_repo_branch', 'master'),
-        (['build-release-notes'], 'updater_name', None),
-        (['build-release-notes'], 'updater_email', None),
+        (['build-release-notes'], 'updater_name', ''),
+        (['build-release-notes'], 'updater_email', ''),
         (['build-iso'], 'packages_dir', 'result/packages/latest'),
-        (['build-iso'], 'mock_args', ''),
+        (['build-iso'], 'mock_args', '--enable-plugin=tmpfs '
+         '--plugin-option=tmpfs:keep_mounted=True --plugin-option='
+         'tmpfs:max_fs_size=32g --plugin-option=tmpfs:required_ram_mb=39800 '
+         '--verbose'),
         (['update-versions'], 'commit_updates', True),
         (['update-versions'], 'push_updates', True),
     ])
     def test_parse_arguments_list_WithoutArgument_ShouldUseDefaultValue(self, arguments, key, expected):
         cfg = ConfigParser()
 
-        result_dict = cfg.parse_command_line_arguments(arguments)
+        result_dict = cfg.parse(arguments)
         value = result_dict.get(key)
 
         eq_(value, expected)
