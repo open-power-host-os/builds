@@ -209,7 +209,7 @@ def run(CONF):
     if push_updates:
         REQUIRED_PARAMETERS += ["push_repo_url", "push_repo_branch" ]
     for parameter in REQUIRED_PARAMETERS:
-        if CONF.get(parameter):
+        if not CONF.get(parameter):
             raise exception.RequiredParameterMissing(parameter=parameter)
 
     # get packages names
