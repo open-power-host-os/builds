@@ -27,7 +27,6 @@ from lib.subcommands import build_packages
 from lib.subcommands import build_release_notes
 from lib.subcommands import update_metapackage
 from lib.subcommands import update_versions
-from lib.subcommands import update_versions_in_readme
 
 INSUFFICIENT_PRIVILEGE_ERROR = 3
 TOO_MUCH_PRIVILEGE_ERROR = 4
@@ -39,7 +38,6 @@ SUBCOMMANDS = {
     'build-release-notes': build_release_notes,
     'update-metapackage': update_metapackage,
     'update-versions': update_versions,
-    'update-versions-readme': update_versions_in_readme,
     'build-iso': build_iso,
 }
 MOCK_REQUIRED_SUBCOMANDS = [

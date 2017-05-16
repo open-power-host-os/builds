@@ -97,15 +97,3 @@ update-versions:
   push_updates: true
   updater_email: ''
   updater_name: ''
-update-versions-readme:
-  commit_updates: true
-  packages_metadata_repo_branch: master
-  packages_metadata_repo_refspecs:
-  - +refs/heads/*:refs/remotes/origin/*
-  - +refs/pull/*:refs/remotes/origin/pr/*
-  packages_metadata_repo_url: https://github.com/open-power-host-os/versions.git
-  push_repo_branch: master
-  push_repo_url: ''
-  push_updates: true
-  updater_email: ''
-  updater_name: ''
