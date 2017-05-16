@@ -2,7 +2,7 @@
 
 To install Host OS packages from a repository, you'll first need a
 system with a
-[supported GNU/Linux distribution](README.md#supported-gnulinux-distributions)
+[supported GNU/Linux distribution](../README.md#supported-gnulinux-distributions)
 and a yum configuration file pointing to an accessible yum repository
 containing the Host OS packages.
 
