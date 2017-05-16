@@ -24,7 +24,7 @@ from lib import packages_groups_xml_creator
 from lib.constants import LATEST_SYMLINK_NAME
 
 LOG = logging.getLogger(__name__)
-ISO_REPO_MINIMAL_PACKAGES_GROUPS = ["core"]
+ISO_REPO_MINIMAL_PACKAGES_GROUPS = ["core", "anaconda-tools"]
 ISO_REPO_MINIMAL_PACKAGES = ["authconfig", "chrony", "grub2"]
 
 
