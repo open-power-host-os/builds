@@ -71,6 +71,10 @@ options:
     - OpenPOWER Host OS virtualization
     - OpenPOWER Host OS virtualization management
     - OpenPOWER Host OS RAS
+  iso_version:
+    help: ISO version
+    # If empty, current date is used
+    default: ''
   keep_build_dir:
     help: Keep build directory and its logs and artifacts
     default: False
@@ -220,6 +224,7 @@ commands:
     - iso_name
     - iso_repo_packages
     - iso_repo_packages_groups
+    - iso_version
     - mock_args
     - mock_binary
     - mock_iso_repo_dir
