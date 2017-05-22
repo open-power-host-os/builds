@@ -6,7 +6,8 @@ system with a
 and a yum configuration file pointing to an accessible yum repository
 containing the Host OS packages.
 
-If you've just executed the build script and want to use the local yum
+If you've just followed the [Quick Start guide](https://github.com/open-power-host-os/builds#quick-start) 
+and want to use the local yum
 repository containing the built packages, your yum configuration file
 will be available at `result/repository_config/latest`. Otherwise, you'll
 need one pointing to the remote yum repository.
@@ -18,14 +19,17 @@ latest packages from the repositories:
 sudo yum -c <path_to_yum_repository_config> clean all
 ```
 
+Make sure EPEL is installed:
+```
+sudo yum install epel-release
+```
+
 Decide which packages or groups of packages you want to install. To
 install a single package, for example `kernel-debuginfo`, you can execute:
 
 ```
 sudo yum -c <path_to_yum_repository_config> install kernel-debuginfo
 ```
-
-Yum will take care of the dependencies.
 
 The recommendation, however, is to install a group of packages, which will also
 take care of system-wide configurations to fully enable the use of the shipped
