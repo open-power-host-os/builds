@@ -18,7 +18,7 @@ build-iso:
     - open-power-host-os-virt
     OpenPOWER Host OS virtualization management:
     - open-power-host-os-virt-management
-  iso_name: OpenPOWER-Host_OS
+  iso_name: Host_OS
   iso_repo_packages: []
   iso_repo_packages_groups:
   - OpenPOWER Host OS all
@@ -27,6 +27,7 @@ build-iso:
   - OpenPOWER Host OS virtualization
   - OpenPOWER Host OS virtualization management
   - OpenPOWER Host OS RAS
+  iso_version: ''
   mock_args: --enable-plugin=tmpfs --plugin-option=tmpfs:keep_mounted=True --plugin-option=tmpfs:max_fs_size=32g
     --plugin-option=tmpfs:required_ram_mb=39800 --verbose
   mock_binary: /usr/bin/mock
