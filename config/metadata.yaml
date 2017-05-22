@@ -215,6 +215,7 @@ commands:
     - release_notes_repo_url
     - updater_email
     - updater_name
+    - update_packages_repos_before_build
   build-iso:
     help: Build ISO image
     options:
@@ -245,6 +246,7 @@ commands:
     - push_updates
     - updater_email
     - updater_name
+    - update_packages_repos_before_build
   update-versions:
     help: Update packages versions
     options:
@@ -258,3 +260,4 @@ commands:
     - push_updates
     - updater_email
     - updater_name
+    - update_packages_repos_before_build
