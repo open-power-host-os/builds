@@ -258,3 +258,4 @@ commands:
     - push_updates
     - updater_email
     - updater_name
+    - update_packages_repos_before_build

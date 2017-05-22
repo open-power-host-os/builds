@@ -96,5 +96,6 @@ update-versions:
   push_repo_branch: master
   push_repo_url: ''
   push_updates: true
+  update_packages_repos_before_build: true
   updater_email: ''
   updater_name: ''
