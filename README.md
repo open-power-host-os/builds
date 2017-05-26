@@ -63,4 +63,4 @@ For more information about Host OS check: https://open-power-host-os.github.io/
 
 ---
 <a name="contact-us"></a>
-Contact us via IRC on #hostos at irc.freenode.net
+Contact us via IRC on #hostos at irc.freenode.net and join the [mailing list](http://lists.mailinglist.openpowerfoundation.org/mailman/listinfo/open-power-host-os).
