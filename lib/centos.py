@@ -21,10 +21,14 @@ from lib import distro
 # you'll have to edit the version in your "config/host_os.yaml" file to "7.2".
 CENTOS_VERSIONS = ["7.2", "7", ]
 
+# The old versions had packages metadata files under `centOS` directory. We
+# need to lookup on these directories to maintain compatibility.
+CENTOS_NAMES = ["CentOS", "centOS"]
 
 class CentOS(distro.LinuxDistribution):
 
     supported_versions = CENTOS_VERSIONS
+    names = CENTOS_NAMES
 
     def __init__(self, name, version, architecture):
         """

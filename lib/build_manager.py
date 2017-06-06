@@ -44,7 +44,7 @@ class BuildManager(object):
         """
 
         # create package builder based on distro
-        if distro.name == "CentOS":
+        if distro.name in distro.names:
             mock_config_file_name = "%s-%s-%s.cfg" % (
                 distro.name, distro.version, distro.architecture)
             mock_config_file_path = os.path.join(
