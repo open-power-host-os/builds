@@ -80,10 +80,12 @@ class ConfigParser(object):
         """
 
         keyword_args = dict(option_dict)
+        # The default value should be obtained from the configuration file
+        keyword_args["default"] = None
         keyword_args["dest"] = option_name
         long_option_string = "--" + option_name.replace("_", "-")
         if keyword_args.get("action", "store") == "store":
-            option_type = type(keyword_args["default"])
+            option_type = type(option_dict["default"])
             if option_type == list:
                 keyword_args["nargs"] = "*"
             else:
