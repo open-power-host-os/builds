@@ -21,6 +21,7 @@ from lib import exception
 
 DISTRIBUTIONS = {
     "CentOS": centos.CentOS,
+    "centOS": centos.CentOS,
 }
 LOG = logging.getLogger(__name__)
 
