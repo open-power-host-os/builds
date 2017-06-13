@@ -62,7 +62,8 @@ class MockPungiIsoBuilder(object):
         extra_args = self.config.get('mock_args') or ""
 
         self.common_mock_args = [
-            binary_file, "-r", mock_config_file_path, extra_args]
+            binary_file, "-r", mock_config_file_path, extra_args,
+            "--uniqueext", self.timestamp]
 
     def _run_mock_command(self, cmd):
         cmd = " ".join(self.common_mock_args + [cmd])
