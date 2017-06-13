@@ -40,12 +40,12 @@ class MockPungiIsoBuilder(object):
         self.version = (self.config.get("iso_version")
                             or datetime.date.today().strftime("%y%m%d"))
         (_, _, self.arch) = distro_utils.detect_distribution()
-        self.mock_binary = self.config.get('mock_binary')
-        self.mock_args = self.config.get('mock_args') or ""
         self.pungi_binary = self.config.get('pungi_binary') or "pungi"
         self.pungi_args = self.config.get('pungi_args') or ""
 
-    def _run_mock_command(self, cmd):
+        self._init_common_mock_args()
+
+    def _init_common_mock_args(self):
         distro = distro_utils.get_distro(
             self.config.get('distro_name'),
             self.config.get('distro_version'),
@@ -58,11 +58,16 @@ class MockPungiIsoBuilder(object):
         if not os.path.isfile(mock_config_file_path):
             raise exception.BaseException(
                 "Mock config file not found at %s" % mock_config_file_path)
+        binary_file = self.config.get('mock_binary')
+        extra_args = self.config.get('mock_args') or ""
 
+        self.common_mock_args = [
+            binary_file, "-r", mock_config_file_path, extra_args]
+
+    def _run_mock_command(self, cmd):
+        cmd = " ".join(self.common_mock_args + [cmd])
         try:
-            utils.run_command("%s -r %s %s %s" % (
-                self.mock_binary, mock_config_file_path,
-                self.mock_args, cmd))
+            utils.run_command(cmd)
         except exception.SubprocessError:
             LOG.error("Failed to build ISO")
             raise
