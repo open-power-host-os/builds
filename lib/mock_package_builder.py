@@ -40,7 +40,7 @@ gpgcheck=0
 """
 
 
-class Mock(package_builder.PackageBuilder):
+class MockPackageBuilder(package_builder.PackageBuilder):
     def __init__(self, config_file):
         """
         Constructor
@@ -48,7 +48,7 @@ class Mock(package_builder.PackageBuilder):
         Args:
             config_file (str): config file path
         """
-        super(Mock, self).__init__()
+        super(MockPackageBuilder, self).__init__()
         binary_file = CONF.get('mock_binary')
         extra_args = CONF.get('mock_args') or ""
         self.build_dir = None
