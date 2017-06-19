@@ -82,6 +82,9 @@ class Version(object):
                 change logs
             user_email (str): email used when updating RPM specification files
                 change logs
+
+        Returns:
+            bool: Whether the package has been updated
         """
         previous_commit_id = self.pkg.sources[0]["git"]["commit_id"]
         previous_version = self.pkg.version
@@ -93,7 +96,7 @@ class Version(object):
 
         if newest_commit_id == previous_commit_id:
             LOG.debug("%s: no changes.", self.pkg)
-            return
+            return False
 
         self._read_version_from_repo(
             self.pkg.sources[0]["git"]["repo"].working_tree_dir)
@@ -111,6 +114,8 @@ class Version(object):
 
         self.pkg.spec_file.update_prerelease_tag(self._repo_prerelease)
         self._bump_release(previous_commit_id, change_log_header, user_name, user_email)
+
+        return True
 
     def _bump_release(self, previous_commit_id, change_log_header=None,
                       user_name=None, user_email=None):
@@ -222,11 +227,17 @@ def run(CONF):
     pm.prepare_packages(packages_class=rpm_package.RPM_Package,
                         download_source_code=False, distro=distro)
 
+    updates_available = False
+
     for pkg in pm.packages:
         pkg.lock()
         pkg_version = Version(pkg)
-        pkg_version.update(updater_name, updater_email)
+        updates_available = pkg_version.update(updater_name, updater_email) or updates_available
         pkg.unlock()
+
+    if not updates_available: 
+        LOG.info("No updates in packages versions")
+        return
 
     packages_names = discover_packages()
     METAPACKAGE_NAME = "open-power-host-os"
