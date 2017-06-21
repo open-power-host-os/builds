@@ -228,30 +228,35 @@ def run(CONF):
                         download_source_code=False, distro=distro)
 
     updates_available = False
-
     for pkg in pm.packages:
         pkg.lock()
         pkg_version = Version(pkg)
-        updates_available = pkg_version.update(updater_name, updater_email) or updates_available
+        updates_available = (pkg_version.update(updater_name, updater_email)
+                             or updates_available)
         pkg.unlock()
 
-    if not updates_available: 
-        LOG.info("No updates in packages versions")
-        return
+    if updates_available:
+        packages_names = discover_packages()
+        METAPACKAGE_NAME = "open-power-host-os"
+        packages_names.remove(METAPACKAGE_NAME)
+        update_metapackage(
+            versions_repo, distro, METAPACKAGE_NAME, packages_names,
+            updater_name, updater_email)
 
-    packages_names = discover_packages()
-    METAPACKAGE_NAME = "open-power-host-os"
-    packages_names.remove(METAPACKAGE_NAME)
+        if commit_updates:
+            release_date = datetime.today().date().isoformat()
+            commit_message = "Weekly build {date}".format(date=release_date)
+            versions_repo.commit_changes(
+                commit_message, updater_name, updater_email)
 
-    update_metapackage(
-        versions_repo, distro, METAPACKAGE_NAME, packages_names,
-        updater_name, updater_email)
-
-    release_date = datetime.today().date().isoformat()
-    if commit_updates:
-        commit_message = "Weekly build {date}".format(date=release_date)
-        versions_repo.commit_changes(
-            commit_message, updater_name, updater_email)
+            if push_updates:
+                LOG.info("Pushing packages versions updates")
+                versions_repo.push_head_commits(push_repo_url, push_repo_branch)
+        elif push_updates:
+            LOG.warning("Not pushing branch because no commit was created")
+    else:
+        LOG.info("No updates in packages versions, skipping metapackage "
+                 "update and commit creation")
         if push_updates:
-            LOG.info("Pushing packages versions updates")
+            LOG.info("No updates, pushing branch with unaltered head")
             versions_repo.push_head_commits(push_repo_url, push_repo_branch)
