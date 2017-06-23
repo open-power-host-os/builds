@@ -18,7 +18,29 @@ Install rpm packages which were used in older build code, but are not anymore:
 yum install -y bzip2 wget
 ```
 
-Clean yum repositories cache in mock:
+If you intend to go back to building recent commits after producing the older
+build, you should disable caches and bind mounts:
+
+```
+sed -i \
+    "/config_opts\['plugin_conf'\]\['root_cache_enable'\]/d" \
+    config/mock/CentOS/7/CentOS-7-ppc64le.cfg config/mock/centOS/7.2/centOS-7.2-ppc64le.cfg
+sed -i \
+    "/config_opts\['plugin_conf'\]\['yum_cache_enable'\]/d" \
+    config/mock/CentOS/7/CentOS-7-ppc64le.cfg config/mock/centOS/7.2/centOS-7.2-ppc64le.cfg
+sed -i \
+    "/config_opts\['plugin_conf'\]\['bind_mount_enable'\]/d" \
+    config/mock/CentOS/7/CentOS-7-ppc64le.cfg config/mock/centOS/7.2/centOS-7.2-ppc64le.cfg
+echo "\
+config_opts['plugin_conf']['root_cache_enable'] = False
+config_opts['plugin_conf']['yum_cache_enable'] = False
+config_opts['plugin_conf']['bind_mount_enable'] = False
+" >> config/mock/CentOS/7/CentOS-7-ppc64le.cfg config/mock/centOS/7.2/centOS-7.2-ppc64le.cfg
+```
+
+If multiple old builds are going to be executed, it might be better to just
+wipe the mock chroot and yum caches and keep using it to make the builds
+faster:
 
 ```
 mock -r config/mock/centOS/7.2/centOS-7.2-ppc64le.cfg --scrub all
