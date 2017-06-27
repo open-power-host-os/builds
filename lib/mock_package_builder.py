@@ -26,6 +26,7 @@ from lib import package_builder
 from lib import package_source
 from lib import utils
 from lib.constants import LATEST_SYMLINK_NAME
+from lib.mock import Mock
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ gpgcheck=0
 """
 
 
-class Mock(package_builder.PackageBuilder):
+class MockPackageBuilder(package_builder.PackageBuilder):
     def __init__(self, config_file):
         """
         Constructor
@@ -48,18 +49,12 @@ class Mock(package_builder.PackageBuilder):
         Args:
             config_file (str): config file path
         """
-        super(Mock, self).__init__()
-        binary_file = CONF.get('mock_binary')
-        extra_args = CONF.get('mock_args') or ""
+        super(MockPackageBuilder, self).__init__()
         self.build_dir = None
         self.build_results_dir = CONF.get('result_dir')
         self.archive = None
         self.timestamp = datetime.datetime.now().isoformat()
-        self.common_mock_args = (
-            "%(binary_file)s -r %(config_file)s %(extra_args)s "
-            "--uniqueext %(suffix)s" % dict(
-                binary_file=binary_file, config_file=config_file,
-                extra_args=extra_args, suffix=self.timestamp))
+        self.mock = Mock(config_file, self.timestamp)
 
     def initialize(self):
         """
@@ -67,8 +62,7 @@ class Mock(package_builder.PackageBuilder):
         packages. This setup is common for all packages that are built
         and needs to be done only once.
         """
-        cmd = self.common_mock_args + " --init"
-        utils.run_command(cmd)
+        self.mock.run_command("--init")
 
     def build(self, package):
         """
@@ -94,12 +88,11 @@ class Mock(package_builder.PackageBuilder):
             package (RPM_Package): package
         """
         LOG.info("%s: Building SRPM" % package.name)
-        cmd = (self.common_mock_args
-               + (" --buildsrpm --no-clean --spec %s --sources %s "
-                  "--resultdir=%s %s" % (
-                      package.spec_file.path, self.archive, self.build_dir,
-                      package.get_spec_macros())))
-        utils.run_command(cmd)
+        self.mock.run_command(
+            "--buildsrpm --no-clean --spec %s --sources %s "
+            "--resultdir=%s %s" % (
+                package.spec_file.path, self.archive, self.build_dir,
+                package.get_spec_macros()))
 
     def _build_rpm(self, package):
         """
@@ -108,18 +101,16 @@ class Mock(package_builder.PackageBuilder):
         Args:
             package (RPM_Package): package
         """
-
-        cmd = (self.common_mock_args
-               + " --rebuild %s --no-clean --resultdir=%s %s" % (
-                   self.build_dir + "/*.rpm", self.build_dir,
-                   package.get_spec_macros()))
+        cmd = " --rebuild %s --no-clean --resultdir=%s %s" % (
+            self.build_dir + "/*.rpm", self.build_dir,
+            package.get_spec_macros())
 
         if package.rpmmacro:
             cmd = cmd + " --macro-file=%s" % package.rpmmacro
 
         LOG.info("%s: Building RPM" % package.name)
         try:
-            utils.run_command(cmd)
+            self.mock.run_command(cmd)
 
             # On success save rpms and destroy build directory unless told
             # otherwise.
@@ -187,7 +178,7 @@ class Mock(package_builder.PackageBuilder):
         """
         Clean build environment
         """
-        utils.run_command(self.common_mock_args + " --clean")
+        self.mock.run_command("--clean")
 
     def clean_cache_dir(self, package):
         """
@@ -209,14 +200,12 @@ class Mock(package_builder.PackageBuilder):
             package (RPM_Package): package
         """
         if package.build_dependencies:
-            cmd = self.common_mock_args
-            install = " --install"
+            cmd = "--install"
             for dep in package.build_dependencies:
-                install = " ".join([install, " ".join(dep.cached_build_results)])
+                cmd = " ".join([cmd, " ".join(dep.cached_build_results)])
 
-            cmd = cmd + install
             LOG.info("%s: Installing dependencies on chroot" % package.name)
-            utils.run_command(cmd)
+            self.mock.run_command(cmd)
 
     def _create_build_directory(self, package):
         """

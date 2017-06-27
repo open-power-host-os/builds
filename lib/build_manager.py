@@ -18,7 +18,7 @@ import os
 
 from lib import config
 from lib import exception
-from lib import mockbuilder
+from lib.mock_package_builder import MockPackageBuilder
 from lib.packages_manager import PackagesManager
 from lib.rpm_package import RPM_Package
 import lib.centos
@@ -53,7 +53,7 @@ class BuildManager(object):
             if not os.path.isfile(mock_config_file_path):
                 raise exception.BaseException(
                     "Mock config file not found at %s" % mock_config_file_path)
-            package_builder = mockbuilder.Mock(mock_config_file_path)
+            package_builder = MockPackageBuilder(mock_config_file_path)
         else:
             raise exception.DistributionError()
         # create packages

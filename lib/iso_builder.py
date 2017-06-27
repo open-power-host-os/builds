@@ -22,6 +22,7 @@ from lib import utils
 from lib import distro_utils
 from lib import packages_groups_xml_creator
 from lib.constants import LATEST_SYMLINK_NAME
+from lib.mock import Mock
 
 LOG = logging.getLogger(__name__)
 ISO_REPO_MINIMAL_PACKAGES_GROUPS = ["core", "anaconda-tools"]
@@ -40,12 +41,15 @@ class MockPungiIsoBuilder(object):
         self.version = (self.config.get("iso_version")
                             or datetime.date.today().strftime("%y%m%d"))
         (_, _, self.arch) = distro_utils.detect_distribution()
-        self.mock_binary = self.config.get('mock_binary')
-        self.mock_args = self.config.get('mock_args') or ""
         self.pungi_binary = self.config.get('pungi_binary') or "pungi"
         self.pungi_args = self.config.get('pungi_args') or ""
 
-    def _run_mock_command(self, cmd):
+        self._init_mock()
+
+    def _init_mock(self):
+        """
+        Initialize Mock instance with common mock arguments.
+        """
         distro = distro_utils.get_distro(
             self.config.get('distro_name'),
             self.config.get('distro_version'),
@@ -59,13 +63,7 @@ class MockPungiIsoBuilder(object):
             raise exception.BaseException(
                 "Mock config file not found at %s" % mock_config_file_path)
 
-        try:
-            utils.run_command("%s -r %s %s %s" % (
-                self.mock_binary, mock_config_file_path,
-                self.mock_args, cmd))
-        except exception.SubprocessError:
-            LOG.error("Failed to build ISO")
-            raise
+        self.mock = Mock(mock_config_file_path, self.timestamp)
 
     def build(self):
         LOG.info("Starting ISO build process")
@@ -75,11 +73,11 @@ class MockPungiIsoBuilder(object):
 
     def _setup(self):
         LOG.info("Initializing a chroot")
-        self._run_mock_command("--init")
+        self.mock.run_command("--init")
 
         package_list = ["createrepo", "pungi"]
         LOG.info("Installing %s inside the chroot" % " ".join(package_list))
-        self._run_mock_command("--install %s" % " ".join(package_list))
+        self.mock.run_command("--install %s" % " ".join(package_list))
 
         self._create_iso_repo()
 
@@ -90,13 +88,13 @@ class MockPungiIsoBuilder(object):
 
         LOG.debug("Creating ISO yum repository directory")
         mock_iso_repo_dir = self.config.get('mock_iso_repo_dir')
-        self._run_mock_command("--shell 'mkdir -p %s'" % mock_iso_repo_dir)
+        self.mock.run_command("--shell 'mkdir -p %s'" % mock_iso_repo_dir)
 
         LOG.debug("Copying rpm packages to ISO yum repo directory")
         packages_dir = self.config.get('packages_dir')
         rpm_files = utils.recursive_glob(packages_dir, "*.rpm")
-        self._run_mock_command("--copyin %s %s" %
-                               (" ".join(rpm_files), mock_iso_repo_dir))
+        self.mock.run_command("--copyin %s %s" %
+                              (" ".join(rpm_files), mock_iso_repo_dir))
 
         LOG.debug("Creating package groups metadata file (comps.xml)")
         comps_xml_str = packages_groups_xml_creator.create_comps_xml(
@@ -111,13 +109,13 @@ class MockPungiIsoBuilder(object):
             raise
 
         comps_xml_chroot_path = os.path.join("/", comps_xml_file)
-        self._run_mock_command("--copyin %s %s" %
-                               (comps_xml_path, comps_xml_chroot_path))
+        self.mock.run_command("--copyin %s %s" %
+                              (comps_xml_path, comps_xml_chroot_path))
 
         LOG.debug("Creating ISO yum repository")
         createrepo_cmd = "createrepo -v -g %s %s" % (comps_xml_chroot_path,
                                                      mock_iso_repo_dir)
-        self._run_mock_command("--shell '%s'" % createrepo_cmd)
+        self.mock.run_command("--shell '%s'" % createrepo_cmd)
 
     def _create_iso_kickstart(self):
         kickstart_file = self.config.get('automated_install_file')
@@ -146,7 +144,7 @@ class MockPungiIsoBuilder(object):
                 kickstart_file.write("{}\n".format(package))
             kickstart_file.write("%end\n")
 
-        self._run_mock_command("--copyin %s /" % kickstart_path)
+        self.mock.run_command("--copyin %s /" % kickstart_path)
 
     def _build(self):
         LOG.info("Building ISO")
@@ -154,7 +152,7 @@ class MockPungiIsoBuilder(object):
                     (self.pungi_binary, self.pungi_args,
                      self.config.get('automated_install_file'),
                      self.distro, self.version))
-        self._run_mock_command("--shell '%s'" % build_cmd)
+        self.mock.run_command("--shell '%s'" % build_cmd)
 
     def _save(self):
         utils.create_directory(self.result_dir)
@@ -166,8 +164,8 @@ class MockPungiIsoBuilder(object):
         iso_files = "%s/*" % iso_dir
 
         LOG.info("Saving ISO files %s at %s" % (iso_files, self.result_dir))
-        self._run_mock_command("--copyout %s %s" %
-                               (iso_files, self.result_dir))
+        self.mock.run_command("--copyout %s %s" %
+                              (iso_files, self.result_dir))
 
     def clean(self):
-        self._run_mock_command("--clean")
+        self.mock.run_command("--clean")
