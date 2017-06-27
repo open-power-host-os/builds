@@ -221,7 +221,10 @@ class ConfigParser(object):
         # the subcommand
         for key, value in command_line_args.items():
             if value is None:
-                continue
+                if config.get(key) is None:
+                    raise Exception("Option {} has no value set".format(key))
+                else:
+                    continue
             if key in config:
                 target_type = type(
                     config_metadata["options"][key]["default"])
