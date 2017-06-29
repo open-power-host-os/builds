@@ -25,20 +25,13 @@ from lib import exception
 from lib import package_builder
 from lib import package_source
 from lib import utils
+from lib import yum_repository
 from lib.constants import LATEST_SYMLINK_NAME
 from lib.mock import Mock
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 MOCK_CHROOT_BUILD_DIR = "/builddir/build/SOURCES"
-YUM_REPO_CONFIG_TEMPLATE = """
-[host-os-local-repo-{timestamp}]
-name=OpenPOWER Host OS local repository built at {timestamp}
-baseurl=file://{repo_path}
-failovermethod=priority
-enabled=1
-gpgcheck=0
-"""
 
 
 class MockPackageBuilder(package_builder.PackageBuilder):
@@ -266,16 +259,21 @@ class MockPackageBuilder(package_builder.PackageBuilder):
         result_dir = CONF.get('result_dir')
         build_results_dir = os.path.join(
             result_dir, 'packages', self.timestamp)
-        utils.run_command("createrepo %s" % build_results_dir)
+        yum_repository.create_repository(build_results_dir)
+
+        repo_short_name = "host-os-local-repo-{timestamp}".format(**vars(self))
+        repo_long_name = ("OpenPOWER Host OS local repository built at "
+                          "{timestamp}".format(**vars(self)))
+        repo_url = "file://" + os.path.abspath(build_results_dir)
+        repo_config = yum_repository.create_repository_config(
+            repo_short_name, repo_long_name, repo_url)
 
         repo_config_dir = os.path.join(result_dir, "repository_config")
         utils.create_directory(repo_config_dir)
         repo_config_path = os.path.join(
             repo_config_dir, self.timestamp + ".repo")
-        with open(repo_config_path, "w") as repo_config:
-            repo_config.write(YUM_REPO_CONFIG_TEMPLATE.format(
-                timestamp=self.timestamp,
-                repo_path=os.path.abspath(build_results_dir)))
+        with open(repo_config_path, "w") as repo_config_file:
+            repo_config_file.write(repo_config)
 
     def create_latest_symlink_result_dir(self):
         """
