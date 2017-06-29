@@ -48,6 +48,9 @@ class Mock(object):
 
         Args:
             cmd (str): mock command to execute
+
+        Returns:
+            mock command standard output
         """
         cmd = " ".join(self.common_mock_args + [cmd])
-        utils.run_command(cmd)
+        return utils.run_command(cmd)
