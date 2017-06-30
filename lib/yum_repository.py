@@ -18,6 +18,7 @@ from lib import utils
 YUM_MAIN_CONFIG = """\
 [main]
 reposdir=/dev/null
+plugins=1
 """
 
 YUM_REPO_CONFIG_TEMPLATE = """\
@@ -27,6 +28,7 @@ baseurl={url}
 failovermethod=priority
 enabled=1
 gpgcheck=0
+{priority_line}\
 """
 
 
@@ -40,7 +42,7 @@ def create_repository(dir_path):
     utils.run_command("createrepo %s" % dir_path)
 
 
-def create_repository_config(short_name, long_name, url):
+def create_repository_config(short_name, long_name, url, priority=None):
     """
     Create yum repository in a directory containing RPM packages.
 
@@ -48,11 +50,19 @@ def create_repository_config(short_name, long_name, url):
         short_name (str): repository's short name
         long_name (str): repository's long (descriptive) name
         url (str): URL to yum repository
+        priority (int): repository priority. Lower numbers have higher
+            priority.
 
     Returns:
         str: repository configuration ready to be written to a yum
             config file
 
     """
+    if priority is not None:
+        priority_line = "priority={}\n".format(priority)
+    else:
+        priority_line = ""
+
     return YUM_REPO_CONFIG_TEMPLATE.format(
-        short_name=short_name, long_name=long_name, url=url)
+        short_name=short_name, long_name=long_name, url=url,
+        priority_line=priority_line)

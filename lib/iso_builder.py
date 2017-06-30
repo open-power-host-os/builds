@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import datetime
+import glob
 import logging
 import os
 
@@ -82,7 +83,8 @@ class MockPungiIsoBuilder(object):
         LOG.info("Initializing a chroot")
         self.mock.run_command("--init")
 
-        package_list = ["yum-utils", "createrepo", "pungi"]
+        package_list = [
+            "yum-plugin-priorities", "yum-utils", "createrepo", "pungi"]
         LOG.info("Installing %s inside the chroot" % " ".join(package_list))
         self.mock.run_command("--install %s" % " ".join(package_list))
 
@@ -136,11 +138,11 @@ class MockPungiIsoBuilder(object):
         repo_config = yum_repository.YUM_MAIN_CONFIG
         repo_config += yum_repository.create_repository_config(
             "host-os-local-repo", "OpenPOWER Host OS local repository",
-            packages_dir_url)
+            packages_dir_url, priority=1)
         repo_urls = self.config.get('distro_repos_urls')
         for name, url in repo_urls.items():
             repo_config += yum_repository.create_repository_config(
-                name, name, url)
+                name, name, url, priority=2)
         repo_config_file_path = os.path.join(
             self.work_dir, os.path.basename(CHROOT_REPO_CONFIG_FILE_PATH))
         with open(repo_config_file_path, 'w') as repo_config_file:
