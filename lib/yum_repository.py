@@ -15,6 +15,11 @@
 
 from lib import utils
 
+YUM_MAIN_CONFIG = """\
+[main]
+reposdir=/dev/null
+"""
+
 YUM_REPO_CONFIG_TEMPLATE = """\
 [{short_name}]
 name={long_name}
