@@ -27,6 +27,7 @@ from lib.mock import Mock
 LOG = logging.getLogger(__name__)
 ISO_REPO_MINIMAL_PACKAGES_GROUPS = ["core", "anaconda-tools"]
 ISO_REPO_MINIMAL_PACKAGES = ["authconfig", "chrony", "grub2"]
+CHROOT_HOST_OS_REPO_PATH = "/host-os-repo"
 
 
 class MockPungiIsoBuilder(object):
@@ -87,14 +88,13 @@ class MockPungiIsoBuilder(object):
         LOG.info("Creating ISO yum repository inside chroot")
 
         LOG.debug("Creating ISO yum repository directory")
-        mock_iso_repo_dir = self.config.get('mock_iso_repo_dir')
-        self.mock.run_command("--shell 'mkdir -p %s'" % mock_iso_repo_dir)
+        self.mock.run_command("--shell 'mkdir -p %s'" % CHROOT_HOST_OS_REPO_PATH)
 
         LOG.debug("Copying rpm packages to ISO yum repo directory")
         packages_dir = self.config.get('packages_dir')
         rpm_files = utils.recursive_glob(packages_dir, "*.rpm")
         self.mock.run_command("--copyin %s %s" %
-                              (" ".join(rpm_files), mock_iso_repo_dir))
+                              (" ".join(rpm_files), CHROOT_HOST_OS_REPO_PATH))
 
         LOG.debug("Creating package groups metadata file (comps.xml)")
         comps_xml_str = packages_groups_xml_creator.create_comps_xml(
@@ -114,7 +114,7 @@ class MockPungiIsoBuilder(object):
 
         LOG.debug("Creating ISO yum repository")
         createrepo_cmd = "createrepo -v -g %s %s" % (comps_xml_chroot_path,
-                                                     mock_iso_repo_dir)
+                                                     CHROOT_HOST_OS_REPO_PATH)
         self.mock.run_command("--shell '%s'" % createrepo_cmd)
 
     def _create_iso_kickstart(self):
@@ -124,8 +124,7 @@ class MockPungiIsoBuilder(object):
 
         repo_urls = self.config.get('distro_repos_urls')
         mock_iso_repo_name = self.config.get('mock_iso_repo_name')
-        mock_iso_repo_dir = self.config.get('mock_iso_repo_dir')
-        repo_urls[mock_iso_repo_name] = "file://%s/" % mock_iso_repo_dir
+        repo_urls[mock_iso_repo_name] = "file://%s/" % CHROOT_HOST_OS_REPO_PATH
         iso_repo_packages_groups = (
             ISO_REPO_MINIMAL_PACKAGES_GROUPS
             + self.config.get('iso_repo_packages_groups'))

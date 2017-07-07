@@ -31,7 +31,6 @@ build-iso:
   mock_args: --enable-plugin=tmpfs --plugin-option=tmpfs:keep_mounted=True --plugin-option=tmpfs:max_fs_size=32g
     --plugin-option=tmpfs:required_ram_mb=39800 --verbose
   mock_binary: /usr/bin/mock
-  mock_iso_repo_dir: /host-os-repo
   mock_iso_repo_name: host_os
   packages_dir: result/packages/latest
   pungi_args: --isfinal --nosource --nodebuginfo
