@@ -26,7 +26,8 @@ from lib.mock import Mock
 
 LOG = logging.getLogger(__name__)
 ISO_REPO_MINIMAL_PACKAGES_GROUPS = ["core", "anaconda-tools"]
-ISO_REPO_MINIMAL_PACKAGES = ["authconfig", "chrony", "grub2"]
+ISO_REPO_MINIMAL_PACKAGES = [
+    "anaconda", "anaconda-dracut", "redhat-upgrade-dracut", "grub2", "yum-langpacks"]
 CHROOT_HOST_OS_REPO_PATH = "/host-os-repo"
 
 
