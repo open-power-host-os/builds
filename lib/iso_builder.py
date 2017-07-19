@@ -32,6 +32,7 @@ ISO_REPO_MINIMAL_PACKAGES = [
     "anaconda", "anaconda-dracut", "redhat-upgrade-dracut", "grub2", "yum-langpacks"]
 CHROOT_HOST_OS_REPO_PATH = "/host-os-repo"
 CHROOT_MERGED_REPO_PATH = "/merged-repo"
+CHROOT_MERGED_REPO_CONFIG_FILE_PATH = "/merged-repo.conf"
 CHROOT_REPO_CONFIG_FILE_PATH = "/all-repos.conf"
 GROUPS_FILE_NAME = "host-os-comps.xml"
 GROUPS_FILE_CHROOT_PATH = os.path.join("/", GROUPS_FILE_NAME)
@@ -196,6 +197,24 @@ class MockPungiIsoBuilder(object):
             "{repo_path}'".format(groups_file=MERGED_GROUPS_FILE_CHROOT_PATH,
                                   repo_path=CHROOT_MERGED_REPO_PATH))
         self.mock.run_command(create_repo_command)
+
+        LOG.info("Checking if created repository has any unresolvable dependencies")
+        mock_iso_repo_url = "file://%s/" % CHROOT_MERGED_REPO_PATH
+        merged_repo_config = yum_repository.YUM_MAIN_CONFIG
+        merged_repo_config += yum_repository.create_repository_config(
+            "merged-local-repo", "OpenPOWER Host OS merged local repository",
+            mock_iso_repo_url)
+        merged_repo_config_file_path = os.path.join(
+            self.work_dir, os.path.basename(CHROOT_MERGED_REPO_CONFIG_FILE_PATH))
+        with open(merged_repo_config_file_path, 'w') as merged_repo_config_file:
+            merged_repo_config_file.write(merged_repo_config)
+        self.mock.run_command("--copyin %s %s" % (
+            merged_repo_config_file_path, CHROOT_MERGED_REPO_CONFIG_FILE_PATH))
+        merged_repo_closure_command = (
+            "--chroot 'repoclosure --config {config_file} "
+            "--tempcache'".format(
+                config_file=CHROOT_MERGED_REPO_CONFIG_FILE_PATH))
+        self.mock.run_command(merged_repo_closure_command)
 
     def _create_iso_kickstart(self):
         kickstart_file = self.config.get('automated_install_file')
