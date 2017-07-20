@@ -2,7 +2,7 @@ build-iso:
   automated_install_file: host-os.ks
   distro_repos_urls:
     base: http://mirror.centos.org/altarch/7/os/ppc64le/
-    epel: http://download.fedoraproject.org/pub/epel/7/ppc64le/
+    epel: http://mirror.utexas.edu/epel/7/ppc64le/
     extras: http://mirror.centos.org/altarch/7/extras/ppc64le/
     updates: http://mirror.centos.org/altarch/7/updates/ppc64le/
   installable_environments:
