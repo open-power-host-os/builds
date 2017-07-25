@@ -19,3 +19,4 @@ from lib import iso_builder
 def run(CONF):
     builder = iso_builder.MockPungiIsoBuilder(CONF)
     builder.build()
+    builder.clean()
