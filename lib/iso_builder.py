@@ -140,10 +140,11 @@ class MockPungiIsoBuilder(object):
         repo_config += yum_repository.create_repository_config(
             "host-os-local-repo", "OpenPOWER Host OS local repository",
             packages_dir_url, priority=1)
-        repo_urls = self.config.get('distro_repos_urls')
-        for name, url in repo_urls.items():
+        distro_repos = self.config.get('distro_repos')
+        for repo in distro_repos:
             repo_config += yum_repository.create_repository_config(
-                name, name, url, priority=2)
+                repo["name"], repo["name"], repo["url"],
+                url_type=repo["url_type"], priority=2)
         repo_config_file_path = os.path.join(
             self.work_dir, os.path.basename(CHROOT_REPO_CONFIG_FILE_PATH))
         with open(repo_config_file_path, 'w') as repo_config_file:

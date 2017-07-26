@@ -13,13 +13,21 @@ options:
   distro_name:
     help: Base Linux distribution name
     default: CentOS
-  distro_repos_urls:
-    help: Base Linux distribution yum repositories URLs
+  distro_repos:
+    help: Base Linux distribution yum repositories
     default:
-      base: http://mirror.centos.org/altarch/7/os/ppc64le/
-      updates: http://mirror.centos.org/altarch/7/updates/ppc64le/
-      epel: http://download.fedoraproject.org/pub/epel/7/ppc64le/
-      extras: http://mirror.centos.org/altarch/7/extras/ppc64le/
+    - name: base
+      url: http://mirror.centos.org/altarch/7/os/ppc64le/
+      url_type: baseurl
+    - name: epel
+      url: http://mirror.utexas.edu/epel/7/ppc64le/
+      url_type: baseurl
+    - name: extras
+      url: http://mirror.centos.org/altarch/7/extras/ppc64le/
+      url_type: baseurl
+    - name: updates
+      url: http://mirror.centos.org/altarch/7/updates/ppc64le/
+      url_type: baseurl
   distro_version:
     help: Base Linux distribution version
     default: '7'
@@ -216,7 +224,7 @@ commands:
     help: Build ISO image
     options:
     - automated_install_file
-    - distro_repos_urls
+    - distro_repos
     - installable_environments
     - iso_name
     - iso_repo_packages

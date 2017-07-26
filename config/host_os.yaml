@@ -1,10 +1,18 @@
 build-iso:
   automated_install_file: host-os.ks
-  distro_repos_urls:
-    base: http://mirror.centos.org/altarch/7/os/ppc64le/
-    epel: http://mirror.utexas.edu/epel/7/ppc64le/
-    extras: http://mirror.centos.org/altarch/7/extras/ppc64le/
-    updates: http://mirror.centos.org/altarch/7/updates/ppc64le/
+  distro_repos:
+  - name: base
+    url: http://mirror.centos.org/altarch/7/os/ppc64le/
+    url_type: baseurl
+  - name: epel
+    url: http://mirror.utexas.edu/epel/7/ppc64le/
+    url_type: baseurl
+  - name: extras
+    url: http://mirror.centos.org/altarch/7/extras/ppc64le/
+    url_type: baseurl
+  - name: updates
+    url: http://mirror.centos.org/altarch/7/updates/ppc64le/
+    url_type: baseurl
   installable_environments:
     OpenPOWER Host OS RAS:
     - open-power-host-os-ras
