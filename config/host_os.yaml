@@ -5,8 +5,8 @@ build-iso:
     url: http://mirror.centos.org/altarch/7/os/ppc64le/
     url_type: baseurl
   - name: epel
-    url: http://mirror.utexas.edu/epel/7/ppc64le/
-    url_type: baseurl
+    url: https://mirrors.fedoraproject.org/mirrorlist?repo=epel-7&arch=ppc64le
+    url_type: mirrorlist
   - name: extras
     url: http://mirror.centos.org/altarch/7/extras/ppc64le/
     url_type: baseurl
