@@ -29,6 +29,19 @@ class PackageInfo(object):
         raise AttributeError("%r object has no attribute %r" %
                              (self.pkg.__class__, attr))
 
+    @property
+    def sources(self):
+        sources = []
+        for source in self.pkg.sources:
+        # Dereference dict with repository type as key
+            source = source.values()[0]
+            sources.append({
+                "src": source.get("src", ""),
+                "branch": source.get("branch", ""),
+                "commit_id": source.get("commit_id", ""),
+            })
+        return sources
+
 
 def query_pkgs_info(packages, target_attrs, include_unbuilt=False):
     """

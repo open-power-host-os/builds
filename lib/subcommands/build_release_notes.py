@@ -18,6 +18,7 @@ import logging
 import os
 import yaml
 
+from lib import build_info
 from lib import config
 from lib import distro_utils
 from lib import exception
@@ -41,28 +42,6 @@ RELEASE_FILE_TITLE = "OpenPOWER Host OS release"
 RELEASE_FILE_LAYOUT = "release"
 
 
-class PackageReleaseInfo(object):
-
-    def __init__(self, package):
-        self.package = package
-
-    def __iter__(self):
-        yield "name", self.package.name
-        yield "version", self.package.version
-        yield "release", self.package.release
-
-        sources = []
-        for source in self.package.sources:
-            # Dereference dict with repository type as key
-            source = source.values()[0]
-            sources.append({
-                "src": source.get("src", ""),
-                "branch": source.get("branch", ""),
-                "commit_id": source.get("commit_id", ""),
-            })
-        yield "sources", sources
-
-
 def write_version_info(release_tag, file_path, versions_repo, packages):
     """
     Write release information to a file.
@@ -78,11 +57,11 @@ def write_version_info(release_tag, file_path, versions_repo, packages):
         "versions_commit": str(versions_repo.head.commit.hexsha),
     }
 
-    packages_info = []
-    packages.sort()
-    for package in packages:
-        packages_info.append(dict(PackageReleaseInfo(package)))
-    release_file_info["packages"] = packages_info
+    packages_info = build_info.query_pkgs_info(
+        packages, ["name", "version", "release", "sources"], True)
+
+    release_file_info["packages"] = [packages_info[k]
+                                     for k in sorted(packages_info.keys())]
 
     LOG.info("Writing release {release_tag} information to file: {file_path}"
              .format(**locals()))
