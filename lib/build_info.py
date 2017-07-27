@@ -13,9 +13,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import pprint
+import config
+import json
 import logging
+import os
+import pprint
 
+CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 
 
@@ -42,6 +46,11 @@ class PackageInfo(object):
             })
         return sources
 
+    @property
+    def rpms(self):
+        return [os.path.basename(path)
+                for path in self.pkg.cached_build_results]
+
 
 def query_pkgs_info(packages, target_attrs, include_unbuilt=False):
     """
@@ -64,3 +73,24 @@ def query_pkgs_info(packages, target_attrs, include_unbuilt=False):
     LOG.debug("Query:\n%s\nResult:\n%s", sorted(target_attrs),
               pprint.pformat(packages_info, width=1))
     return packages_info
+
+
+def write_built_pkgs_info_file(build_manager):
+    """
+    Write information about built packages to a file
+
+    Args:
+        build_manager(BuildManager): build manager instance
+    """
+
+    content = json.dumps(
+        query_pkgs_info(build_manager.packages_manager.packages,
+                        ['version', 'rpms', 'sources']),
+        sort_keys=True, indent=4)
+
+    file_path = os.path.join(
+        CONF.get('result_dir'), 'packages', 'latest', 'packages.json')
+    LOG.info("Writing packages information to file: %s", file_path)
+
+    with open(file_path, "w") as info_file:
+        info_file.write(content)
