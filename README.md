@@ -14,6 +14,7 @@ For more information about Host OS check: https://open-power-host-os.github.io/
   * [Stable version](docs/build.md#host-os-stable)
   * [Pre 2.0 versions](docs/build_old_versions.md)
 * [Installing packages](docs/install_packages.md)
+* [Optimized libraries](docs/install_libs.md)
 * [Supported distributions](#supported-gnulinux-distributions)
 * [Contact us](#contact-us)
 
