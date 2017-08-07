@@ -13,13 +13,21 @@ options:
   distro_name:
     help: Base Linux distribution name
     default: CentOS
-  distro_repos_urls:
-    help: Base Linux distribution yum repositories URLs
+  distro_repos:
+    help: Base Linux distribution yum repositories
     default:
-      base: http://mirror.centos.org/altarch/7/os/ppc64le/
-      updates: http://mirror.centos.org/altarch/7/updates/ppc64le/
-      epel: http://download.fedoraproject.org/pub/epel/7/ppc64le/
-      extras: http://mirror.centos.org/altarch/7/extras/ppc64le/
+    - name: base
+      url: http://mirror.centos.org/altarch/7/os/ppc64le/
+      url_type: baseurl
+    - name: epel
+      url: https://mirrors.fedoraproject.org/mirrorlist?repo=epel-7&arch=ppc64le
+      url_type: mirrorlist
+    - name: extras
+      url: http://mirror.centos.org/altarch/7/extras/ppc64le/
+      url_type: baseurl
+    - name: updates
+      url: http://mirror.centos.org/altarch/7/updates/ppc64le/
+      url_type: baseurl
   distro_version:
     help: Base Linux distribution version
     default: '7'
@@ -94,10 +102,6 @@ options:
   mock_binary:
     help: Mock binary path
     default: /usr/bin/mock
-  mock_iso_repo_dir:
-    help: Directory path of the yum repository, to create from OpenPOWER
-      Host OS packages
-    default: /host-os-repo
   mock_iso_repo_name:
     help: Name of the yum repository, to create from OpenPOWER Host OS packages
     default: host_os
@@ -220,7 +224,7 @@ commands:
     help: Build ISO image
     options:
     - automated_install_file
-    - distro_repos_urls
+    - distro_repos
     - installable_environments
     - iso_name
     - iso_repo_packages
@@ -228,7 +232,6 @@ commands:
     - iso_version
     - mock_args
     - mock_binary
-    - mock_iso_repo_dir
     - mock_iso_repo_name
     - packages_dir
     - pungi_args

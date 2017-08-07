@@ -119,6 +119,16 @@ def set_http_proxy_env(proxy):
 
 
 def run_command(cmd, **kwargs):
+    """
+    Run command, wait for it to finish and read its output.
+
+    Args:
+        cmd (str): command string
+        kwargs (dict): extra parameters passed to subprocess.Popen
+
+    Returns:
+        str: command standard output
+    """
     LOG.debug("Command: %s" % cmd)
     shell = kwargs.pop('shell', True)
     success_return_codes = kwargs.pop('success_return_codes', [0])
