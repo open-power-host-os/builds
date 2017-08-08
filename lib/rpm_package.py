@@ -81,7 +81,7 @@ class SpecFile(object):
             file_.write(self._content)
         self._cached_tags = dict()
 
-    def query_tag(self, tag_name, extra_args=""):
+    def query_tag(self, tag_name, extra_args="", unexpanded_macros=[]):
         """
         Queries the spec file for a tag's value.
         Cached content not yet written to the file is not considered.
@@ -89,6 +89,11 @@ class SpecFile(object):
         Args:
             tag_name (str): name of the tag to query
             extra_args (str): extra arguments to append to the command
+            unexpanded_macros ([str]): macros to be returned without
+                expansion in the query result. Note: --define doesn't
+                override macros defined in the spec file so, for these
+                macros, expansion will happen reagarless of this
+                parameter's value
 
         Returns:
             str: tag value
@@ -97,9 +102,21 @@ class SpecFile(object):
             tag_value = self._cached_tags[tag_name]
         else:
             extra_args += get_define_line(self._additional_macros)
+
+            # if a macro happens to not be defined, we can't find its
+            # location in the string after expansion, so we define a
+            # dummy value here that can be searched for later
+            dummy_macros = {m : "dummy_" + m for m in unexpanded_macros}
+            extra_args += get_define_line(dummy_macros)
+
             command = "rpmspec --srpm -q --qf '%%{%s}' %s %s 2>/dev/null" % (
                     tag_name.upper(), self.path, extra_args)
             tag_value = utils.run_command(command).strip()
+
+            for macro in unexpanded_macros:
+                tag_value = tag_value.replace('dummy_%s' % macro,
+                                              '%%{%s}' % macro)
+
             if tag_value == "(none)":
                 tag_value = None
             if not extra_args:
