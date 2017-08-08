@@ -85,7 +85,7 @@ class MockPackageBuilder(package_builder.PackageBuilder):
             "--buildsrpm --no-clean --spec %s --sources %s "
             "--resultdir=%s %s" % (
                 package.spec_file.path, self.archive, self.build_dir,
-                package.get_spec_macros()))
+                package.macros))
 
     def _build_rpm(self, package):
         """
@@ -95,8 +95,7 @@ class MockPackageBuilder(package_builder.PackageBuilder):
             package (RPM_Package): package
         """
         cmd = " --rebuild %s --no-clean --resultdir=%s %s" % (
-            self.build_dir + "/*.rpm", self.build_dir,
-            package.get_spec_macros())
+            self.build_dir + "/*.rpm", self.build_dir, package.macros)
 
         if package.rpmmacro:
             cmd = cmd + " --macro-file=%s" % package.rpmmacro

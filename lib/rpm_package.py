@@ -40,12 +40,17 @@ def compare_versions(v1, v2):
     return rpmUtils.miscutils.compareEVR((None, v1, None), (None, v2, None))
 
 
+def get_define_line(macros):
+    return " " + " ".join("--define '{} {}'".format(k,v) for k,v in macros.items())
+
+
 class SpecFile(object):
 
-    def __init__(self, path):
+    def __init__(self, path, additional_macros={}):
         self.path = path
         self._content = None
         self._cached_tags = dict()
+        self._additional_macros = additional_macros
 
     @property
     def content(self):
@@ -56,6 +61,10 @@ class SpecFile(object):
             with open(self.path, 'r') as file_:
                 self._content = file_.read()
         return self._content
+
+    @property
+    def additional_macros(self):
+        return self._additional_macros
 
     @content.setter
     def content(self, value):
@@ -87,6 +96,7 @@ class SpecFile(object):
         if tag_name in self._cached_tags:
             tag_value = self._cached_tags[tag_name]
         else:
+            extra_args += get_define_line(self._additional_macros)
             command = "rpmspec --srpm -q --qf '%%{%s}' %s %s 2>/dev/null" % (
                     tag_name.upper(), self.path, extra_args)
             tag_value = utils.run_command(command).strip()
@@ -259,7 +269,7 @@ class RPM_Package(Package):
                 self.distro.name, self.distro.version, "%s.spec" % self.name)
             spec_file_rel_path = files.get('spec', default_spec_file_rel_path)
             self.spec_file_path = os.path.join(self.package_dir, spec_file_rel_path)
-            self.spec_file = SpecFile(self.spec_file_path)
+            self.spec_file = SpecFile(self.spec_file_path, self.get_spec_macros())
 
             if os.path.isfile(self.spec_file.path):
                 LOG.info("Package found: %s for %s %s" % (
@@ -277,9 +287,9 @@ class RPM_Package(Package):
         Get command line string to define spec file macros externally.
 
         Returns:
-            str: string to be appended to the rpmbuild command
+            dict: macros to be appended to the rpmbuild command
         """
-        macros_string = ""
+        macros = {}
         for package_attribute, macro_name in (
                 PACKAGE_METADATA_TO_RPM_MACRO_MAPPING.items()):
             subnode = self.package_data
@@ -295,13 +305,12 @@ class RPM_Package(Package):
                     "{value} based on attribute {attribute}".format(
                         package_name=self.name, macro_name=macro_name,
                         value=macro_value, attribute=package_attribute))
-                macros_string += " --define '{name} {value}'".format(
-                    name=macro_name, value=macro_value)
+                macros[macro_name] = macro_value
 
-        if not macros_string:
+        if not macros:
             LOG.debug("Package {package_name} has no external macros to define"
                       .format(package_name=self.name))
-        return macros_string
+        return macros
 
     @property
     def cached_build_results(self):
@@ -316,12 +325,16 @@ class RPM_Package(Package):
 
     @property
     def epoch(self):
-        return self.spec_file.query_tag("epoch", self.get_spec_macros())
+        return self.spec_file.query_tag("epoch")
 
     @property
     def version(self):
-        return self.spec_file.query_tag("version", self.get_spec_macros())
+        return self.spec_file.query_tag("version")
 
     @property
     def release(self):
-        return self.spec_file.query_tag("release", self.get_spec_macros())
+        return self.spec_file.query_tag("release")
+
+    @property
+    def macros(self):
+        return get_define_line(self.spec_file.additional_macros)
