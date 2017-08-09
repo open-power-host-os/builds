@@ -6,12 +6,8 @@ from lib import exception
 from lib import packages_manager
 from lib import readme
 from lib import rpm_package
-from lib import utils
 
 LOG = logging.getLogger(__name__)
-DIST_MACRO_NAME = "%{dist}"
-DIST_MACRO_VALUE = utils.run_command(
-    "rpm --eval {}".format(DIST_MACRO_NAME)).strip()
 
 
 def create_yaml_install_dependencies_string(packages):
@@ -59,8 +55,9 @@ def replace_spec_dependencies(spec_file_path):
                     package_evr = package.epoch + ":"
                 else:
                     package_evr = ""
-                release = package.release.replace(
-                    DIST_MACRO_VALUE, DIST_MACRO_NAME)
+                release = package.spec_file.query_tag(
+                    "release", unexpanded_macros=['dist', 'extraver'])
+                release = release.replace('extraver', '?extraver')
                 package_evr += "{version}-{release}".format(
                     version=package.version, release=release)
 
