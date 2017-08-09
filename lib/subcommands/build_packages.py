@@ -16,6 +16,7 @@
 import logging
 
 from lib import distro_utils
+from lib import build_info
 from lib import build_manager
 from lib import packages_manager
 from lib.versions_repository import setup_versions_repository
@@ -40,3 +41,5 @@ def run(CONF):
     LOG.info("Building packages: %s", ", ".join(packages_to_build_names))
     bm = build_manager.BuildManager(packages_to_build_names, distro)
     bm.build()
+
+    build_info.write_built_pkgs_info_file(bm)

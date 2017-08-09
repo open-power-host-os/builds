@@ -78,6 +78,7 @@ class Package(object):
         self.lock_file_path = os.path.join(
             PACKAGES_REPOS_TARGET_PATH, self.name + ".lock")
         self.force_rebuild = force_rebuild
+        self.built = False
 
         # Dependencies packages may be present in those directories in older
         # versions of package metadata. This keeps compatibility.
