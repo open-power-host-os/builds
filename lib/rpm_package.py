@@ -46,11 +46,10 @@ def get_define_line(macros):
 
 class SpecFile(object):
 
-    def __init__(self, path, additional_macros={}):
+    def __init__(self, path):
         self.path = path
         self._content = None
         self._cached_tags = dict()
-        self._additional_macros = additional_macros
 
     @property
     def content(self):
@@ -61,10 +60,6 @@ class SpecFile(object):
             with open(self.path, 'r') as file_:
                 self._content = file_.read()
         return self._content
-
-    @property
-    def additional_macros(self):
-        return self._additional_macros
 
     @content.setter
     def content(self, value):
@@ -101,8 +96,6 @@ class SpecFile(object):
         if tag_name in self._cached_tags:
             tag_value = self._cached_tags[tag_name]
         else:
-            extra_args += get_define_line(self._additional_macros)
-
             # if a macro happens to not be defined, we can't find its
             # location in the string after expansion, so we define a
             # dummy value here that can be searched for later
@@ -286,7 +279,7 @@ class RPM_Package(Package):
                 self.distro.name, self.distro.version, "%s.spec" % self.name)
             spec_file_rel_path = files.get('spec', default_spec_file_rel_path)
             self.spec_file_path = os.path.join(self.package_dir, spec_file_rel_path)
-            self.spec_file = SpecFile(self.spec_file_path, self.get_spec_macros())
+            self.spec_file = SpecFile(self.spec_file_path)
 
             if os.path.isfile(self.spec_file.path):
                 LOG.info("Package found: %s for %s %s" % (
@@ -342,16 +335,16 @@ class RPM_Package(Package):
 
     @property
     def epoch(self):
-        return self.spec_file.query_tag("epoch")
+        return self.spec_file.query_tag("epoch", extra_args=self.macros)
 
     @property
     def version(self):
-        return self.spec_file.query_tag("version")
+        return self.spec_file.query_tag("version", extra_args=self.macros)
 
     @property
     def release(self):
-        return self.spec_file.query_tag("release")
+        return self.spec_file.query_tag("release", extra_args=self.macros)
 
     @property
     def macros(self):
-        return get_define_line(self.spec_file.additional_macros)
+        return get_define_line(self.get_spec_macros())

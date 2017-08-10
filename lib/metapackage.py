@@ -56,7 +56,8 @@ def replace_spec_dependencies(spec_file_path):
                 else:
                     package_evr = ""
                 release = package.spec_file.query_tag(
-                    "release", unexpanded_macros=['dist', 'extraver'])
+                    "release", extra_args=package.macros,
+                    unexpanded_macros=['dist', 'extraver'])
                 release = release.replace('extraver', '?extraver')
                 package_evr += "{version}-{release}".format(
                     version=package.version, release=release)
