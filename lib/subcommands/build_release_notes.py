@@ -90,10 +90,12 @@ def run(CONF):
     updater_name = CONF.get('updater_name')
     updater_email = CONF.get('updater_email')
 
-    REQUIRED_PARAMETERS = ["updater_name", "updater_email"]
+    required_parameters = []
+    if commit_updates:
+        required_parameters += ["updater_name", "updater_email"]
     if push_updates:
-        REQUIRED_PARAMETERS += ["push_repo_url", "push_repo_branch" ]
-    for parameter in REQUIRED_PARAMETERS:
+        required_parameters += ["push_repo_url", "push_repo_branch" ]
+    for parameter in required_parameters:
         if not CONF.get(parameter):
             raise exception.RequiredParameterMissing(parameter=parameter)
 
