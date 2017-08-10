@@ -192,22 +192,25 @@ class Package(object):
     def _load(self):
         """
         Read yaml file describing this package.
+
+        Returns:
+            dict: representation of the data loaded from the YAML file
         """
         try:
             with open(self.package_file, 'r') as package_file:
-                self.package_data = yaml.load(package_file).get('Package')
+                package_data = yaml.load(package_file).get('Package')
         except IOError:
             raise exception.PackageDescriptorError(
                 "Failed to open %s's YAML descriptor" % self.name)
 
         self.name = os.path.splitext(os.path.basename(self.package_file))[0]
-        self.sources = self.package_data.get('sources', [])
+        self.sources = package_data.get('sources', [])
         for source in self.sources:
             if 'archive' not in source.values()[0]:
                 source_name = source.keys()[0]
                 source[source_name]['archive'] = self.name
 
-        version = self.package_data.get('version', {})
+        version = package_data.get('version', {})
         self.version_file_regex = (version.get('file'),
                                    version.get('regex'))
 
@@ -216,11 +219,11 @@ class Package(object):
         #
         # This should be removed when backwards compatibility is no longer a
         # requirement. {{{
-        self.clone_url = self.package_data.get('clone_url', None)
-        self.download_source = self.package_data.get('download_source', None)
-        self.expects_source = self.package_data.get('expects_source', self.name)
-        self.branch = self.package_data.get('branch', None)
-        self.commit_id = self.package_data.get('commit_id', None)
+        self.clone_url = package_data.get('clone_url', None)
+        self.download_source = package_data.get('download_source', None)
+        self.expects_source = package_data.get('expects_source', self.name)
+        self.branch = package_data.get('branch', None)
+        self.commit_id = package_data.get('commit_id', None)
         # }}}
 
         LOG.info("%s: Loaded package metadata successfully" % self.name)
@@ -236,6 +239,8 @@ class Package(object):
         if not self.sources:
             # Old sources format is used, it's better to enable locking
             self.locking_enabled = True
+
+        return package_data
 
     def _setup_repository(self, dest=None, branch=None):
         self.repository = repository.get_git_repository(

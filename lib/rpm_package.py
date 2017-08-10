@@ -218,18 +218,21 @@ class RPM_Package(Package):
     def _load(self):
         """
         Read yaml file describing this package.
+
+        Returns:
+            dict: representation of the data loaded from the YAML file
         """
-        super(RPM_Package, self)._load()
+        package_data = super(RPM_Package, self)._load()
         try:
             # keeps backwards compatibility with old yaml files which have 'centos'
             # instead of 'CentOS'
-            if self.distro.name in self.package_data.get('files', {}):
+            if self.distro.name in package_data.get('files', {}):
                 distro_attrib_name = self.distro.name
             else:
                 distro_attrib_name = self.distro.name.lower()
 
             # load distro files
-            files = self.package_data.get('files', {}).get(
+            files = package_data.get('files', {}).get(
                 distro_attrib_name, {}).get(self.distro.version, {}) or {}
 
             default_build_files_dir_rel_path = os.path.join(
@@ -292,6 +295,8 @@ class RPM_Package(Package):
         except TypeError:
             raise exception.PackageDescriptorError(package=self.name)
 
+        return package_data
+
     def get_spec_macros(self):
         """
         Get command line string to define spec file macros externally.
@@ -302,8 +307,8 @@ class RPM_Package(Package):
         macros = {}
         for package_attribute, macro_name in (
                 PACKAGE_METADATA_TO_RPM_MACRO_MAPPING.items()):
-            subnode = self.package_data
-            for subnode_id in package_attribute:
+            subnode = getattr(self, package_attribute[0])
+            for subnode_id in package_attribute[1:]:
                 try:
                     subnode = subnode[subnode_id]
                 except (KeyError, IndexError):
