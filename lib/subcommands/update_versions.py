@@ -260,3 +260,4 @@ def run(CONF):
         if push_updates:
             LOG.info("No updates, pushing branch with unaltered head")
             versions_repo.push_head_commits(push_repo_url, push_repo_branch)
+        raise exception.NoPackagesUpdated()
