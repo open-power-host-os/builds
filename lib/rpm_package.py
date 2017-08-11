@@ -46,11 +46,10 @@ def get_define_line(macros):
 
 class SpecFile(object):
 
-    def __init__(self, path, additional_macros={}):
+    def __init__(self, path):
         self.path = path
         self._content = None
         self._cached_tags = dict()
-        self._additional_macros = additional_macros
 
     @property
     def content(self):
@@ -61,10 +60,6 @@ class SpecFile(object):
             with open(self.path, 'r') as file_:
                 self._content = file_.read()
         return self._content
-
-    @property
-    def additional_macros(self):
-        return self._additional_macros
 
     @content.setter
     def content(self, value):
@@ -101,8 +96,6 @@ class SpecFile(object):
         if tag_name in self._cached_tags:
             tag_value = self._cached_tags[tag_name]
         else:
-            extra_args += get_define_line(self._additional_macros)
-
             # if a macro happens to not be defined, we can't find its
             # location in the string after expansion, so we define a
             # dummy value here that can be searched for later
@@ -225,18 +218,21 @@ class RPM_Package(Package):
     def _load(self):
         """
         Read yaml file describing this package.
+
+        Returns:
+            dict: representation of the data loaded from the YAML file
         """
-        super(RPM_Package, self)._load()
+        package_data = super(RPM_Package, self)._load()
         try:
             # keeps backwards compatibility with old yaml files which have 'centos'
             # instead of 'CentOS'
-            if self.distro.name in self.package_data.get('files', {}):
+            if self.distro.name in package_data.get('files', {}):
                 distro_attrib_name = self.distro.name
             else:
                 distro_attrib_name = self.distro.name.lower()
 
             # load distro files
-            files = self.package_data.get('files', {}).get(
+            files = package_data.get('files', {}).get(
                 distro_attrib_name, {}).get(self.distro.version, {}) or {}
 
             default_build_files_dir_rel_path = os.path.join(
@@ -286,7 +282,7 @@ class RPM_Package(Package):
                 self.distro.name, self.distro.version, "%s.spec" % self.name)
             spec_file_rel_path = files.get('spec', default_spec_file_rel_path)
             self.spec_file_path = os.path.join(self.package_dir, spec_file_rel_path)
-            self.spec_file = SpecFile(self.spec_file_path, self.get_spec_macros())
+            self.spec_file = SpecFile(self.spec_file_path)
 
             if os.path.isfile(self.spec_file.path):
                 LOG.info("Package found: %s for %s %s" % (
@@ -299,6 +295,8 @@ class RPM_Package(Package):
         except TypeError:
             raise exception.PackageDescriptorError(package=self.name)
 
+        return package_data
+
     def get_spec_macros(self):
         """
         Get command line string to define spec file macros externally.
@@ -309,8 +307,8 @@ class RPM_Package(Package):
         macros = {}
         for package_attribute, macro_name in (
                 PACKAGE_METADATA_TO_RPM_MACRO_MAPPING.items()):
-            subnode = self.package_data
-            for subnode_id in package_attribute:
+            subnode = getattr(self, package_attribute[0])
+            for subnode_id in package_attribute[1:]:
                 try:
                     subnode = subnode[subnode_id]
                 except (KeyError, IndexError):
@@ -342,16 +340,16 @@ class RPM_Package(Package):
 
     @property
     def epoch(self):
-        return self.spec_file.query_tag("epoch")
+        return self.spec_file.query_tag("epoch", extra_args=self.macros)
 
     @property
     def version(self):
-        return self.spec_file.query_tag("version")
+        return self.spec_file.query_tag("version", extra_args=self.macros)
 
     @property
     def release(self):
-        return self.spec_file.query_tag("release")
+        return self.spec_file.query_tag("release", extra_args=self.macros)
 
     @property
     def macros(self):
-        return get_define_line(self.spec_file.additional_macros)
+        return get_define_line(self.get_spec_macros())
