@@ -20,13 +20,12 @@ import os
 import pprint
 
 from lib import repository
+from lib.constants import BUILD_INFO_FILE_NAME
+from lib.constants import PACKAGES_INFO_FILE_NAME
 from lib.versions_repository import read_version_and_milestone
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
-
-BUILD_INFO_FILE_NAME = "build.json"
-PACKAGES_INFO_FILE_NAME = "packages.json"
 
 
 class PackageInfo(object):
@@ -95,7 +94,7 @@ def write_build_info(build_manager, versions_repo):
     info_files = {}
     info_files[PACKAGES_INFO_FILE_NAME] = json.dumps(
         query_pkgs_info(build_manager.packages_manager.packages,
-                        ['version', 'rpms', 'sources']),
+                        ['version', 'rpms', 'sources', 'release']),
         sort_keys=True, indent=4)
 
     info_files[BUILD_INFO_FILE_NAME] = json.dumps({

@@ -39,6 +39,9 @@ options:
   http_proxy:
     help: HTTP proxy URL
     default: ''
+  info_files_dir:
+    help: Path to a directory containing the build information files
+    default: result/packages/latest
   installable_environments:
     help: An environment is a group of package groups. Those
       installable environments will be available at the
@@ -209,17 +212,15 @@ commands:
     help: Build release notes
     options:
     - commit_updates
-    - packages_metadata_repo_branch
-    - packages_metadata_repo_refspecs
-    - packages_metadata_repo_url
+    - info_files_dir
     - push_repo_branch
     - push_repo_url
     - push_updates
     - release_notes_repo_branch
     - release_notes_repo_url
+    - update_packages_repos_before_build
     - updater_email
     - updater_name
-    - update_packages_repos_before_build
   build-iso:
     help: Build ISO image
     options:

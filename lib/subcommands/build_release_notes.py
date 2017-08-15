@@ -13,21 +13,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from datetime import datetime
+import json
 import logging
 import os
 import yaml
 
-from lib import build_info
 from lib import config
-from lib import distro_utils
 from lib import exception
-from lib import packages_manager
 from lib import repository
-from lib import rpm_package
+from lib.constants import BUILD_INFO_FILE_NAME
+from lib.constants import PACKAGES_INFO_FILE_NAME
 from lib.constants import REPOSITORIES_DIR
-from lib.versions_repository import setup_versions_repository
-from lib.versions_repository import read_version_and_milestone
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
@@ -42,45 +38,44 @@ RELEASE_FILE_TITLE = "OpenPOWER Host OS release"
 RELEASE_FILE_LAYOUT = "release"
 
 
-def write_version_info(release_tag, file_path, versions_repo, packages):
+def write_version_info(file_path, release_date, build_info, packages_info):
     """
     Write release information to a file.
     It contains packages names, branches and commit IDs.
+
+    Args:
+        file_path (str): path to the output release file
+        release_date (str): date of the release
+        build_info (dict): information about the build
+        packages_info (dict): information about the packages
     """
-    LOG.info("Creating release {release_tag} information".format(**locals()))
+
+    release_tag = "%s-%s" % (build_info['version'], release_date)
+
+    desired_keys = ['sources', 'version', 'release']
+    packages = [dict({k: v for k,v in pkg_info.items() if k in desired_keys},
+                     name=pkg_name)
+                for pkg_name, pkg_info in packages_info.items()]
 
     release_file_info = {
         "title": RELEASE_FILE_TITLE,
         "layout": RELEASE_FILE_LAYOUT,
         "release_tag": release_tag,
-        "builds_commit": str(repository.GitRepository(".").head.commit.hexsha),
-        "versions_commit": str(versions_repo.head.commit.hexsha),
+        "packages": packages,
+        "builds_commit": build_info['builds_repo_commit_id'],
+        "versions_commit": build_info['versions_repo_commit_id'],
     }
-
-    packages_info = build_info.query_pkgs_info(
-        packages, ["name", "version", "release", "sources"], True)
-
-    release_file_info["packages"] = [packages_info[k]
-                                     for k in sorted(packages_info.keys())]
 
     LOG.info("Writing release {release_tag} information to file: {file_path}"
              .format(**locals()))
     with open(file_path, "w") as version_info_file:
         release_file_content = RELEASE_FILE_CONTENT_TEMPLATE.format(
-            header_yaml=yaml.dump(release_file_info, default_flow_style=False))
+            header_yaml=yaml.safe_dump(release_file_info, default_flow_style=False))
         version_info_file.write(release_file_content)
 
 
 def run(CONF):
-    versions_repo = setup_versions_repository(CONF)
 
-    version_milestone = read_version_and_milestone(versions_repo)
-
-    packages_names = packages_manager.discover_packages()
-    distro = distro_utils.get_distro(
-        CONF.get('distro_name'),
-        CONF.get('distro_version'),
-        CONF.get('architecture'))
     release_notes_repo_url = CONF.get('release_notes_repo_url')
     release_notes_repo_branch = CONF.get('release_notes_repo_branch')
     commit_updates = CONF.get('commit_updates')
@@ -89,6 +84,7 @@ def run(CONF):
     push_repo_branch = CONF.get('push_repo_branch')
     updater_name = CONF.get('updater_name')
     updater_email = CONF.get('updater_email')
+    info_files_dir = CONF.get('info_files_dir')
 
     required_parameters = []
     if commit_updates:
@@ -99,11 +95,8 @@ def run(CONF):
         if not CONF.get(parameter):
             raise exception.RequiredParameterMissing(parameter=parameter)
 
-    LOG.info("Creating release notes with packages: {}".format(
-        ", ".join(packages_names)))
-    package_manager = packages_manager.PackagesManager(packages_names)
-    package_manager.prepare_packages(packages_class=rpm_package.RPM_Package,
-                                     download_source_code=False, distro=distro)
+    LOG.info("Creating release notes based on files at: {}".format(
+        info_files_dir))
 
     repositories_dir_path = os.path.join(
         CONF.get('work_dir'), REPOSITORIES_DIR)
@@ -112,14 +105,19 @@ def run(CONF):
     website_repo.checkout(release_notes_repo_branch)
 
     WEBSITE_POSTS_DIR = "_posts"
-    release_date = datetime.today().date().isoformat()
-    release_tag = "{version}-{date}".format(
-        version=version_milestone, date=release_date)
+
+    build_info_file = os.path.join(info_files_dir, BUILD_INFO_FILE_NAME)
+    build_info = json.load(open(build_info_file))
+
+    packages_info_file = os.path.join(info_files_dir, PACKAGES_INFO_FILE_NAME)
+    packages_info = json.load(open(packages_info_file))
+
+    # timestamp format is YYYY-MM-DDThh:mm:ss.xxx
+    release_date = build_info['timestamp'].split('T')[0]
     release_file_name = RELEASE_FILE_NAME_TEMPLATE.format(date=release_date)
     release_file_path = os.path.join(
         website_repo.working_tree_dir, WEBSITE_POSTS_DIR, release_file_name)
-    write_version_info(release_tag, release_file_path, versions_repo,
-                       package_manager.packages)
+    write_version_info(release_file_path, release_date, build_info, packages_info)
 
     if commit_updates:
         commit_message = "Host OS release of {date}".format(date=release_date)
