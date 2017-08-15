@@ -61,3 +61,5 @@ def run(CONF):
         if push_updates:
             LOG.info("Pushing updated {} files".format(METAPACKAGE_NAME))
             versions_repo.push_head_commits(push_repo_url, push_repo_branch)
+
+    LOG.info("Metapackage updated succesfully")

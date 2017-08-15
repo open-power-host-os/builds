@@ -43,3 +43,5 @@ def run(CONF):
     bm.build()
 
     build_info.write_built_pkgs_info_file(bm)
+
+    LOG.info("Packages built succesfully")
