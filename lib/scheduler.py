@@ -22,9 +22,7 @@ LOG = logging.getLogger(__name__)
 class Scheduler(object):
     """
     A *very primitive* scheduler just to deal with dependencies between the
-    packages we build. In the case qemu needs libseccomp, but this may become
-    more useful once kimchi, ginger, wok and some other projects at
-    open-power-host-os namespace are added.
+    packages we build.
     This class basically returns a tuple containing the best order to build
     things.
     """
