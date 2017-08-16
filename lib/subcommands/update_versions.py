@@ -30,10 +30,7 @@ from lib.metapackage import update_metapackage
 LOG = logging.getLogger(__name__)
 PACKAGES = [
     'SLOF',
-    'ginger',
-    'ginger-base',
     'kernel',
-    'kimchi',
     'libservicelog',
     'libvirt',
     'libvpd',
@@ -42,7 +39,6 @@ PACKAGES = [
     'qemu',
     'servicelog',
     'sos',
-    'wok',
 ]
 
 # prerelease strings supported as last element in the version regex
