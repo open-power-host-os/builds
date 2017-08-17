@@ -25,7 +25,7 @@ LOG = logging.getLogger(__name__)
 
 
 def run(CONF):
-    setup_versions_repository(CONF)
+    versions_repo = setup_versions_repository(CONF)
     packages_to_build = (CONF.get('packages') or
                          packages_manager.discover_packages())
     distro = distro_utils.get_distro(
@@ -42,6 +42,6 @@ def run(CONF):
     bm = build_manager.BuildManager(packages_to_build_names, distro)
     bm.build()
 
-    build_info.write_built_pkgs_info_file(bm)
+    build_info.write_build_info(bm, versions_repo)
 
     LOG.info("Packages built succesfully")

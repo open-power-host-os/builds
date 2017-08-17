@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import datetime
 import logging
 import os
 
@@ -33,6 +34,7 @@ class BuildManager(object):
         self.packages_manager = PackagesManager(packages_names)
         self.distro = distro
         self.repositories = None
+        self.timestamp = datetime.datetime.now().isoformat()
 
     def _build_packages(self, distro, packages):
         """
@@ -53,7 +55,7 @@ class BuildManager(object):
             if not os.path.isfile(mock_config_file_path):
                 raise exception.BaseException(
                     "Mock config file not found at %s" % mock_config_file_path)
-            package_builder = MockPackageBuilder(mock_config_file_path)
+            package_builder = MockPackageBuilder(mock_config_file_path, self.timestamp)
         else:
             raise exception.DistributionError()
         # create packages

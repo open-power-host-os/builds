@@ -19,6 +19,11 @@ import logging
 import os
 import pprint
 
+from lib import repository
+from lib.constants import BUILD_INFO_FILE_NAME
+from lib.constants import PACKAGES_INFO_FILE_NAME
+from lib.versions_repository import read_version_and_milestone
+
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 
@@ -75,22 +80,35 @@ def query_pkgs_info(packages, target_attrs, include_unbuilt=False):
     return packages_info
 
 
-def write_built_pkgs_info_file(build_manager):
+
+
+def write_build_info(build_manager, versions_repo):
     """
-    Write information about built packages to a file
+    Write build information to a file
 
     Args:
         build_manager(BuildManager): build manager instance
+        versions_repo (GitRepository): versions repository instance
     """
 
-    content = json.dumps(
+    info_files = {}
+    info_files[PACKAGES_INFO_FILE_NAME] = json.dumps(
         query_pkgs_info(build_manager.packages_manager.packages,
-                        ['version', 'rpms', 'sources']),
+                        ['version', 'rpms', 'sources', 'release']),
         sort_keys=True, indent=4)
 
-    file_path = os.path.join(
-        CONF.get('result_dir'), 'packages', 'latest', 'packages.json')
-    LOG.info("Writing packages information to file: %s", file_path)
+    info_files[BUILD_INFO_FILE_NAME] = json.dumps({
+        "builds_repo_commit_id": str(repository.GitRepository(".").head.commit.hexsha),
+        "versions_repo_commit_id": str(versions_repo.head.commit.hexsha),
+        "timestamp": build_manager.timestamp,
+        "version": read_version_and_milestone(versions_repo),
+    }, sort_keys=True, indent=4)
 
-    with open(file_path, "w") as info_file:
-        info_file.write(content)
+    for file_name, content in info_files.items():
+        file_path = os.path.join(
+            CONF.get('result_dir'), 'packages', 'latest', file_name)
+
+        LOG.info("Writing information file: %s", file_path)
+
+        with open(file_path, "w") as info_file:
+            info_file.write(content)

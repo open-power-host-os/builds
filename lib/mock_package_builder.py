@@ -15,7 +15,6 @@
 from functools import partial
 
 
-import datetime
 import logging
 import os
 import shutil
@@ -35,7 +34,7 @@ MOCK_CHROOT_BUILD_DIR = "/builddir/build/SOURCES"
 
 
 class MockPackageBuilder(package_builder.PackageBuilder):
-    def __init__(self, config_file):
+    def __init__(self, config_file, build_timestamp):
         """
         Constructor
 
@@ -46,7 +45,7 @@ class MockPackageBuilder(package_builder.PackageBuilder):
         self.build_dir = None
         self.build_results_dir = CONF.get('result_dir')
         self.archive = None
-        self.timestamp = datetime.datetime.now().isoformat()
+        self.timestamp = build_timestamp
         self.mock = Mock(config_file, self.timestamp)
 
     def initialize(self):
