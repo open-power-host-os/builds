@@ -104,3 +104,9 @@ class FilesToValidateNotFound(BaseException):
     # Subclass errors are in the form 0b0110xxx
     error_code = 48
 
+class NoPackagesUpdated(BaseException):
+    DEFAULT_MESSAGE = (
+        "No packages were updated since last commit.")
+    # Subclass errors are in the form 0b0111xxx
+    error_code = 56
+

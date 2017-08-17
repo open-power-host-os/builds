@@ -13,10 +13,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import logging
+
 from lib import iso_builder
+
+LOG = logging.getLogger(__name__)
 
 
 def run(CONF):
     builder = iso_builder.MockPungiIsoBuilder(CONF)
     builder.build()
     builder.clean()
+
+    LOG.info("ISO built succesfully")

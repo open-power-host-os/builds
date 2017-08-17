@@ -124,3 +124,5 @@ def run(CONF):
         website_repo.commit_changes(commit_message, updater_name, updater_email)
         if push_updates:
             website_repo.push_head_commits(push_repo_url, push_repo_branch)
+
+    LOG.info("Release notes built succesfully")
