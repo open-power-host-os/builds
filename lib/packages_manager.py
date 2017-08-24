@@ -88,4 +88,6 @@ def discover_packages():
     if not package_list:
     	raise exception.PackageDirectoryIsEmpty()
 
+    # Make the package order deterministic
+    package_list.sort()
     return package_list
