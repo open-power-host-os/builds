@@ -153,6 +153,10 @@ options:
     help: Push file updates to remote repository
     default: True
     action: store_false
+  release_category:
+    help: Release category, which is appended as the file suffix to serve as
+      the post title and added in the YAML metadata
+    default: release
   release_notes_repo_branch:
     help: Release notes repository branch
     default: master
@@ -216,6 +220,7 @@ commands:
     - push_repo_branch
     - push_repo_url
     - push_updates
+    - release_category
     - release_notes_repo_branch
     - release_notes_repo_url
     - update_packages_repos_before_build

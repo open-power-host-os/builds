@@ -28,7 +28,7 @@ from lib.constants import REPOSITORIES_DIR
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
 
-RELEASE_FILE_NAME_TEMPLATE = "{date}-release.markdown"
+RELEASE_FILE_NAME_TEMPLATE = "{date}-{suffix}.markdown"
 RELEASE_FILE_CONTENT_TEMPLATE = """\
 ---
 {header_yaml}
@@ -38,13 +38,15 @@ RELEASE_FILE_TITLE = "OpenPOWER Host OS release"
 RELEASE_FILE_LAYOUT = "release"
 
 
-def write_version_info(file_path, release_date, build_info, packages_info):
+def write_version_info(
+        file_path, release_category, release_date, build_info, packages_info):
     """
     Write release information to a file.
     It contains packages names, branches and commit IDs.
 
     Args:
         file_path (str): path to the output release file
+        release_category: category used to tag the post
         release_date (str): date of the release
         build_info (dict): information about the build
         packages_info (dict): information about the packages
@@ -60,6 +62,7 @@ def write_version_info(file_path, release_date, build_info, packages_info):
     release_file_info = {
         "title": RELEASE_FILE_TITLE,
         "layout": RELEASE_FILE_LAYOUT,
+        "categories": "tags " + release_category,
         "release_tag": release_tag,
         "packages": packages,
         "builds_commit": build_info['builds_repo_commit_id'],
@@ -85,6 +88,7 @@ def run(CONF):
     updater_name = CONF.get('updater_name')
     updater_email = CONF.get('updater_email')
     info_files_dir = CONF.get('info_files_dir')
+    release_category = CONF.get('release_category')
 
     required_parameters = []
     if commit_updates:
@@ -114,10 +118,12 @@ def run(CONF):
 
     # timestamp format is YYYY-MM-DDThh:mm:ss.xxx
     release_date = build_info['timestamp'].split('T')[0]
-    release_file_name = RELEASE_FILE_NAME_TEMPLATE.format(date=release_date)
+    release_file_name = RELEASE_FILE_NAME_TEMPLATE.format(
+        date=release_date, suffix=release_category)
     release_file_path = os.path.join(
         website_repo.working_tree_dir, WEBSITE_POSTS_DIR, release_file_name)
-    write_version_info(release_file_path, release_date, build_info, packages_info)
+    write_version_info(release_file_path, release_category, release_date,
+                       build_info, packages_info)
 
     if commit_updates:
         commit_message = "Host OS release of {date}".format(date=release_date)
