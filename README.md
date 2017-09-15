@@ -57,7 +57,7 @@ For more information about Host OS check: https://open-power-host-os.github.io/
 
 ### Supported GNU/Linux distributions
 
-* CentOS 7.3 PPC64LE
+* CentOS 7.4 PPC64LE
 
   Refer to [30. How does CentOS versioning work?](https://wiki.centos.org/FAQ/General#head-dcca41e9a3d5ac4c6d900a991990fd11930867d6).
 
