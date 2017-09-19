@@ -38,7 +38,6 @@ PACKAGES = [
     'ppc64-diag',
     'qemu',
     'servicelog',
-    'sos',
 ]
 
 # prerelease strings supported as last element in the version regex
