@@ -29,7 +29,41 @@ from lib.mock import Mock
 LOG = logging.getLogger(__name__)
 ISO_REPO_MINIMAL_PACKAGES_GROUPS = ["core", "anaconda-tools"]
 ISO_REPO_MINIMAL_PACKAGES = [
-    "anaconda", "anaconda-dracut", "redhat-upgrade-dracut", "grub2", "yum-langpacks"]
+    "anaconda",
+    "anaconda-dracut",
+    "redhat-upgrade-dracut",
+    "grub2",
+    "yum-langpacks",
+    # Packages needed for VNC installation
+    "metacity",
+    "bitmap-fangsongti-fonts",
+    "dejavu-sans-fonts dejavu-sans-mono-fonts",
+    "kacst-farsi-fonts",
+    "kacst-qurn-fonts",
+    "lklug-fonts",
+    "lohit-assamese-fonts",
+    "lohit-bengali-fonts",
+    "lohit-devanagari-fonts",
+    "lohit-gu*-fonts",
+    "lohit-kannada-fonts",
+    "lohit-odia-fonts",
+    "lohit-tamil-fonts",
+    "lohit-telugu-fonts",
+    "madan-fonts",
+    "nhn-nanum-gothic-fonts",
+    "smc-meera-fonts",
+    "thai-scalable-waree-fonts",
+    "vlgothic-fonts",
+    "wqy-microhei-fonts",
+    "sil-abyssinica-fonts",
+    "xorg-x11-fonts-misc",
+    "aajohan-comfortaa-fonts",
+    "abattis-cantarell-fonts",
+    "sil-scheherazade-fonts",
+    "jomolhari-fonts",
+    "khmeros-base-fonts",
+    "sil-padauk-fonts",
+]
 CHROOT_HOST_OS_REPO_PATH = "/host-os-repo"
 CHROOT_MERGED_REPO_PATH = "/merged-repo"
 CHROOT_MERGED_REPO_CONFIG_FILE_PATH = "/merged-repo.conf"
