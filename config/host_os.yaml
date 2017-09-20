@@ -64,6 +64,7 @@ build-release-notes:
   push_repo_branch: master
   push_repo_url: ''
   push_updates: true
+  release_category: release
   release_notes_repo_branch: master
   release_notes_repo_url: https://github.com/open-power-host-os/open-power-host-os.github.io.git
   update_packages_repos_before_build: true
