@@ -126,7 +126,9 @@ def run(CONF):
                        build_info, packages_info)
 
     if commit_updates:
-        commit_message = "Host OS release of {date}".format(date=release_date)
+        commit_message = (
+            CONF.get('commit_message')
+            or "Host OS release of {date}".format(date=release_date))
         website_repo.commit_changes(commit_message, updater_name, updater_email)
         if push_updates:
             website_repo.push_head_commits(push_repo_url, push_repo_branch)

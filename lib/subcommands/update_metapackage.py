@@ -55,7 +55,8 @@ def run(CONF):
         updater_name, updater_email)
 
     if commit_updates:
-        commit_message = "Update {} dependencies".format(METAPACKAGE_NAME)
+        commit_message = (CONF.get('commit_message')
+                          or "Update {} dependencies".format(METAPACKAGE_NAME))
         versions_repo.commit_changes(
             commit_message, updater_name, updater_email)
         if push_updates:

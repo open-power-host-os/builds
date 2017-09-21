@@ -59,6 +59,7 @@ build-packages:
   result_dir: result
   update_packages_repos_before_build: true
 build-release-notes:
+  commit_message: ''
   commit_updates: true
   info_files_dir: result/packages/latest
   push_repo_branch: master
@@ -79,6 +80,7 @@ host_os:
   verbose: false
   work_dir: workspace
 update-metapackage:
+  commit_message: ''
   commit_updates: true
   packages_metadata_repo_branch: master
   packages_metadata_repo_refspecs:
@@ -92,6 +94,7 @@ update-metapackage:
   updater_email: ''
   updater_name: ''
 update-versions:
+  commit_message: ''
   commit_updates: true
   packages: []
   packages_metadata_repo_branch: master
