@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from datetime import datetime
 import logging
 import os
 import re
@@ -239,8 +238,8 @@ def run(CONF):
             updater_name, updater_email)
 
         if commit_updates:
-            release_date = datetime.today().date().isoformat()
-            commit_message = "Weekly build {date}".format(date=release_date)
+            commit_message = (CONF.get('commit_message')
+                              or "Update packages versions")
             versions_repo.commit_changes(
                 commit_message, updater_name, updater_email)
 

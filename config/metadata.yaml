@@ -6,6 +6,10 @@ options:
     help: Path of a kickstart file, used to automate the installation of an
       RPM-based Linux distribution
     default: host-os.ks
+  commit_message:
+    help: Message used when creating the commit. If empty, a command-dependent
+      generic message is used.
+    default: ''
   commit_updates:
     help: Commit file updates to local repository
     default: True
@@ -215,6 +219,7 @@ commands:
   build-release-notes:
     help: Build release notes
     options:
+    - commit_message
     - commit_updates
     - info_files_dir
     - push_repo_branch
@@ -246,6 +251,7 @@ commands:
   update-metapackage:
     help: Update the metapackage dependencies
     options:
+    - commit_message
     - commit_updates
     - packages_metadata_repo_branch
     - packages_metadata_repo_refspecs
@@ -259,6 +265,7 @@ commands:
   update-versions:
     help: Update packages versions
     options:
+    - commit_message
     - commit_updates
     - packages
     - packages_metadata_repo_branch
