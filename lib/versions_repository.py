@@ -68,7 +68,7 @@ def read_version_and_milestone(versions_repo):
         version_milestone (str): version and milestone. Format:
             <version>-<milestone>, valid milestone values: alpha, beta
     """
-    version_file_path = os.path.join(versions_repo.working_tree_dir, 'VERSION')
+    version_file_path = os.path.join(versions_repo.working_tree_dir, 'open-power-host-os', 'CentOS', '7', 'SOURCES', 'VERSION')
     version_milestone = ""
     with open(version_file_path, 'r') as version_file:
         #ignore first line with file format information
