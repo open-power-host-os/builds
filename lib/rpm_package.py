@@ -299,12 +299,12 @@ class RPM_Package(Package):
 
     def get_spec_macros(self):
         """
-        Get command line string to define spec file macros externally.
+        Get external macro definitions to apply to spec file.
 
         Returns:
             dict: macros to be appended to the rpmbuild command
         """
-        macros = {}
+        macros = CONF.get('rpm_macros', dict())
         for package_attribute, macro_name in (
                 PACKAGE_METADATA_TO_RPM_MACRO_MAPPING.items()):
             subnode = getattr(self, package_attribute[0])
