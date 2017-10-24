@@ -98,7 +98,8 @@ options:
     help: Size in bytes above which the log file should rotate
     default: 2097152
   mock_args:
-    help: Arguments passed to mock command
+    help: Arguments passed to mock command. If you need to define macros
+      externally, use 'rpm_macros' option instead.
     # If the system has less RAM than required, the plugin will be disabled
     default:
       --enable-plugin=tmpfs
@@ -171,6 +172,12 @@ options:
     short_option_string: -r
     help: Directory used to store results
     default: result
+  rpm_macros:
+    help: Extra RPM macros to pass to commands that deal with spec
+      files. This assures consistency among different commands
+      (rpmbuild, rpmspec) and should be used instead of passing
+      '--define' to 'mock_args'.
+    default: {}
   update_packages_repos_before_build:
     help: Do not update code repositories before building
     default: True
@@ -215,6 +222,7 @@ commands:
     - packages_metadata_repo_refspecs
     - packages_metadata_repo_url
     - result_dir
+    - rpm_macros
     - update_packages_repos_before_build
   build-release-notes:
     help: Build release notes

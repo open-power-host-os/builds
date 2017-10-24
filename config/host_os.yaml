@@ -56,6 +56,7 @@ build-packages:
   - +refs/heads/*:refs/remotes/origin/*
   - +refs/pull/*:refs/remotes/origin/pr/*
   packages_metadata_repo_url: https://github.com/open-power-host-os/versions.git
+  rpm_macros: {}
   result_dir: result
   update_packages_repos_before_build: true
 build-release-notes:

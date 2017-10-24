@@ -31,6 +31,7 @@ ISO_REPO_MINIMAL_PACKAGES_GROUPS = ["core", "anaconda-tools"]
 ISO_REPO_MINIMAL_PACKAGES = [
     "anaconda",
     "anaconda-dracut",
+    "nfs-utils",
     "redhat-upgrade-dracut",
     "grub2",
     "yum-langpacks",
