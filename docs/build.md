@@ -13,7 +13,7 @@ builds the package in a chroot, taking care of its build dependencies.
 
 Other functionalities of the build script are:
 
-  - [build an installation ISO image](building_an_iso.md)
+  - [build an installation ISO image](build_iso.md)
   - update the metadata in the versions repository according to each
    of the package's source code upstream
   - update the open-power-host-os metapackages
