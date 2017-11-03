@@ -22,11 +22,12 @@ LOG = logging.getLogger(__name__)
 
 def run(CONF):
     build_iso = CONF.get('iso')
+    build_install_tree = CONF.get('install_tree')
 
-    if build_iso:
+    if not build_iso and not build_install_tree:
+        LOG.info("Neither --iso nor --install-tree specified, nothing to do here")
+    else:
         builder = iso_builder.MockPungiIsoBuilder(CONF)
         builder.build()
         builder.clean()
-        LOG.info("ISO built succesfully")
-    else:
-        LOG.info("--iso was not specified, nothing to do here")
+        LOG.info("build-images finished succesfully")

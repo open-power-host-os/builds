@@ -90,6 +90,7 @@ class MockPungiIsoBuilder(object):
         self.pungi_binary = self.config.get('pungi_binary') or "pungi"
         self.pungi_args = self.config.get('pungi_args') or ""
         self.build_iso = self.config.get('iso')
+        self.build_install_tree = self.config.get('install_tree')
 
         self._init_mock()
 
@@ -310,6 +311,15 @@ class MockPungiIsoBuilder(object):
             LOG.info("Saving ISO files %s at %s" % (iso_files, self.result_dir))
             self.mock.run_command("--copyout %s %s" %
                                   (iso_files, self.result_dir))
+
+        tree_src_dir = "/%s/%s/os" % (self.version, self.arch)
+        tree_dest_dir = os.path.join(self.result_dir, "os")
+
+        if self.build_install_tree:
+            LOG.info("Saving installable tree %s at %s" %
+                     (tree_src_dir, tree_dest_dir))
+            self.mock.run_command("--copyout %s %s" %
+                                  (tree_src_dir, tree_dest_dir))
 
     def clean(self):
         self.mock.run_command("--clean")
