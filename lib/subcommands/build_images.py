@@ -21,8 +21,12 @@ LOG = logging.getLogger(__name__)
 
 
 def run(CONF):
-    builder = iso_builder.MockPungiIsoBuilder(CONF)
-    builder.build()
-    builder.clean()
+    build_iso = CONF.get('iso')
 
-    LOG.info("ISO built succesfully")
+    if build_iso:
+        builder = iso_builder.MockPungiIsoBuilder(CONF)
+        builder.build()
+        builder.clean()
+        LOG.info("ISO built succesfully")
+    else:
+        LOG.info("--iso was not specified, nothing to do here")

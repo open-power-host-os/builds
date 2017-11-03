@@ -26,6 +26,7 @@ build-images:
     - open-power-host-os-virt
     OpenPOWER Host OS virtualization management:
     - open-power-host-os-virt-management
+  iso: False
   iso_name: Host_OS
   iso_repo_packages: []
   iso_repo_packages_groups:

@@ -67,6 +67,10 @@ options:
       - open-power-host-os-virt-management
       OpenPOWER Host OS RAS:
       - open-power-host-os-ras
+  iso:
+    help: Build ISO
+    default: False
+    action: store_true
   iso_name:
     help: ISO name
     default: Host_OS
@@ -245,6 +249,7 @@ commands:
     - automated_install_file
     - distro_repos
     - installable_environments
+    - iso
     - iso_name
     - iso_repo_packages
     - iso_repo_packages_groups
