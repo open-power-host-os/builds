@@ -89,6 +89,7 @@ class MockPungiIsoBuilder(object):
         (_, _, self.arch) = distro_utils.detect_distribution()
         self.pungi_binary = self.config.get('pungi_binary') or "pungi"
         self.pungi_args = self.config.get('pungi_args') or ""
+        self.build_iso = self.config.get('iso')
 
         self._init_mock()
 
@@ -285,11 +286,16 @@ class MockPungiIsoBuilder(object):
         shutil.copy(kickstart_path, self.result_dir)
 
     def _build(self):
-        LOG.info("Building ISO")
-        build_cmd = ("%s %s -c %s --name %s --ver %s" %
+        build_iso_args = ""
+
+        if self.build_iso:
+            build_iso_args = "-I"
+            LOG.info("Building ISO")
+
+        build_cmd = ("%s %s -c %s --name %s --ver %s -G -C -B %s" %
                     (self.pungi_binary, self.pungi_args,
                      self.config.get('automated_install_file'),
-                     self.distro, self.version))
+                     self.distro, self.version, build_iso_args))
         self.mock.run_command("--shell '%s'" % build_cmd)
 
     def _save(self):
@@ -300,9 +306,10 @@ class MockPungiIsoBuilder(object):
         iso_dir = "/%s/%s/iso" % (self.version, self.arch)
         iso_files = "%s/*" % iso_dir
 
-        LOG.info("Saving ISO files %s at %s" % (iso_files, self.result_dir))
-        self.mock.run_command("--copyout %s %s" %
-                              (iso_files, self.result_dir))
+        if self.build_iso:
+            LOG.info("Saving ISO files %s at %s" % (iso_files, self.result_dir))
+            self.mock.run_command("--copyout %s %s" %
+                                  (iso_files, self.result_dir))
 
     def clean(self):
         self.mock.run_command("--clean")
