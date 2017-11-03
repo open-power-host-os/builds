@@ -7,7 +7,7 @@ If you wish an installable ISO with all the built packages and all packages
 groups available during the installation, just execute:
 
 ```
-./host_os.py --verbose build-iso
+./host_os.py --verbose build-images --iso
 ```
 
 This assumes the packages are at their default location at
@@ -18,7 +18,7 @@ result directory, and may be installed using those
 See `--help` for more options.
 
 ```
-./host_os.py build-iso --help
+./host_os.py build-images --help
 ```
 
 

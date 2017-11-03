@@ -239,7 +239,7 @@ commands:
     - update_packages_repos_before_build
     - updater_email
     - updater_name
-  build-iso:
+  build-images:
     help: Build ISO image
     options:
     - automated_install_file

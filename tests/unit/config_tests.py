@@ -23,8 +23,8 @@ class TestConfigParser(unittest.TestCase):
         (['build-release-notes', '--push-repo-branch=foo'], 'push_repo_branch', 'foo'),
         (['build-release-notes', '--updater-name=foo'], 'updater_name', 'foo'),
         (['build-release-notes', '--updater-email=foo'], 'updater_email', 'foo'),
-        (['build-iso', '--packages-dir=foo'], 'packages_dir', 'foo'),
-        (['build-iso', '--mock-args=foo'], 'mock_args', 'foo'),
+        (['build-images', '--packages-dir=foo'], 'packages_dir', 'foo'),
+        (['build-images', '--mock-args=foo'], 'mock_args', 'foo'),
         (['update-versions', '--no-commit-updates'], 'commit_updates', False),
         (['update-versions', '--no-push-updates'], 'push_updates', False),
     ])
@@ -54,8 +54,8 @@ class TestConfigParser(unittest.TestCase):
         (['build-release-notes'], 'push_repo_branch', 'master'),
         (['build-release-notes'], 'updater_name', ''),
         (['build-release-notes'], 'updater_email', ''),
-        (['build-iso'], 'packages_dir', 'result/packages/latest'),
-        (['build-iso'], 'mock_args', '--enable-plugin=tmpfs '
+        (['build-images'], 'packages_dir', 'result/packages/latest'),
+        (['build-images'], 'mock_args', '--enable-plugin=tmpfs '
          '--plugin-option=tmpfs:keep_mounted=True --plugin-option='
          'tmpfs:max_fs_size=32g --plugin-option=tmpfs:required_ram_mb=39800 '
          '--verbose'),

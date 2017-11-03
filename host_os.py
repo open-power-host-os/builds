@@ -22,7 +22,7 @@ from lib import config
 from lib import exception
 from lib.utils import create_directory
 from lib.utils import is_package_installed
-from lib.subcommands import build_iso
+from lib.subcommands import build_images
 from lib.subcommands import build_packages
 from lib.subcommands import build_release_notes
 from lib.subcommands import update_metapackage
@@ -38,11 +38,11 @@ SUBCOMMANDS = {
     'build-release-notes': build_release_notes,
     'update-metapackage': update_metapackage,
     'update-versions': update_versions,
-    'build-iso': build_iso,
+    'build-images': build_images,
 }
 MOCK_REQUIRED_SUBCOMANDS = [
     'build-package',
-    'build-iso',
+    'build-images',
 ]
 
 

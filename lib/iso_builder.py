@@ -98,7 +98,7 @@ class MockPungiIsoBuilder(object):
             self.config.get('distro_name'),
             self.config.get('distro_version'),
             self.config.get('architecture'))
-        mock_config_file_name = "build-iso-%s-%s-%s.cfg" % (
+        mock_config_file_name = "build-images-%s-%s-%s.cfg" % (
             distro.name, distro.version, distro.architecture)
         mock_config_file_path = os.path.join(
             "config/mock", distro.name, distro.version,

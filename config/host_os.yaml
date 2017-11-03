@@ -1,4 +1,4 @@
-build-iso:
+build-images:
   automated_install_file: host-os.ks
   distro_repos:
   - name: base
