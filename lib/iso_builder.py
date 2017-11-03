@@ -18,6 +18,8 @@ import glob
 import logging
 import os
 
+import shutil
+
 from lib import exception
 from lib import utils
 from lib import distro_utils
@@ -89,6 +91,8 @@ class MockPungiIsoBuilder(object):
         self.pungi_args = self.config.get('pungi_args') or ""
 
         self._init_mock()
+
+        utils.create_directory(self.result_dir)
 
     def _init_mock(self):
         """
@@ -278,6 +282,7 @@ class MockPungiIsoBuilder(object):
             kickstart_file.write("%end\n")
 
         self.mock.run_command("--copyin %s /" % kickstart_path)
+        shutil.copy(kickstart_path, self.result_dir)
 
     def _build(self):
         LOG.info("Building ISO")
@@ -288,7 +293,6 @@ class MockPungiIsoBuilder(object):
         self.mock.run_command("--shell '%s'" % build_cmd)
 
     def _save(self):
-        utils.create_directory(self.result_dir)
         latest_dir = os.path.join(os.path.dirname(self.result_dir),
                                   LATEST_SYMLINK_NAME)
         utils.force_symlink(self.timestamp, latest_dir)
