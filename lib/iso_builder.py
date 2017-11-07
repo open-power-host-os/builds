@@ -18,6 +18,8 @@ import glob
 import logging
 import os
 
+import shutil
+
 from lib import exception
 from lib import utils
 from lib import distro_utils
@@ -87,8 +89,12 @@ class MockPungiIsoBuilder(object):
         (_, _, self.arch) = distro_utils.detect_distribution()
         self.pungi_binary = self.config.get('pungi_binary') or "pungi"
         self.pungi_args = self.config.get('pungi_args') or ""
+        self.build_iso = self.config.get('iso')
+        self.build_install_tree = self.config.get('install_tree')
 
         self._init_mock()
+
+        utils.create_directory(self.result_dir)
 
     def _init_mock(self):
         """
@@ -98,7 +104,7 @@ class MockPungiIsoBuilder(object):
             self.config.get('distro_name'),
             self.config.get('distro_version'),
             self.config.get('architecture'))
-        mock_config_file_name = "build-iso-%s-%s-%s.cfg" % (
+        mock_config_file_name = "build-images-%s-%s-%s.cfg" % (
             distro.name, distro.version, distro.architecture)
         mock_config_file_path = os.path.join(
             "config/mock", distro.name, distro.version,
@@ -278,17 +284,22 @@ class MockPungiIsoBuilder(object):
             kickstart_file.write("%end\n")
 
         self.mock.run_command("--copyin %s /" % kickstart_path)
+        shutil.copy(kickstart_path, self.result_dir)
 
     def _build(self):
-        LOG.info("Building ISO")
-        build_cmd = ("%s %s -c %s --name %s --ver %s" %
+        build_iso_args = ""
+
+        if self.build_iso:
+            build_iso_args = "-I"
+            LOG.info("Building ISO")
+
+        build_cmd = ("%s %s -c %s --name %s --ver %s -G -C -B %s" %
                     (self.pungi_binary, self.pungi_args,
                      self.config.get('automated_install_file'),
-                     self.distro, self.version))
+                     self.distro, self.version, build_iso_args))
         self.mock.run_command("--shell '%s'" % build_cmd)
 
     def _save(self):
-        utils.create_directory(self.result_dir)
         latest_dir = os.path.join(os.path.dirname(self.result_dir),
                                   LATEST_SYMLINK_NAME)
         utils.force_symlink(self.timestamp, latest_dir)
@@ -296,9 +307,19 @@ class MockPungiIsoBuilder(object):
         iso_dir = "/%s/%s/iso" % (self.version, self.arch)
         iso_files = "%s/*" % iso_dir
 
-        LOG.info("Saving ISO files %s at %s" % (iso_files, self.result_dir))
-        self.mock.run_command("--copyout %s %s" %
-                              (iso_files, self.result_dir))
+        if self.build_iso:
+            LOG.info("Saving ISO files %s at %s" % (iso_files, self.result_dir))
+            self.mock.run_command("--copyout %s %s" %
+                                  (iso_files, self.result_dir))
+
+        tree_src_dir = "/%s/%s/os" % (self.version, self.arch)
+        tree_dest_dir = os.path.join(self.result_dir, "os")
+
+        if self.build_install_tree:
+            LOG.info("Saving installable tree %s at %s" %
+                     (tree_src_dir, tree_dest_dir))
+            self.mock.run_command("--copyout %s %s" %
+                                  (tree_src_dir, tree_dest_dir))
 
     def clean(self):
         self.mock.run_command("--clean")

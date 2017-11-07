@@ -1,4 +1,4 @@
-build-iso:
+build-images:
   automated_install_file: host-os.ks
   distro_repos:
   - name: base
@@ -26,6 +26,8 @@ build-iso:
     - open-power-host-os-virt
     OpenPOWER Host OS virtualization management:
     - open-power-host-os-virt-management
+  install_tree: False
+  iso: False
   iso_name: Host_OS
   iso_repo_packages: []
   iso_repo_packages_groups:
