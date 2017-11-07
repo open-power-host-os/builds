@@ -109,7 +109,9 @@ def update_metapackage(
         YAML_START_DELIMITER)
 
     LOG.info("Updating release package spec file")
-    version_file_path = os.path.join(versions_repo.working_tree_dir, "VERSION")
+    version_file_path = os.path.join(versions_repo.working_tree_dir,
+                                     "open-power-host-os", "CentOS", "7",
+                                     "SOURCES", "VERSION")
     with open(version_file_path) as version_file:
         version_parts = version_file.readlines()[-1].strip().split("-")
     new_metapackage_version = version_parts.pop(0)
