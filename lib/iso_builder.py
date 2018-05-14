@@ -66,6 +66,9 @@ ISO_REPO_MINIMAL_PACKAGES = [
     "jomolhari-fonts",
     "khmeros-base-fonts",
     "sil-padauk-fonts",
+    # Packages required by lorax
+    "dracut-fips", # https://github.com/weldr/lorax/pull/230 (commit: 7aa7118)
+    "kernel-bootwrapper",
 ]
 CHROOT_HOST_OS_REPO_PATH = "/host-os-repo"
 CHROOT_MERGED_REPO_PATH = "/merged-repo"
