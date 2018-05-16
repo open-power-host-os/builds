@@ -166,7 +166,7 @@ def is_package_installed(package_name):
         bool: if RPM package is installed
     """
 
-    cmd = "rpm -q %s" % package_name
+    cmd = "rpm -q --whatprovides %s" % package_name
     try:
         run_command(cmd, shell=True)
     except exception.SubprocessError as e:
