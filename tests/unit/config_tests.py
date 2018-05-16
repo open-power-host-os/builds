@@ -19,12 +19,18 @@ class TestConfigParser(unittest.TestCase):
         (['build-packages', '--packages-metadata-repo-url=foo'], 'packages_metadata_repo_url', 'foo'),
         (['build-packages', '--packages-metadata-repo-branch=foo'], 'packages_metadata_repo_branch', 'foo'),
         (['build-packages', '--mock-args=foo'], 'mock_args', 'foo'),
+        (['build-packages', '--rpm-macros', '{"macro1":"value1", "macro2":"value2"}'], 'rpm_macros',
+         {"macro1":"value1","macro2":"value2"}),
         (['build-release-notes', '--push-repo-url=foo'], 'push_repo_url', 'foo'),
         (['build-release-notes', '--push-repo-branch=foo'], 'push_repo_branch', 'foo'),
         (['build-release-notes', '--updater-name=foo'], 'updater_name', 'foo'),
         (['build-release-notes', '--updater-email=foo'], 'updater_email', 'foo'),
         (['build-images', '--packages-dir=foo'], 'packages_dir', 'foo'),
         (['build-images', '--mock-args=foo'], 'mock_args', 'foo'),
+        (['build-images', '--distro-repos', '{"a":1,"b":2}', '{"a":{"b":2}}'], 'distro_repos',
+         [{"a":1,"b":2}, {"a":{"b":2}}]),
+        (['build-images', '--installable-environments', '{"env1": ["group1", "group2"]}'], 'installable_environments',
+         {"env1":["group1","group2"]}),
         (['update-versions', '--no-commit-updates'], 'commit_updates', False),
         (['update-versions', '--no-push-updates'], 'push_updates', False),
     ])
@@ -50,6 +56,7 @@ class TestConfigParser(unittest.TestCase):
          '--plugin-option=tmpfs:keep_mounted=True --plugin-option='
          'tmpfs:max_fs_size=32g --plugin-option=tmpfs:required_ram_mb=39800 '
          '--verbose'),
+        (['build-packages'], 'rpm_macros', {}),
         (['build-release-notes'], 'push_repo_url', ''),
         (['build-release-notes'], 'push_repo_branch', 'master'),
         (['build-release-notes'], 'updater_name', ''),

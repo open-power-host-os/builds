@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import argparse
+import json
 import os
 import sys
 
@@ -86,10 +87,19 @@ class ConfigParser(object):
         long_option_string = "--" + option_name.replace("_", "-")
         if keyword_args.get("action", "store") == "store":
             option_type = type(option_dict["default"])
+
             if option_type == list:
                 keyword_args["nargs"] = "*"
+                if option_dict["default"]:
+                    option_type = type(option_dict["default"][0])
+                else:
+                    option_type = None
+
+            if option_type == dict:
+                keyword_args["type"] = json.loads
             else:
                 keyword_args["type"] = option_type
+
         elif keyword_args.get("action", "store") == "store_false":
             long_option_string = "--no-" + option_name.replace("_", "-")
         option_strings = [long_option_string]
