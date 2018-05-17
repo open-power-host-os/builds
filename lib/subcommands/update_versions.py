@@ -33,8 +33,6 @@ PACKAGES = [
     'libservicelog',
     'libvirt',
     'libvpd',
-    'lsvpd',
-    'ppc64-diag',
     'qemu',
     'servicelog',
 ]
