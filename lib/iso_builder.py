@@ -34,6 +34,8 @@ ISO_REPO_MINIMAL_PACKAGES = [
     "anaconda",
     "anaconda-dracut",
     "nfs-utils",
+    # pulls powerpc-utils, needed by anaconda
+    "ppc64-utils",
     "redhat-upgrade-dracut",
     "grub2",
     "yum-langpacks",
