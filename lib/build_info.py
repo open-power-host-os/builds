@@ -22,7 +22,6 @@ import pprint
 from lib import repository
 from lib.constants import BUILD_INFO_FILE_NAME
 from lib.constants import PACKAGES_INFO_FILE_NAME
-from lib.versions_repository import read_version_and_milestone
 
 CONF = config.get_config().CONF
 LOG = logging.getLogger(__name__)
@@ -101,7 +100,6 @@ def write_build_info(build_manager, versions_repo):
         "builds_repo_commit_id": str(repository.GitRepository(".").head.commit.hexsha),
         "versions_repo_commit_id": str(versions_repo.head.commit.hexsha),
         "timestamp": build_manager.timestamp,
-        "version": read_version_and_milestone(versions_repo),
     }, sort_keys=True, indent=4)
 
     for file_name, content in info_files.items():
