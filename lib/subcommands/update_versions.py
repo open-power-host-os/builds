@@ -30,11 +30,8 @@ LOG = logging.getLogger(__name__)
 PACKAGES = [
     'SLOF',
     'kernel',
-    'libservicelog',
     'libvirt',
-    'libvpd',
     'qemu',
-    'servicelog',
 ]
 
 # prerelease strings supported as last element in the version regex
