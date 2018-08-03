@@ -6,7 +6,7 @@ system with a
 and a yum configuration file pointing to an accessible yum repository
 containing the Host OS packages.
 
-If you've just followed the [Quick Start guide](https://github.com/open-power-host-os/builds#quick-start) 
+If you've just followed the [Quick Start guide](https://github.com/open-power-host-os/builds#quick-start)
 and want to use the local yum
 repository containing the built packages, your yum configuration file
 will be available at `result/repository_config/latest`. Otherwise, you'll
@@ -75,12 +75,12 @@ append root=live:http://<server_url>/<path_to_mounted_iso>/LiveOS/squashfs.img r
 following options:
 
 ```
- 1)  [ ] Minimal Install                 6)  [ ] Openpower Host Os Container
- 2)  [ ] Infrastructure Server           7)  [ ] Openpower Host Os Ras
- 3)  [ ] Virtualization Host             8)  [ ] Openpower Host Os
- 4)  [ ] Openpower Host Os All                   Virtualization
- 5)  [ ] Openpower Host Os Base          9)  [ ] Openpower Host Os
-                                                 Virtualization Management
+ 1)  [ ] Minimal Install                 6)  [ ] Openpower Host Os
+ 2)  [ ] Infrastructure Server                   Virtualization
+ 3)  [ ] Virtualization Host
+ 4)  [ ] Openpower Host Os All
+ 5)  [ ] Openpower Host Os Base
+
 ```
 
 The first three ones are same that are present on a stardard CentOS installation,
