@@ -2,7 +2,6 @@ import logging
 import os
 import re
 
-from lib import exception
 from lib import packages_manager
 from lib import readme
 from lib import rpm_package
@@ -109,30 +108,9 @@ def update_metapackage(
         YAML_START_DELIMITER)
 
     LOG.info("Updating release package spec file")
-    version_file_path = os.path.join(versions_repo.working_tree_dir,
-                                     "open-power-host-os", "CentOS", "7",
-                                     "SOURCES", "VERSION")
-    with open(version_file_path) as version_file:
-        version_parts = version_file.readlines()[-1].strip().split("-")
-    new_metapackage_version = version_parts.pop(0)
-    if version_parts:
-        metapackage_milestone = version_parts.pop(0)
-    else:
-        metapackage_milestone = "%nil"
 
     metapackage = rpm_package.RPM_Package.get_instance(
         metapackage_name, distro)
-
-    version_compare = rpm_package.compare_versions(
-        metapackage.version, new_metapackage_version)
-    if version_compare < 0:
-        metapackage.spec_file.update_version(new_metapackage_version)
-    elif version_compare > 0:
-        raise exception.PackageError(
-            "Current version (%s) is greater than new version (%s)" %
-            (metapackage.version, new_metapackage_version))
-    metapackage.spec_file.replace_macro_definition(
-        "milestone", metapackage_milestone)
 
     replace_spec_dependencies(metapackage.spec_file.path)
     metapackage.spec_file.bump_release(
